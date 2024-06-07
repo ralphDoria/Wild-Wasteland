@@ -51,7 +51,6 @@ local function onActivated()
 		swingDebounce = true
 		local swingAnimTrack : AnimationTrack = doAnimation(animObjects.swing, true)
 		swingAnimTrack:GetMarkerReachedSignal("ForwardSwing"):Connect(function()
-			print("firing forward swing")
 			bev_ForwardSwing:Fire(true)
 			soundObjects.swing:Play()
 		end)

@@ -1,7 +1,7 @@
 -- << Initial Setup >> 
 local tool = script.Parent.Parent
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RaycastHitBox = require(ReplicatedStorage:WaitForChild("RaycastHitboxV4"))
+local RaycastHitBox = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("RaycastHitboxV4"))
 local currentCharacter : Model = nil
 
 --config
@@ -26,13 +26,10 @@ newHitBox.OnHit:Connect(function(hit, humanoid)
 end)
 
 bev_ForwardSwing.Event:Connect(function(shouldStartHit : boolean)
-	print("recieved fire")
 	if shouldStartHit then
 		newHitBox:HitStart()
-		print("starting hit")
 	else
 		newHitBox:HitStop()
-		print("stopping hit")
 	end
 
 end)
