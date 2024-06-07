@@ -3,10 +3,19 @@
   "tree": {
     "$className": "DataModel",
 
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+
+      "RojoManaged_RS": {
+        "$className": "Folder",
+        "$path": "src/ReplicatedStorage"
+      }
+    },
+
     "ServerScriptService": {
       "$className": "ServerScriptService",
   
-      "GameFiles": {
+      "RojoManaged_SSS": {
         "$className": "Folder",
         "$path": "src/ServerScriptService"
       }
