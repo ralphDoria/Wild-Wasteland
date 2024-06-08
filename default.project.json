@@ -12,6 +12,19 @@
       }
     },
 
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+
+        "RojoManaged_SPS": {
+          "$className": "Folder",
+          "$path": "src/StarterPlayerScripts"
+        }
+      }
+    },
+
     "ServerScriptService": {
       "$className": "ServerScriptService",
   

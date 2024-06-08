@@ -1,4 +1,3 @@
-
 --fix proximity prompt, make is so that you can use the RequiresLineOfSight property to prevent buggy thangs
 --figure out how to do sound regions
 
@@ -19,6 +18,7 @@
         pp.Triggered:Connect(function(playerWhoTriggered: Player)
             
             pp.Enabled = false
+            
             local soundToPlay : Sound = closeSound
             local rotation = 100
             
