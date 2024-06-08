@@ -81,7 +81,6 @@ local function onActivated()
 		end)
 		swingAnimTrack.Stopped:Wait()
 		if isEquipped() then
-			print("canSwing = true")
 			canSwing = true
 		end
 	end
