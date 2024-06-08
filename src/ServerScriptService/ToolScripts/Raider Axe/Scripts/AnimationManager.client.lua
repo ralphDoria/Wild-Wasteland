@@ -1,7 +1,7 @@
 local tool = script.Parent.Parent
 local player = nil
 local character = nil
-local swingDebounce = false
+local canSwing = false
 
 --bindable events
 local Events = tool:WaitForChild("Events")
@@ -10,6 +10,7 @@ local bev_ForwardSwing = BindableEvents:WaitForChild("ForwardSwing")
 local bev_UpdateCurrentCharacter = BindableEvents:WaitForChild("UpdateCurrentCharacter")
 
 local animObjects = {
+	equip = tool:WaitForChild("Anims"):WaitForChild("equip"),
 	idle = tool:WaitForChild("Anims"):WaitForChild("idle"),
 	swing = tool:WaitForChild("Anims"):WaitForChild("swing")
 }
@@ -46,9 +47,30 @@ local function doAnimation(anim : Animation, shouldPlay : boolean)
 	end
 end
 
+local function isEquipped()
+	if tool.Parent:FindFirstChild("Humanoid") then
+		return true 
+	else 
+		return false
+	end
+end
+
+local function onEquipped()
+	player = game:GetService("Players").LocalPlayer
+	character = player.Character or player.CharacterAdded:Wait()
+	bev_UpdateCurrentCharacter:Fire(character)
+	soundObjects.equip:Play()
+	local idleAnimTrack = doAnimation(animObjects.equip, true)
+	idleAnimTrack.Stopped:Wait()
+	if isEquipped then --checking this because during the equip animation, players can unequip the tool, causing a bug
+		doAnimation(animObjects.idle, true)
+		canSwing = true
+	end
+end
+
 local function onActivated()
-	if swingDebounce == false then
-		swingDebounce = true
+	if canSwing then
+		canSwing = false
 		local swingAnimTrack : AnimationTrack = doAnimation(animObjects.swing, true)
 		swingAnimTrack:GetMarkerReachedSignal("ForwardSwing"):Connect(function()
 			bev_ForwardSwing:Fire(true)
@@ -58,20 +80,13 @@ local function onActivated()
 			bev_ForwardSwing:Fire(false)
 		end)
 		swingAnimTrack.Stopped:Wait()
-		swingDebounce = false
+		canSwing = true
 	end
 	
 end
 
-local function onEquipped()
-	player = game:GetService("Players").LocalPlayer
-	character = player.Character or player.CharacterAdded:Wait()
-	bev_UpdateCurrentCharacter:Fire(character)
-	soundObjects.equip:Play()
-	doAnimation(animObjects.idle, true)
-end
-
 local function onUnequipped()
+	canSwing = false
 	doAnimation(animObjects.idle, false)
 	bev_ForwardSwing:Fire(false) --this turns off the raycast -- I know the event name is a bit misleading
 	for _, animTrack : AnimationTrack in character:WaitForChild("Humanoid"):WaitForChild("Animator"):GetPlayingAnimationTracks() do
@@ -85,6 +100,5 @@ local function onUnequipped()
 end
 
 tool.Equipped:Connect(onEquipped)
-tool.Unequipped:Connect(onUnequipped)
-
 tool.Activated:Connect(onActivated)
+tool.Unequipped:Connect(onUnequipped)
