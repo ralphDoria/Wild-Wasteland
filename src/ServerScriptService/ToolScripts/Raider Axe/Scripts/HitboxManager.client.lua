@@ -4,9 +4,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RaycastHitBox = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("RaycastHitboxV4"))
 local currentCharacter : Model = nil
 
---config
-local config = require(tool:WaitForChild("Scripts"):WaitForChild("config"))
-
 --constructing a new hitbox
 local newHitBox = RaycastHitBox.new(tool:WaitForChild("Hitbox"))
 

@@ -50,7 +50,7 @@ end
 local function isEquipped()
 	if tool.Parent:FindFirstChild("Humanoid") then
 		return true 
-	else 
+	else
 		return false
 	end
 end
@@ -60,9 +60,9 @@ local function onEquipped()
 	character = player.Character or player.CharacterAdded:Wait()
 	bev_UpdateCurrentCharacter:Fire(character)
 	soundObjects.equip:Play()
-	local idleAnimTrack = doAnimation(animObjects.equip, true)
-	idleAnimTrack.Stopped:Wait()
-	if isEquipped then --checking this because during the equip animation, players can unequip the tool, causing a bug
+	local equipAnimTrack = doAnimation(animObjects.equip, true)
+	equipAnimTrack.Stopped:Wait()
+	if isEquipped() then --checking this because during the equip animation, players can unequip the tool, causing a bug
 		doAnimation(animObjects.idle, true)
 		canSwing = true
 	end
@@ -80,7 +80,10 @@ local function onActivated()
 			bev_ForwardSwing:Fire(false)
 		end)
 		swingAnimTrack.Stopped:Wait()
-		canSwing = true
+		if isEquipped() then
+			print("canSwing = true")
+			canSwing = true
+		end
 	end
 	
 end

@@ -17,7 +17,6 @@ local function assembleTool(toolName : String, parent)
     --enabling the scripts
     for _, file : Script in scripts:GetChildren() do
         if not file:IsA("ModuleScript") and not file.Enabled then
-            print(file.Name .. " was enabled")
             file.Enabled = true
         end
     end
@@ -25,7 +24,7 @@ local function assembleTool(toolName : String, parent)
     --puts tool in specified parent
     tool.Parent = parent
 
-    print(toolName .. " was successfully created: " .. tool.ClassName)
+    --print(toolName .. " was successfully created: " .. tool.ClassName)
 end
 
 assembleTool("Raider Axe", game:GetService("Players"):GetPlayerFromCharacter(game.Workspace:WaitForChild("Niletheus")):WaitForChild("Backpack"))

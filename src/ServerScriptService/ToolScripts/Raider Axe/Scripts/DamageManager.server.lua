@@ -15,6 +15,6 @@ rev_Hit.OnServerEvent:Connect(function(player : Player, humanoid : Humanoid, hit
 	hitSound:Play()
 	humanoid:TakeDamage(config.damage)
 	local damagedPlayerName : string = humanoid.Parent.Name
-	print(damagedPlayerName .. " was hit in their " .. hitLocation.Name)
+	--print(damagedPlayerName .. " was hit in their " .. hitLocation.Name)
 end)
 
