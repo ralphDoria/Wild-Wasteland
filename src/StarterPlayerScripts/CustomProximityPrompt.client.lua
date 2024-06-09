@@ -4,27 +4,27 @@ local HoldToClickGui = require(game:GetService("ReplicatedStorage"):WaitForChild
 
 ProximityPromptService.PromptShown:Connect(function(prompt)
 	squarePPUI:Clone().Parent = prompt.Parent
+	local ProgressBar = nil
+	if prompt:GetAttribute("Initialized") == nil then
+		prompt:SetAttribute("Initialized", true)
+		local customPP = prompt.Parent:FindFirstChild("SquareProximityPrompt")
+		local pb : Frame = customPP:WaitForChild("Frame"):WaitForChild("ProgressBar")
+		local ProgressBar = HoldToClickGui.new(pb, prompt.HoldDuration, 2, 2)
+		prompt.PromptButtonHoldBegan:Connect(function()
+			ProgressBar:Start()
+		end)
+		prompt.PromptButtonHoldEnded:Connect(function()
+			ProgressBar:End()
+		end)
+	end
 end)
 
 ProximityPromptService.PromptHidden:Connect(function(prompt)
 	prompt.Parent:FindFirstChild("SquareProximityPrompt"):Destroy()
+	prompt:SetAttribute("Initialized", nil)
 end)
 
 ProximityPromptService.PromptTriggered:Connect(function(prompt, plr)
 	local customPP = prompt.Parent:FindFirstChild("SquareProximityPrompt")
 	customPP.Frame.BackgroundTransparency = 0.5
-end)
-
---[[
-***The code below doesn't work because the HoldToClickGui wasn't coded in luau OOP correctly.
-	This is a good opportunity to brush up on my Lua OOP
-]]
-ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, playerWhoTriggered)
-	local customPP = prompt.Parent:FindFirstChild("SquareProximityPrompt")
-	local ProgressBar = HoldToClickGui.new(customPP, prompt.HoldDuration, 2, 2)
-	ProgressBar:Start()
-
-	ProximityPromptService.PromptButtonHoldEnded:Once(function(prompt, playerWhoTriggered)
-		ProgressBar:End()
-	end)
 end)
