@@ -57,6 +57,8 @@ end
 
 local function onEquipped()
 	player = game:GetService("Players").LocalPlayer
+	local mouse = player:GetMouse()
+	mouse.Icon = script.Parent.Parent:WaitForChild("Cursor").Texture
 	character = player.Character or player.CharacterAdded:Wait()
 	bev_UpdateCurrentCharacter:Fire(character)
 	soundObjects.equip:Play()
@@ -88,6 +90,8 @@ local function onActivated()
 end
 
 local function onUnequipped()
+	local mouse = player:GetMouse()
+	mouse.Icon = ""
 	canSwing = false
 	doAnimation(animObjects.idle, false)
 	bev_ForwardSwing:Fire(false) --this turns off the raycast -- I know the event name is a bit misleading
