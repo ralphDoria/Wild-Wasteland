@@ -20,6 +20,17 @@ local soundObjects = {
 	swing = tool:WaitForChild("SFX_part"):WaitForChild("Sword Swing Metal Heavy")
 }
 
+local function loadAllAnimationsOntoAnimator()
+	local animator = character:FindFirstChild("Animator", true)
+	if animator == nil then
+		warn("Animator not found, cannot load animations")
+	else
+		for _, anim in animObjects do
+			animator:LoadAnimation(anim)
+		end
+	end
+end
+
 local function doAnimation(anim : Animation, shouldPlay : boolean)
 	local humanoid = character:WaitForChild("Humanoid")
 	local animator : Animator = humanoid:WaitForChild("Animator")
@@ -57,9 +68,13 @@ end
 
 local function onEquipped()
 	player = game:GetService("Players").LocalPlayer
+	character = player.Character or player.CharacterAdded:Wait()
+	if character:GetAttribute(string.gsub(tool.Name, " ", "") .. "AnimsLoaded") == nil then
+		character:SetAttribute(string.gsub(tool.Name, " ", "") .. "AnimsLoaded", true)
+		loadAllAnimationsOntoAnimator()
+	end
 	local mouse = player:GetMouse()
 	mouse.Icon = script.Parent.Parent:WaitForChild("Cursor").Texture
-	character = player.Character or player.CharacterAdded:Wait()
 	bev_UpdateCurrentCharacter:Fire(character)
 	soundObjects.equip:Play()
 	local equipAnimTrack = doAnimation(animObjects.equip, true)
