@@ -12,6 +12,15 @@
       }
     },
 
+    "ReplicatedFirst": {
+      "$className": "ReplicatedFirst",
+
+      "Rojo Managed_RF": {
+        "$className": "Folder",
+        "$path": "src/ReplicatedFirst"
+      }
+    },
+
     "StarterPlayer": {
       "$className": "StarterPlayer",
 
