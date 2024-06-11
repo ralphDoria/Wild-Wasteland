@@ -2,8 +2,12 @@ local tool = script.Parent.Parent
 local player = nil
 local character = nil
 local canSwing = false
+local ContextActionService = game:GetService("ContextActionService")
 
---bindable events
+--action name for ContextActionService
+local ACTION_DROP_TOOL = "Dropped"
+
+--Custom Events
 local Events = tool:WaitForChild("Events")
 local BindableEvents = Events:WaitForChild("BindableEvents")
 local RemoteEvents = Events:WaitForChild("RemoteEvents")
@@ -76,6 +80,34 @@ local function isEquipped()
 	end
 end
 
+local function onUnequipped()
+	ContextActionService:UnbindAction(ACTION_DROP_TOOL)
+	local mouse = player:GetMouse()
+	mouse.Icon = ""
+	canSwing = false
+	doAnimation(animObjects.idle, false)
+	bev_ForwardSwing:Fire(false) --this turns off the raycast -- I know the event name is a bit misleading
+	for _, animTrack : AnimationTrack in character:WaitForChild("Humanoid"):WaitForChild("Animator"):GetPlayingAnimationTracks() do
+		for _, anim : Animation in animObjects do
+			if animTrack.Animation == anim then
+				animTrack:Stop()
+			end
+		end
+	end
+	bev_UpdateCurrentCharacter:Fire(nil)
+end
+
+local function dropped()
+	onUnequipped()
+	rev_dropped:FireServer()
+end
+
+local function handleAction(actionName, inputState, _inputObject)
+	if actionName == ACTION_DROP_TOOL and inputState == Enum.UserInputState.Begin then
+		dropped()
+	end
+end
+
 local function onEquipped()
 	player = game:GetService("Players").LocalPlayer
 	character = player.Character or player.CharacterAdded:Wait()
@@ -91,6 +123,7 @@ local function onEquipped()
 	equipAnimTrack.Stopped:Wait()
 	if isEquipped() then --checking this because during the equip animation, players can unequip the tool, causing a bug
 		doAnimation(animObjects.idle, true)
+		ContextActionService:BindAction(ACTION_DROP_TOOL, handleAction, true, Enum.KeyCode.X)
 		canSwing = true
 	end
 end
@@ -112,22 +145,6 @@ local function onActivated()
 		end
 	end
 	
-end
-
-local function onUnequipped()
-	local mouse = player:GetMouse()
-	mouse.Icon = ""
-	canSwing = false
-	doAnimation(animObjects.idle, false)
-	bev_ForwardSwing:Fire(false) --this turns off the raycast -- I know the event name is a bit misleading
-	for _, animTrack : AnimationTrack in character:WaitForChild("Humanoid"):WaitForChild("Animator"):GetPlayingAnimationTracks() do
-		for _, anim : Animation in animObjects do
-			if animTrack.Animation == anim then
-				animTrack:Stop()
-			end
-		end
-	end
-	bev_UpdateCurrentCharacter:Fire(nil)
 end
 
 rev_dropped.OnClientEvent:Connect(function(player)

@@ -23,8 +23,10 @@ local function playSound(soundObject : Sound, delayCorrection : number)
 end
 
 rev_Hit.OnServerEvent:Connect(function(player : Player, humanoid : Humanoid, hitLocation)
-	playSound(hitSound, 0.2)
-	humanoid:TakeDamage(config.damage)
+	if humanoid.Health > 0 then
+		playSound(hitSound, 0.2)
+		humanoid:TakeDamage(config.damage)
+	end
 	local damagedPlayerName : string = humanoid.Parent.Name
 	--print(damagedPlayerName .. " was hit in their " .. hitLocation.Name)
 end)
