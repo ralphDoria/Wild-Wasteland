@@ -31,5 +31,10 @@ Players.PlayerAdded:Connect(function(plr: Player)
 				end
 			end
 		end)
+		char.ChildRemoved:Connect(function(child)
+			if child:IsA("Tool") then
+				M6D.Part1 = nil
+			end
+		end)
 	end)	
 end)

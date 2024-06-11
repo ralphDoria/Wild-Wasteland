@@ -6,8 +6,10 @@ local canSwing = false
 --bindable events
 local Events = tool:WaitForChild("Events")
 local BindableEvents = Events:WaitForChild("BindableEvents")
+local RemoteEvents = Events:WaitForChild("RemoteEvents")
 local bev_ForwardSwing = BindableEvents:WaitForChild("ForwardSwing")
 local bev_UpdateCurrentCharacter = BindableEvents:WaitForChild("UpdateCurrentCharacter")
+local rev_dropped : RemoteEvent = RemoteEvents:WaitForChild("Dropped")
 
 local animObjects = {
 	equip = tool:WaitForChild("Anims"):WaitForChild("equip"),
@@ -20,6 +22,11 @@ local soundObjects = {
 	swing = tool:WaitForChild("SFX_part"):WaitForChild("Sword Swing Metal Heavy")
 }
 
+--[[
+	If an animator is found,  each animation object in the animObjects dictionary will be loaded onto the animator. This fixed the glitch of
+	the equip to idle animation not blending because after the equip animation track had completed, the idle animation track hadn't loaded yet,
+	so there would be an unsmooth transition due to the equip animation track visibly ending
+]]
 local function loadAllAnimationsOntoAnimator()
 	local animator = character:FindFirstChild("Animator", true)
 	if animator == nil then
@@ -31,6 +38,9 @@ local function loadAllAnimationsOntoAnimator()
 	end
 end
 
+--[[
+	
+]]
 local function doAnimation(anim : Animation, shouldPlay : boolean)
 	local humanoid = character:WaitForChild("Humanoid")
 	local animator : Animator = humanoid:WaitForChild("Animator")
@@ -119,6 +129,10 @@ local function onUnequipped()
 	end
 	bev_UpdateCurrentCharacter:Fire(nil)
 end
+
+rev_dropped.OnClientEvent:Connect(function(player)
+	onUnequipped()
+end)
 
 tool.Equipped:Connect(onEquipped)
 tool.Activated:Connect(onActivated)
