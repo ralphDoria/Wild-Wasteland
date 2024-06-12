@@ -1,17 +1,16 @@
 --maybe modify this in the future by centralizing it (making it so there's only one of this script in the server) & use CollectionService
 local tool = script.Parent.Parent
 local ProximityPrompt = tool:WaitForChild("BodyAttach"):WaitForChild("PickUpPrompt")
-local RemoteEvents = tool:WaitForChild("Events"):WaitForChild("RemoteEvents")
-local rev_dropped : RemoteEvent = RemoteEvents:WaitForChild("Dropped")
-local player = nil
+local pickUpSound = game:GetService("SoundService"):WaitForChild("Item Pick Up")
 
 --[[
     ProximityPrompt event for picking up the tool
 ]]
 ProximityPrompt.Triggered:Connect(function(playerWhoTriggered)
-    local character = playerWhoTriggered.Character
-    if character then
-        tool.Parent = character
+    local backpack = playerWhoTriggered:WaitForChild("Backpack")
+    if backpack then
+        pickUpSound:Play()
+        tool.Parent = backpack
     end
 end)
 

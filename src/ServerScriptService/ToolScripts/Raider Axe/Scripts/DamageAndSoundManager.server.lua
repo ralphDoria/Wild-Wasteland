@@ -17,7 +17,7 @@ local function playSound(soundObject : Sound, delayCorrection : number)
 	if delayCorrection then
 		soundClone.TimePosition = delayCorrection
 	end
-	soundClone.Parent = hitSound.Parent
+	soundClone.Parent = SFX_part
 	soundClone:Play()
 	DebrisService:AddItem(soundClone, soundClone.TimeLength)
 end

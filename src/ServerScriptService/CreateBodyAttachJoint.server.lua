@@ -8,11 +8,19 @@ Centrally handles creating a BodyAtatchJoint in players' characters & attaching 
 
 local Players = game:GetService("Players")
 
+local function setCollisionGroupInModel(model, CollisionGroupName)
+	for _, v in model:GetChildren() do
+		if v:IsA("BasePart") then
+			v.CollisionGroup = CollisionGroupName
+		end
+	end
+end
+
 Players.PlayerAdded:Connect(function(plr: Player) 
-	plr.CharacterAdded:Connect(function()
-		
-		local char = plr.Character or plr.CharacterAdded:Wait()
-		local torso = char:WaitForChild("Torso")
+	plr.CharacterAdded:Connect(function(character)
+		setCollisionGroupInModel(character, "Character")
+
+		local torso = character:WaitForChild("Torso")
 
 		local M6D = Instance.new("Motor6D")
 		M6D.Name = "BodyAttachJoint"
@@ -21,7 +29,7 @@ Players.PlayerAdded:Connect(function(plr: Player)
         M6D.Parent = torso
 		
 
-		char.ChildAdded:Connect(function(child)
+		character.ChildAdded:Connect(function(child)
 			if child:IsA("Tool") then
 				local BodyAttach = child:FindFirstChild("BodyAttach", true)
 				if BodyAttach then
@@ -31,7 +39,7 @@ Players.PlayerAdded:Connect(function(plr: Player)
 				end
 			end
 		end)
-		char.ChildRemoved:Connect(function(child)
+		character.ChildRemoved:Connect(function(child)
 			if child:IsA("Tool") then
 				M6D.Part1 = nil
 			end
