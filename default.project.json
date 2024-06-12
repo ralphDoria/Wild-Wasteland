@@ -31,6 +31,15 @@
           "$className": "Folder",
           "$path": "src/StarterPlayerScripts"
         }
+      },
+
+      "StarterCharacterScripts": {
+        "$className": "StarterCharacterScripts",
+
+        "RojoManaged_SCS": {
+          "$className": "Folder",
+          "$path": "src/StarterCharacterScripts"
+        }
       }
     },
 
