@@ -20,6 +20,8 @@ local animObjects = {
 	idle = tool:WaitForChild("Anims"):WaitForChild("idle"),
 	swing = tool:WaitForChild("Anims"):WaitForChild("swing")
 }
+--convert the table above with function. I think it's called mapping? Look at sleitnick's Procedural Programming tutorial
+local animTracks = {}
 
 local soundObjects = {
 	equip = tool:WaitForChild("SFX_part"):WaitForChild("Shing Ringy 2 (SFX)"),
@@ -37,7 +39,8 @@ local function loadAllAnimationsOntoAnimator()
 		warn("Animator not found, cannot load animations")
 	else
 		for _, anim in animObjects do
-			animator:LoadAnimation(anim)
+			animTrack = animator:LoadAnimation(anim)
+			animTrack.Priority = Enum.AnimationPriority.Action
 		end
 	end
 end

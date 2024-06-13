@@ -31,7 +31,7 @@ Players.PlayerAdded:Connect(function(plr: Player)
 
 		character.ChildAdded:Connect(function(child)
 			if child:IsA("Tool") then
-				local BodyAttach = child:FindFirstChild("BodyAttach", true)
+				local BodyAttach : Part = child:FindFirstChild("BodyAttach", true)
 				if BodyAttach then
 					M6D.Part1 = BodyAttach
 				else

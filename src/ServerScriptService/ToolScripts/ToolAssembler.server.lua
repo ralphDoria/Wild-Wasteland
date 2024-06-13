@@ -27,5 +27,10 @@ local function assembleTool(toolName : String, parent)
     --print(toolName .. " was successfully created: " .. tool.ClassName)
 end
 
-assembleTool("Raider Axe", game:GetService("Players"):GetPlayerFromCharacter(game.Workspace:WaitForChild("Niletheus")):WaitForChild("Backpack"))
+local Players = game:GetService("Players")
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        assembleTool("Raider Axe", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
+    end)
+end)
 

@@ -24,7 +24,7 @@ local CharacterStatusGui = PlayerGui:WaitForChild("CharacterStatusGui")
 local SPRINT_KEY = Enum.KeyCode.LeftShift
 
 --for sprinting
-local defaultSpeed = 8
+local defaultSpeed = game:GetService("StarterPlayer").CharacterWalkSpeed
 local sprintSpeed = 16
 local MAXSTAMINA = 100
 local currentStamina = MAXSTAMINA
@@ -48,7 +48,8 @@ local animTracks = {
     sprint = createAnimTrack(createAnimObject("rbxassetid://17809481242")),
     walk = createAnimTrack(createAnimObject("rbxassetid://17833281861"))
 }
-
+animTracks.sprint.Priority = Enum.AnimationPriority.Movement
+animTracks.walk.Priority = Enum.AnimationPriority.Movement
 
 local isMoving
 
