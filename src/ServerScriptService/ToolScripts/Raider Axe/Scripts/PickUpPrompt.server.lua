@@ -39,6 +39,7 @@ end
 ]]
 tool.AncestryChanged:Connect(function(child, parent)
     local toolModel = tool:FindFirstChild("ToolModel")
+    print(parent.Name)
     if parent:FindFirstChild("Humanoid") == nil or parent:IsA("Backpack") then --if the tool isn't equipped by a player or npc
         ProximityPrompt.Enabled = true
         if toolModel then
