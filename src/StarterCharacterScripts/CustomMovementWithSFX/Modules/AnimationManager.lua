@@ -7,7 +7,7 @@ end
 local animObjects = {
     
 }
---Procedural Animation mapping function
+--Functional Animation mapping function
 
 
 local animTracks = {
