@@ -11,20 +11,21 @@ local function createAnimTrack(animID : AnimationID, animator : Animator)
     return animTrack
 end
 
-
-
-local animTracks = {
+--Functional programming mapping function (it's for when you need to transform a table, but in slightly different forms each type, but I just did it for practice here.)
+local function map(tbl, mapping)
+    local newTbl = table.create(#tbl)
     
-}
---Functional Animation mapping function
+    for key, value in pairs(tbl) do
+        newTbl.key = mapping(v)
+    end
+end
+
+local animTracks = map(animIDs, function(animID)
+    createAnimTrack(animID)
+end)
+
+local AnimationManager = {}
 
 
-local animTracks = {
-
-}
-
-local AnimationManager = {
-
-}
 
 return AnimationManager
