@@ -1,0 +1,82 @@
+--[[
+    *A separate script will deal with updating the Stamina HUD Gui based on a couple things
+
+    -w/ SFX means this script will also handle footstep sounds
+
+    -play animation based on player speed
+
+    !!!!
+    this script is currently hecka buggy & needs to be fixed later
+]]
+
+--Sprint
+
+--Crouch
+
+local player = game.Players.LocalPlayer
+local character = player.Character
+local humanoid = character:WaitForChild("Humanoid")
+local animator = humanoid:WaitForChild("Animator")
+local UIS = game:GetService("UserInputService")
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+--Modules
+local Sprint = require(script.Parent.Modules:WaitForChild("Sprint"))
+local Crouch = require(script.Parent.Modules:WaitForChild("Crouch"))
+
+local function createAnimObject(animID)
+    local newAnim = Instance.new("Animation")
+    newAnim.AnimationId = animID
+    return newAnim
+end
+
+local function createAnimTrack(animObject)
+    return animator:LoadAnimation(animObject)
+end
+
+local animTracks = {
+    sprint = createAnimTrack(createAnimObject("rbxassetid://17809481242")),
+    walk = createAnimTrack(createAnimObject("rbxassetid://17833281861"))
+}
+animTracks.sprint.Priority = Enum.AnimationPriority.Movement
+animTracks.walk.Priority = Enum.AnimationPriority.Movement
+
+--This handles the animations. It plays/stops certain animation tracks when the humanoid is moving at a certain speed.
+humanoid.Running:Connect(function(speed)
+	for _, animTrack in animator:GetPlayingAnimationTracks() do
+		--print(animTrack.Name)
+	end
+    if speed > (Sprint.sprintSpeed - 1) then
+        animTracks.sprint:Play()
+        animTracks.walk:Stop()
+    elseif speed > 0.01 then
+        animTracks.sprint:Stop()
+        animTracks.walk:Play()
+    else
+        animTracks.sprint:Stop()
+        animTracks.walk:Stop()
+    end
+end)
+
+print(Sprint.sprintSpeed) --testing to see if field variable works
+
+UIS.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+
+	if input.KeyCode == Sprint.SPRINT_KEY then
+		Sprint.sprintKeyDown()
+	elseif input.KeyCode == Crouch.CROUCH_KEY then
+
+	end
+end)
+UIS.InputEnded:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+
+	if input.KeyCode == Sprint.SPRINT_KEY then
+		Sprint.sprintKeyUp()
+	elseif input.KeyCode == Crouch.CROUCH_KEY then
+		
+	end
+end)
+--end of sprint code; what I learned: printing is vital to catch logic errors, don't rely on system errors. It's good practice !!
+
