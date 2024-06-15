@@ -1,5 +1,6 @@
 local animIDs = {
-    sprint = "",
+    sprint = "rbxassetid://17809481242",
+    --walk = "rbxassetid://17833281861", | I might just be able to replace the walk animation in Roblox's Animate script and won't have to worry about it
     crouch = "",
     slide = ""
 }
