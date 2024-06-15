@@ -5,6 +5,8 @@ local animIDs = {
     slide = ""
 }
 
+local WalkSpeedInfo = require(script.Parent.WalkSpeedInfo)
+
 local function createAnimTrack(animID : AnimationID, animator : Animator)
     local animObject = Instance.new("Animation")
     animObject.AnimationID = animID
@@ -27,6 +29,26 @@ end)
 
 local AnimationManager = {}
 
+function AnimationManager.playAnimationBasedOnSpeed(speed : Number)
+    --[[
+        !!!
+        -Roblox's default Animate LocalScript may be able to handle the custom walk animation. Idk though, I have to test.
+        -Use animation priority and weighting
+    ]]
 
+    if speed > (WalkSpeedInfo.sprintSpeed - 1) then
+        animTracks.sprint:Play()
+        --animTracks.walk:Stop()
+    elseif speed > WalkSpeedInfo.walkSpeed then
+        animTracks.sprint:Stop()
+        --animTracks.walk:Play()
+    elseif speed > WalkSpeedInfo.crouchSpeed then
+        animTracks.crouch:Play()
+        animTracks.sprint:Stop()
+        --animTracks.walk:Stop()
+    else
+        --idle
+    end
+end
 
 return AnimationManager
