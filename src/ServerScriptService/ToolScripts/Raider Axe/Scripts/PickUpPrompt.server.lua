@@ -1,6 +1,9 @@
 --maybe modify this in the future by centralizing it (making it so there's only one of this script in the server) & use CollectionService
 local tool = script.Parent.Parent
 local ProximityPrompt = tool:WaitForChild("BodyAttach"):WaitForChild("PickUpPrompt")
+if tool.Parent:IsA("Backpack") then
+    ProximityPrompt.Enabled = false
+end
 local pickUpSound = game:GetService("SoundService"):WaitForChild("Item Pick Up")
 
 --[[
@@ -39,7 +42,8 @@ end
 ]]
 tool.AncestryChanged:Connect(function(child, parent)
     local toolModel = tool:FindFirstChild("ToolModel")
-    if parent:FindFirstChild("Humanoid") == nil or parent:IsA("Backpack") then --if the tool isn't equipped by a player or npc
+    if parent:FindFirstChild("Humanoid") == nil and not parent:IsA("Backpack") then --if the tool isn't equipped by a player or npc
+        print(parent.Name)
         ProximityPrompt.Enabled = true
         if toolModel then
             modifyToolModelCollisions(toolModel, true)

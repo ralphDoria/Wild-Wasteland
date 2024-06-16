@@ -1,51 +1,91 @@
-local animIDs = {
-    sprint = "rbxassetid://17809481242",
-    --walk = "rbxassetid://17833281861", | I might just be able to replace the walk animation in Roblox's Animate script and won't have to worry about it
-    crouch = "",
-    slide = ""
+local player = game:GetService("Players").LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local animator = character:WaitForChild("Humanoid"):WaitForChild("Animator")
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CustomMovementAnimations : Folder = ReplicatedStorage:WaitForChild("CustomMovementAnimations")
+local animObjects = {
+    sprint = CustomMovementAnimations:WaitForChild("sprintAnim"),
+    --walk = ---,
+    --slide = ---,
+    crouch = CustomMovementAnimations:WaitForChild("crouchAnim")
 }
 
-local WalkSpeedInfo = require(script.Parent.WalkSpeedInfo)
+local idlePose --can be "standing" or "crouching"
 
-local function createAnimTrack(animID : AnimationID, animator : Animator)
-    local animObject = Instance.new("Animation")
-    animObject.AnimationID = animID
+local CharacterSpeedInfo = require(script.Parent.CharacterSpeedInfo)
+
+local function createAnimTrack(animObject : Animation)
     local animTrack = animator:LoadAnimation(animObject)
     return animTrack
 end
 
 --Functional programming mapping function (it's for when you need to transform a table, but in slightly different forms each type, but I just did it for practice here.)
-local function map(tbl, mapping)
+--[[
+    local function map(tbl, mapping)
     local newTbl = table.create(#tbl)
     
     for key, value in pairs(tbl) do
-        newTbl.key = mapping(v)
+        print(key)
+        print(mapping(value))
+        newTbl.key = mapping(value)
     end
+
+    return newTbl
 end
 
-local animTracks = map(animIDs, function(animID)
-    createAnimTrack(animID)
+local animTracks = map(animObjects, function(animObject)
+    createAnimTrack(animObject)
 end)
+]]
+
+local animTracks = {}
+for key, value in pairs(animObjects) do
+    animTracks[key] = createAnimTrack(value)
+end
+print(animTracks) --for testing
 
 local AnimationManager = {}
 
-function AnimationManager.playAnimationBasedOnSpeed(speed : Number)
+--[[
+    Ensures that only one animation plays at a time. This is a temporary solution because I don't
+    know how to use animation weighting yet.
+]]
+local function doAnimation(animTrack)
+    animTrack:Play()
+    for _, v in pairs(animTracks) do
+        if v ~= animTrack then
+            v:Stop()
+        end
+    end
+end
+
+local function stopAllCustomAnimations()
+    for _, v : AnimationTrack in pairs(animTracks) do
+        if v.IsPlaying then
+            v:Stop()
+        end
+    end
+end
+
+function AnimationManager.playAnimationBasedOnSpeed(speed : number)
     --[[
         !!!
         -Roblox's default Animate LocalScript may be able to handle the custom walk animation. Idk though, I have to test.
         -Use animation priority and weighting
     ]]
 
-    if speed > (WalkSpeedInfo.sprintSpeed - 1) then
-        animTracks.sprint:Play()
-        --animTracks.walk:Stop()
-    elseif speed > WalkSpeedInfo.walkSpeed then
-        animTracks.sprint:Stop()
-        --animTracks.walk:Play()
-    elseif speed > WalkSpeedInfo.crouchSpeed then
-        animTracks.crouch:Play()
-        animTracks.sprint:Stop()
-        --animTracks.walk:Stop()
+    --[[
+        !!!
+        NEED TO REFACTOR CODE BECAUSE ONLY SPRINT SHOULD BE BASED OFF OF CHARACTER SPEED, NOT CROUCH
+    ]]
+    if speed > (CharacterSpeedInfo.sprintSpeed - 1) then
+        doAnimation(animTracks.sprint)
+    elseif speed > CharacterSpeedInfo.walkSpeed - 1 then
+        stopAllCustomAnimations()
+        --*Roblox's default Animate script takes care of the walk animations
+    elseif speed > CharacterSpeedInfo.crouchSpeed - 1 then
+        doAnimation(animTracks.crouch)
     else
         --idle
     end
