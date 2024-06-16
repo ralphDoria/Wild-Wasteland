@@ -1,6 +1,7 @@
 local player = game:GetService("Players").LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local animator = character:WaitForChild("Humanoid"):WaitForChild("Animator")
+local humanoid = character:WaitForChild("Humanoid")
+local animator = humanoid:WaitForChild("Animator")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CustomMovementAnimations : Folder = ReplicatedStorage:WaitForChild("CustomMovementAnimations")
@@ -68,7 +69,7 @@ local function stopAllCustomAnimations()
     end
 end
 
-function AnimationManager.playAnimationBasedOnSpeed(speed : number)
+function AnimationManager.sprintAnimHandler(speed : number)
     --[[
         !!!
         -Roblox's default Animate LocalScript may be able to handle the custom walk animation. Idk though, I have to test.
@@ -82,12 +83,14 @@ function AnimationManager.playAnimationBasedOnSpeed(speed : number)
     if speed > (CharacterSpeedInfo.sprintSpeed - 1) then
         doAnimation(animTracks.sprint)
     elseif speed > CharacterSpeedInfo.walkSpeed - 1 then
-        stopAllCustomAnimations()
-        --*Roblox's default Animate script takes care of the walk animations
-    elseif speed > CharacterSpeedInfo.crouchSpeed - 1 then
+        animTracks.sprint:Stop()
+    end
+end
+
+function AnimationManager.crouchAnimHandler(humanoidWalkSpeed)
+    if humanoidWalkSpeed == CharacterSpeedInfo.crouchSpeed then
+        print("Playing Crouch Ani")
         doAnimation(animTracks.crouch)
-    else
-        --idle
     end
 end
 

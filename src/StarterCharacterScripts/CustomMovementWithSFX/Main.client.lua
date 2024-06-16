@@ -27,7 +27,11 @@ local AnimationManager = require(script.Parent.Modules:WaitForChild("AnimationMa
 
 --This handles the animations. It plays/stops certain animation tracks when the humanoid is moving at a certain speed.
 humanoid.Running:Connect(function(speed)
-    AnimationManager.playAnimationBasedOnSpeed(speed)
+    AnimationManager.sprintAnimHandler(speed)
+end)
+
+humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+	AnimationManager.crouchAnimHandler(WalkSpeed)
 end)
 
 print(Sprint.sprintSpeed) --testing to see if field variable works
