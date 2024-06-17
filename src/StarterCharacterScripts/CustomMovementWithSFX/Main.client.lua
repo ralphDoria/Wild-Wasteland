@@ -16,6 +16,7 @@
 local player = game.Players.LocalPlayer
 local character = player.Character
 local humanoid = character:WaitForChild("Humanoid")
+local hrp = character:WaitForChild("HumanoidRootPart")
 local animator = humanoid:WaitForChild("Animator")
 local UIS = game:GetService("UserInputService")
 local PlayerGui = player:WaitForChild("PlayerGui")
@@ -31,18 +32,15 @@ humanoid.Running:Connect(function(speed)
     AnimationManager.sprintAnimHandler(speed)
 end)
 
-local JUMP_STAMINA_COST = StaminaManager.MAX_STAMINA * 0.3
-local SLIDE_STAMINA_COST
-
-humanoid.Jumping:Connect(function()
-	if StaminaManager.getCurrentStamina() > JUMP_STAMINA_COST then
-		print("checkoint 90")
-		humanoid.JumpHeight = 4
-		StaminaManager.updateStaminaBar(StaminaManager.getCurrentStamina() - JUMP_STAMINA_COST/2) --Jump stamina cost is divided by 2 here because the humanoid.Jumping event fires twice (once for when the jump starts and once for when the jump ends), but I only want to apply the JUMP_STAMINA_COST once per jump.
+humanoid.Jumping:Connect(function(starting)
+	if starting then
+		local staminaAfterJump = StaminaManager.getCurrentStamina() - StaminaManager.JUMP_STAMINA_COST
+		StaminaManager.updateStaminaBar(staminaAfterJump)
+		if staminaAfterJump < StaminaManager.JUMP_STAMINA_COST then
+			-- This will only take effect for the NEXT jump so you need to disable jumping a bit earlier
+			humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+		end
 		StaminaManager.fillStaminaBar()
-	else
-		print("checkpoint 91")
-		humanoid.JumpHeight = 0
 	end
 end)
 
@@ -59,6 +57,10 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
 		Sprint.sprintKeyDown()
 	elseif input.KeyCode == Crouch.CROUCH_KEY then
         Crouch.crouchKeyDown()
+	elseif input.KeyCode == Enum.KeyCode.Space then
+		if humanoid:GetStateEnabled(Enum.HumanoidStateType.Jumping) == false then
+			StaminaManager.indicateInsufficientStaminaForJump()
+		end
 	end
 end)
 UIS.InputEnded:Connect(function(input, gameProcessed)

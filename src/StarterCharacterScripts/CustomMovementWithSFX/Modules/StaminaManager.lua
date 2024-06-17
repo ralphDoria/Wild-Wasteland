@@ -7,6 +7,8 @@ local CharacterStatusGui = PlayerGui:WaitForChild("CharacterStatusGui")
 local CharacterSpeedInfo = require(script.Parent.CharacterSpeedInfo)
 
 local MAX_STAMINA = 100
+local JUMP_STAMINA_COST = MAX_STAMINA * 0.3
+local SLIDE_STAMINA_COST
 local currentStamina = MAX_STAMINA
 local MIN_REQUIRED_STAMINA = 15 --this is a percentage
 local staminaBar = CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForChild("bgFrame"):WaitForChild("staminaFrame")
@@ -16,6 +18,12 @@ minRequiredStaminaBar.ZIndex = 2
 minRequiredStaminaBar.BackgroundColor3 = Color3.new(0, 0, 0)
 minRequiredStaminaBar.BackgroundTransparency = 0.8
 minRequiredStaminaBar.Parent = staminaBar.Parent
+local insufficientStaminaForJumpBar = staminaBar:Clone()
+insufficientStaminaForJumpBar.Size = UDim2.new(JUMP_STAMINA_COST, 0, 1, 0)
+insufficientStaminaForJumpBar.ZIndex = 3
+insufficientStaminaForJumpBar.BackgroundColor3 = Color3.new(1, 0, 0)
+insufficientStaminaForJumpBar.BackgroundTransparency = 1
+insufficientStaminaForJumpBar.Parent = staminaBar.Parent
 local staminaLabel = CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForChild("bgFrame"):WaitForChild("staminaLabel")
 local drainConnection
 local fillConnection
@@ -25,7 +33,8 @@ print("checkpoint")
 
 local StaminaManager = {
     MAX_STAMINA = MAX_STAMINA,
-    MIN_REQUIRED_STAMINA = MIN_REQUIRED_STAMINA
+    MIN_REQUIRED_STAMINA = MIN_REQUIRED_STAMINA,
+    JUMP_STAMINA_COST = JUMP_STAMINA_COST
 }
 
 function StaminaManager.getCurrentStamina()
@@ -36,6 +45,14 @@ function StaminaManager.updateStaminaBar(newStaminaValue : number)
     currentStamina = math.clamp(newStaminaValue, 0, MAX_STAMINA) --math.clamp ensures currentStamina doesn't go below 0
     staminaLabel.Text = "Stamina: ".. math.round(currentStamina/MAX_STAMINA*100) .. "%" --displays the percent of stamina remaining rounded to the nearest whole #
     staminaBar:TweenSize(UDim2.new(currentStamina/MAX_STAMINA, 0, 1, 0), "Out", "Linear", 0)
+end
+
+function StaminaManager.indicateInsufficientStaminaForJump()
+    if insufficientStaminaForJumpBar.BackgroundTransparency == 0 then
+        insufficientStaminaForJumpBar.BackgroundTransparency = 0.8
+        task.wait(0.2)
+        insufficientStaminaForJumpBar.BackgroundTransparency = 0
+    end
 end
 
 function StaminaManager.drainStaminaBar()
@@ -74,6 +91,9 @@ function StaminaManager.fillStaminaBar()
         fillConnection = RunService.RenderStepped:Connect(function(dt)
             --print(currentStamina .. "-fill")
             --If the player's stamina is less than their stamina cap, then their stamina bar will regenerate
+            if currentStamina >= JUMP_STAMINA_COST then
+                humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+            end
             if currentStamina < MAX_STAMINA then
                 StaminaManager.updateStaminaBar(currentStamina + 10*dt)
             else
