@@ -7,6 +7,7 @@ local CharacterStatusGui = PlayerGui:WaitForChild("CharacterStatusGui")
 local SPRINT_KEY = Enum.KeyCode.LeftShift
 local defaultSpeed = game:GetService("StarterPlayer").CharacterWalkSpeed
 local sprintSpeed = 16
+--
 local MAXSTAMINA = 100
 local currentStamina = MAXSTAMINA
 local minRequiredStamina = 15 --this is a percentage
@@ -18,6 +19,7 @@ minRequiredStaminaBar.BackgroundColor3 = Color3.new(0, 0, 0)
 minRequiredStaminaBar.BackgroundTransparency = 0.8
 minRequiredStaminaBar.Parent = staminaBar.Parent
 local staminaLabel = CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForChild("bgFrame"):WaitForChild("staminaLabel")
+--
 local drainConnection
 local fillConnection
 local RunService = game:GetService("RunService")

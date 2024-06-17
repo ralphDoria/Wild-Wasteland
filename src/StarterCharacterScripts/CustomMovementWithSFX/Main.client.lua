@@ -30,8 +30,12 @@ humanoid.Running:Connect(function(speed)
     AnimationManager.sprintAnimHandler(speed)
 end)
 
+humanoid.Jumping:Connect(function()
+	
+end)
+
 humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-	AnimationManager.crouchAnimHandler(WalkSpeed)
+	AnimationManager.crouchAnimHandler(humanoid.WalkSpeed)
 end)
 
 print(Sprint.sprintSpeed) --testing to see if field variable works
