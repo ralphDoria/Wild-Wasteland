@@ -48,8 +48,6 @@ humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
 	AnimationManager.crouchAnimHandler(humanoid.WalkSpeed)
 end)
 
-print(Sprint.sprintSpeed) --testing to see if field variable works
-
 UIS.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 

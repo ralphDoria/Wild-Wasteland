@@ -14,12 +14,14 @@ local MIN_REQUIRED_STAMINA = 15 --this is a percentage
 local staminaBar = CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForChild("bgFrame"):WaitForChild("staminaFrame")
 local minRequiredStaminaBar = staminaBar:Clone()
 minRequiredStaminaBar.Size = UDim2.new(1*(MIN_REQUIRED_STAMINA/100), 0, 1, 0)
+minRequiredStaminaBar.Name = "minimumRequiredStaminaForSprintBar"
 minRequiredStaminaBar.ZIndex = 2
 minRequiredStaminaBar.BackgroundColor3 = Color3.new(0, 0, 0)
 minRequiredStaminaBar.BackgroundTransparency = 0.8
 minRequiredStaminaBar.Parent = staminaBar.Parent
 local insufficientStaminaForJumpBar = staminaBar:Clone()
-insufficientStaminaForJumpBar.Size = UDim2.new(JUMP_STAMINA_COST, 0, 1, 0)
+insufficientStaminaForJumpBar.Size = UDim2.new(JUMP_STAMINA_COST/100, 0, 1, 0)
+insufficientStaminaForJumpBar.Name = "insufficientStaminaForJumpIndicator"
 insufficientStaminaForJumpBar.ZIndex = 3
 insufficientStaminaForJumpBar.BackgroundColor3 = Color3.new(1, 0, 0)
 insufficientStaminaForJumpBar.BackgroundTransparency = 1
@@ -28,8 +30,6 @@ local staminaLabel = CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForCh
 local drainConnection
 local fillConnection
 local RunService = game:GetService("RunService")
-
-print("checkpoint")
 
 local StaminaManager = {
     MAX_STAMINA = MAX_STAMINA,
@@ -48,10 +48,18 @@ function StaminaManager.updateStaminaBar(newStaminaValue : number)
 end
 
 function StaminaManager.indicateInsufficientStaminaForJump()
-    if insufficientStaminaForJumpBar.BackgroundTransparency == 0 then
+    if insufficientStaminaForJumpBar.BackgroundTransparency == 1 then
         insufficientStaminaForJumpBar.BackgroundTransparency = 0.8
         task.wait(0.2)
-        insufficientStaminaForJumpBar.BackgroundTransparency = 0
+        insufficientStaminaForJumpBar.BackgroundTransparency = 1
+    end
+end
+
+function StaminaManager.indicateInsufficientStaminaForSprint()
+    if minRequiredStaminaBar.BackgroundColor3 == Color3.new(0, 0, 0) then
+        minRequiredStaminaBar.BackgroundColor3 = Color3.new(1, 0, 0)
+        task.wait(0.2)
+        minRequiredStaminaBar.BackgroundColor3 = Color3.new(0, 0, 0)
     end
 end
 
@@ -74,6 +82,11 @@ function StaminaManager.drainStaminaBar()
                 drainConnection:Disconnect()
                 drainConnection = nil
                 humanoid.WalkSpeed = CharacterSpeedInfo.walkSpeed
+                if CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForChild("bgFrame").BackgroundColor3 == Color3.fromRGB(97, 0, 176) then
+                    CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForChild("bgFrame").BackgroundColor3 = Color3.new(1, 0, 0)
+                    task.wait(0.2)
+                    CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForChild("bgFrame").BackgroundColor3 = Color3.fromRGB(97, 0, 176)
+                end
             end
         end)
     end

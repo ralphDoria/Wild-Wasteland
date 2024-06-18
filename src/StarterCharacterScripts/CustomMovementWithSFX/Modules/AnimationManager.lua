@@ -44,7 +44,6 @@ local animTracks = {}
 for key, value in pairs(animObjects) do
     animTracks[key] = createAnimTrack(value)
 end
-print(animTracks) --for testing
 
 local AnimationManager = {}
 
@@ -84,6 +83,8 @@ function AnimationManager.sprintAnimHandler(speed : number)
         doAnimation(animTracks.sprint)
     elseif speed > CharacterSpeedInfo.walkSpeed - 1 then
         animTracks.sprint:Stop()
+    elseif speed <= 0 then
+        stopAllCustomAnimations()
     end
 end
 

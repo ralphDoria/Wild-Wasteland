@@ -15,7 +15,18 @@ local Sprint = {SPRINT_KEY = SPRINT_KEY}
 function Sprint.sprintKeyDown()
 	local isMoving = character.PrimaryPart.AssemblyLinearVelocity.Magnitude > 0.01
 	if not isMoving then return end
-	if not isMoving or StaminaManager.getCurrentStamina()/StaminaManager.MAX_STAMINA < StaminaManager.MIN_REQUIRED_STAMINA/100 then return end
+	if StaminaManager.getCurrentStamina()/StaminaManager.MAX_STAMINA < StaminaManager.MIN_REQUIRED_STAMINA/100 then 
+        StaminaManager.indicateInsufficientStaminaForSprint()
+        return 
+    end
+    local checkIfPlayerStopsMoving
+    checkIfPlayerStopsMoving = humanoid.Running:Connect(function(speed)
+        if speed <= 0 then
+            checkIfPlayerStopsMoving:Disconnect()
+            humanoid.WalkSpeed = CharacterSpeedInfo.walkSpeed
+            StaminaManager.fillStaminaBar()
+        end
+    end)
     humanoid.WalkSpeed = CharacterSpeedInfo.sprintSpeed
     StaminaManager.drainStaminaBar()
 end
