@@ -79,6 +79,7 @@ function StaminaManager.drainStaminaBar()
                 StaminaManager.updateStaminaBar(currentStamina - 10*dt)
             else
                 --When the player reaches 0 stamina, the stamina bar will no longer deplete and the player will be set back to walking speed
+                print("Player reached 0 stamina while sprinting")
                 drainConnection:Disconnect()
                 drainConnection = nil
                 humanoid.WalkSpeed = CharacterSpeedInfo.walkSpeed

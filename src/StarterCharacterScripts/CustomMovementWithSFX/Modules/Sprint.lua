@@ -1,8 +1,9 @@
 local player = game.Players.LocalPlayer --Because of this line, this module must be required in a LocalScript, else there will be an error.
-local character = player.Character
-local humanoid = character:WaitForChild("Humanoid")
+local humanoid = player.Character:WaitForChild("Humanoid")
 local PlayerGui = player:WaitForChild("PlayerGui")
 local CharacterStatusGui = PlayerGui:WaitForChild("CharacterStatusGui")
+
+local UserInputService = game:GetService("UserInputService")
 
 local SPRINT_KEY = Enum.KeyCode.LeftShift
 
@@ -13,7 +14,7 @@ local isMoving
 local Sprint = {SPRINT_KEY = SPRINT_KEY}
 
 function Sprint.sprintKeyDown()
-	local isMoving = character.PrimaryPart.AssemblyLinearVelocity.Magnitude > 0.01
+	local isMoving = humanoid.MoveDirection.Magnitude > 0.01
 	if not isMoving then return end
 	if StaminaManager.getCurrentStamina()/StaminaManager.MAX_STAMINA < StaminaManager.MIN_REQUIRED_STAMINA/100 then 
         StaminaManager.indicateInsufficientStaminaForSprint()

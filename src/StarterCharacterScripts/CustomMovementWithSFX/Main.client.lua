@@ -8,26 +8,25 @@
     !!!!
     this script is currently hecka buggy & needs to be fixed later
 ]]
+------------------------------------------------------------------------<<<LOCAL VARIABLES>>>
+local ACTION_SPRINT = "Sprint"
+local ACTION_CROUCH = "Crouch"
 
---Sprint
-
---Crouch
-
+------------------------------------------------------------------------<<<PLAYER SPECIFICS>>>
 local player = game.Players.LocalPlayer
-local character = player.Character
-local humanoid = character:WaitForChild("Humanoid")
-local hrp = character:WaitForChild("HumanoidRootPart")
-local animator = humanoid:WaitForChild("Animator")
-local UIS = game:GetService("UserInputService")
-local PlayerGui = player:WaitForChild("PlayerGui")
+local humanoid = player.Character:WaitForChild("Humanoid")
 
---Modules
+------------------------------------------------------------------------<<<ROBLOX LIBRARIES>>>
+local ContextActionService = game:GetService("ContextActionService")
+local UserInputService = game:GetService("UserInputService")
+
+------------------------------------------------------------------------<<<MODULES>>>
 local Sprint = require(script.Parent.Modules:WaitForChild("Sprint"))
 local Crouch = require(script.Parent.Modules:WaitForChild("Crouch"))
 local StaminaManager = require(script.Parent.Modules:WaitForChild("StaminaManager"))
 local AnimationManager = require(script.Parent.Modules:WaitForChild("AnimationManager"))
 
---This handles the animations. It plays/stops certain animation tracks when the humanoid is moving at a certain speed.
+------------------------------------------------------------------------<<<ANIMATIONS>>>
 humanoid.Running:Connect(function(speed)
     AnimationManager.sprintAnimHandler(speed)
 end)
@@ -48,27 +47,34 @@ humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
 	AnimationManager.crouchAnimHandler(humanoid.WalkSpeed)
 end)
 
-UIS.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-
-	if input.KeyCode == Sprint.SPRINT_KEY then
-		Sprint.sprintKeyDown()
-	elseif input.KeyCode == Crouch.CROUCH_KEY then
-        Crouch.crouchKeyDown()
-	elseif input.KeyCode == Enum.KeyCode.Space then
-		if humanoid:GetStateEnabled(Enum.HumanoidStateType.Jumping) == false then
-			StaminaManager.indicateInsufficientStaminaForJump()
+------------------------------------------------------------------------<<<USER INPUT>>>
+local function handleAction(actionName : String, inputState, _inputObject)
+	if actionName == ACTION_SPRINT then
+		if inputState == Enum.UserInputState.Begin then
+			Sprint.sprintKeyDown()
+		end
+		if inputState == Enum.UserInputState.End then
+			Sprint.sprintKeyUp()
 		end
 	end
-end)
-UIS.InputEnded:Connect(function(input, gameProcessed)
+
+	if actionName == ACTION_CROUCH then
+		if inputState == Enum.UserInputState.Begin then
+			Crouch.crouchKeyDown()
+		end
+		if inputState == Enum.UserInputState.End then
+			Crouch.crouchKeyUp()
+		end
+	end
+end
+
+ContextActionService:BindAction(ACTION_SPRINT, handleAction, true, Enum.KeyCode.LeftShift)
+ContextActionService:BindAction(ACTION_CROUCH, handleAction, true, Enum.KeyCode.C)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 
-	if input.KeyCode == Sprint.SPRINT_KEY then
-		Sprint.sprintKeyUp()
-	elseif input.KeyCode == Crouch.CROUCH_KEY then
-        Crouch.crouchKeyUp()
+	if input.KeyCode == Enum.KeyCode.Space and humanoid:GetStateEnabled(Enum.HumanoidStateType.Jumping) == false then
+		StaminaManager.indicateInsufficientStaminaForJump()
 	end
 end)
---end of sprint code; what I learned: printing is vital to catch logic errors, don't rely on system errors. It's good practice !!
-

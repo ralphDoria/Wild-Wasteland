@@ -60,38 +60,19 @@ local function doAnimation(animTrack)
     end
 end
 
-local function stopAllCustomAnimations()
-    for _, v : AnimationTrack in pairs(animTracks) do
-        if v.IsPlaying then
-            v:Stop()
-        end
-    end
-end
-
 function AnimationManager.sprintAnimHandler(speed : number)
-    --[[
-        !!!
-        -Roblox's default Animate LocalScript may be able to handle the custom walk animation. Idk though, I have to test.
-        -Use animation priority and weighting
-    ]]
-
-    --[[
-        !!!
-        NEED TO REFACTOR CODE BECAUSE ONLY SPRINT SHOULD BE BASED OFF OF CHARACTER SPEED, NOT CROUCH
-    ]]
     if speed > (CharacterSpeedInfo.sprintSpeed - 1) then
         doAnimation(animTracks.sprint)
-    elseif speed > CharacterSpeedInfo.walkSpeed - 1 then
+    else
         animTracks.sprint:Stop()
-    elseif speed <= 0 then
-        stopAllCustomAnimations()
     end
 end
 
 function AnimationManager.crouchAnimHandler(humanoidWalkSpeed)
     if humanoidWalkSpeed == CharacterSpeedInfo.crouchSpeed then
-        print("Playing Crouch Ani")
         doAnimation(animTracks.crouch)
+    else
+        animTracks.crouch:Stop()
     end
 end
 
