@@ -1,9 +1,13 @@
+------------------------------------------------------------------------<<<PLAYER SPECIFICS>>>
 local player = game:GetService("Players").LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local animator = humanoid:WaitForChild("Animator")
 
+------------------------------------------------------------------------<<<ROBLOX LIBRARIES>>>
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+------------------------------------------------------------------------<<<LOCAL VARIABLES>>>
 local CustomMovementAnimations : Folder = ReplicatedStorage:WaitForChild("CustomMovementAnimations")
 local animObjects = {
     sprint = CustomMovementAnimations:WaitForChild("sprintAnim"),
@@ -45,8 +49,7 @@ for key, value in pairs(animObjects) do
     animTracks[key] = createAnimTrack(value)
 end
 
-local AnimationManager = {}
-
+------------------------------------------------------------------------<<<LOCAL FUNCTIONS>>>
 --[[
     Ensures that only one animation plays at a time. This is a temporary solution because I don't
     know how to use animation weighting yet.
@@ -59,6 +62,9 @@ local function doAnimation(animTrack)
         end
     end
 end
+
+------------------------------------------------------------------------<<<MODULE SCRIPT>>>
+local AnimationManager = {}
 
 function AnimationManager.sprintAnimHandler(speed : number)
     if speed > (CharacterSpeedInfo.sprintSpeed - 1) then
