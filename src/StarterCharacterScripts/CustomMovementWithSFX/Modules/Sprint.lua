@@ -1,16 +1,22 @@
+
+------------------------------------------------------------------------<<<PLAYER SPECIFICS>>>
 local player = game.Players.LocalPlayer --Because of this line, this module must be required in a LocalScript, else there will be an error.
 local humanoid = player.Character:WaitForChild("Humanoid")
 local PlayerGui = player:WaitForChild("PlayerGui")
 local CharacterStatusGui = PlayerGui:WaitForChild("CharacterStatusGui")
 
+------------------------------------------------------------------------<<<ROBLOX LIBRARIES>>>
 local UserInputService = game:GetService("UserInputService")
 
+------------------------------------------------------------------------<<<LOCAL VARIABLES>>>
 local SPRINT_KEY = Enum.KeyCode.LeftShift
-
-local CharacterSpeedInfo = require(script.Parent.CharacterSpeedInfo)
-local StaminaManager = require(script.Parent.StaminaManager)
 local isMoving
 
+------------------------------------------------------------------------<<<MODULES>>>
+local CharacterSpeedInfo = require(script.Parent.CharacterSpeedInfo)
+local StaminaManager = require(script.Parent.StaminaManager)
+
+------------------------------------------------------------------------<<<MODULE SCRIPT>>>
 local Sprint = {SPRINT_KEY = SPRINT_KEY}
 
 function Sprint.sprintKeyDown()
