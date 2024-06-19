@@ -1,11 +1,14 @@
+------------------------------------------------------------------------<<<PLAYER SPECIFICS>>>
 local player = game.Players.LocalPlayer
 local character = player.Character
 local humanoid = character:WaitForChild("Humanoid")
 local PlayerGui = player:WaitForChild("PlayerGui")
 local CharacterStatusGui = PlayerGui:WaitForChild("CharacterStatusGui")
 
+------------------------------------------------------------------------<<<MODULES>>>
 local CharacterSpeedInfo = require(script.Parent.CharacterSpeedInfo)
 
+------------------------------------------------------------------------<<<LOCAL VARIABLES>>>
 local MAX_STAMINA = 100
 local JUMP_STAMINA_COST = MAX_STAMINA * 0.3
 local SLIDE_STAMINA_COST
@@ -29,8 +32,11 @@ insufficientStaminaForJumpBar.Parent = staminaBar.Parent
 local staminaLabel = CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForChild("bgFrame"):WaitForChild("staminaLabel")
 local drainConnection
 local fillConnection
+
+------------------------------------------------------------------------<<<ROBLOX LIBRARIES>>>
 local RunService = game:GetService("RunService")
 
+------------------------------------------------------------------------<<<MODULE SCRIPT>>>
 local StaminaManager = {
     MAX_STAMINA = MAX_STAMINA,
     MIN_REQUIRED_STAMINA = MIN_REQUIRED_STAMINA,
