@@ -6,11 +6,12 @@ local ToolScripts = ServerScriptService:WaitForChild("RojoManaged_SSS"):WaitForC
 
 ToolCatalog = {}
 
-local function addTool(toolName : String)
+local function addTool(toolName : String, description : String)
     if ToolModels:FindFirstChild(toolName) or ToolScripts:FindFirstChild(toolName) then
         ToolCatalog[toolName] = {
             Model = ToolModels:WaitForChild(toolName),
-            Scripts = ToolScripts:WaitForChild(toolName):WaitForChild("Scripts")
+            Scripts = ToolScripts:WaitForChild(toolName):WaitForChild("Scripts"),
+            Description = ""
         }   
         --print(toolName .. " was successfully added to the ToolCatalog")
     else
@@ -18,6 +19,7 @@ local function addTool(toolName : String)
     end
 end
 
-addTool("Raider Axe")
+addTool("Raider Axe", "An axe from the Joyful Viking from the land of rectangular prisms in the sky.")
+--addTool("Beretta", "Simple, but can get the job done.")
 
 return ToolCatalog

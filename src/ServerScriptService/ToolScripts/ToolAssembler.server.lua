@@ -31,6 +31,7 @@ local Players = game:GetService("Players")
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function(character)
         assembleTool("Raider Axe", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
+        --assembleTool("Beretta", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
     end)
 end)
 
