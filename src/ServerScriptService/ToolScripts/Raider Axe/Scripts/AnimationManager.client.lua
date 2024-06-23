@@ -101,11 +101,11 @@ local function onActivated()
 	if canSwing then
 		canSwing = false
 		currentAnimationManager.animationTracks.swing:Play()
-		currentAnimationManager.animationTracks.swing:GetMarkerReachedSignal("ForwardSwing"):Connect(function()
+		currentAnimationManager.animationTracks.swing:GetMarkerReachedSignal("ForwardSwing"):Once(function()
 			bev_ForwardSwing:Fire(true)
 			rev_playSound:FireServer(soundObjects.swing, 0, SFX_part)
 		end)
-		currentAnimationManager.animationTracks.swing:GetMarkerReachedSignal("EndSwing"):Connect(function()
+		currentAnimationManager.animationTracks.swing:GetMarkerReachedSignal("EndSwing"):Once(function()
 			bev_ForwardSwing:Fire(false)
 		end)
 		currentAnimationManager.animationTracks.swing.Stopped:Wait()

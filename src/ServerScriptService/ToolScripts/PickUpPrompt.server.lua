@@ -27,10 +27,13 @@ local function handleTaggedInstance(taggedObject)
         ProximityPrompt event for picking up the tool
     ]]
     ProximityPrompt.Triggered:Connect(function(playerWhoTriggered)
-        local backpack = playerWhoTriggered:WaitForChild("Backpack")
-        if backpack then
-            playSound(pickUpSound, 0, SFX_part)
-            tool.Parent = backpack
+        local humanoid : Humanoid = playerWhoTriggered.Character:FindFirstChild("Humanoid")
+        if humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
+            local backpack = playerWhoTriggered:WaitForChild("Backpack")
+            if backpack then
+                playSound(pickUpSound, 0, SFX_part)
+                tool.Parent = backpack
+            end 
         end
     end)
 
@@ -59,7 +62,7 @@ local function handleTaggedInstance(taggedObject)
     ]]
     tool.AncestryChanged:Connect(function(child, parent)
         local toolModel = tool:FindFirstChild("ToolModel")
-        if parent:FindFirstChild("Humanoid") == nil and not parent:IsA("Backpack") then --if the tool isn't equipped by a player or npc
+        if parent and parent:FindFirstChild("Humanoid") == nil and not parent:IsA("Backpack") then --if the tool isn't equipped by a player or npc
             ProximityPrompt.Enabled = true
             if toolModel then
                 modifyToolModelCollisions(toolModel, true)
@@ -77,6 +80,7 @@ local function handleTaggedInstance(taggedObject)
         end
     end)
 end
+
 ------------------------------------------------------------------------<<<EVENT CONNECTIONS>>>
 for _, v in CollectionService:GetTagged(COLLECTION_TAG) do
     handleTaggedInstance(v)
