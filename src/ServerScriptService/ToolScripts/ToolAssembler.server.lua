@@ -1,5 +1,4 @@
-local CollectionService = game:GetService("CollectionService")
-local COLLECTION_TAG = "Tool"
+local COLLECTION_TAG = "PUP" --acronym for Pick Up Prompt
 local ToolCatalog = require(script.Parent:WaitForChild("ToolCatalog"))
 
 local function assembleTool(toolName : String, parent)
@@ -23,15 +22,19 @@ local function assembleTool(toolName : String, parent)
 
     --puts tool in specified parent
     tool.Parent = parent
-
+    tool:AddTag(COLLECTION_TAG)
     --print(toolName .. " was successfully created: " .. tool.ClassName)
+    return tool
 end
 
 local Players = game:GetService("Players")
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function(character)
         assembleTool("Raider Axe", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
+        assembleTool("Raider Axe", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
         --assembleTool("Beretta", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
+        task.wait(5)
+        assembleTool("Raider Axe", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
     end)
 end)
 

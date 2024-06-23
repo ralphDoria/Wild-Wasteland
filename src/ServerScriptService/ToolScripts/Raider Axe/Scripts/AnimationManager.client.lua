@@ -16,6 +16,7 @@ local RemoteEvents = Events:WaitForChild("RemoteEvents")
 local bev_ForwardSwing = BindableEvents:WaitForChild("ForwardSwing")
 local bev_UpdateCurrentCharacter = BindableEvents:WaitForChild("UpdateCurrentCharacter")
 local rev_dropped : RemoteEvent = RemoteEvents:WaitForChild("Dropped")
+local rev_playSound = RemoteEvents:WaitForChild("PlaySound")
 
 ------------------------------------------------------------------------<<<Modules (Classes, Data Package, Utility, Functional)>>>
 local AnimationManagerClass = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationManagerClass"))
@@ -29,11 +30,12 @@ local animObjects = {
 
 local currentAnimationManager = nil
 
-------------------------------------------------------------------------<<<STUFF FOR SOUNDS>>>
+------------------------------------------------------------------------<<<SFX>>>
 --********maybe make a SoundsManager?
+local SFX_part = tool:WaitForChild("SFX_part")
 local soundObjects = {
-	equip = tool:WaitForChild("SFX_part"):WaitForChild("Shing Ringy 2 (SFX)"),
-	swing = tool:WaitForChild("SFX_part"):WaitForChild("Sword Swing Metal Heavy")
+	equip = SFX_part:WaitForChild("Shing Ringy 2 (SFX)"),
+	swing = SFX_part:WaitForChild("Sword Swing Metal Heavy")
 }
 
 local function isEquipped()
@@ -85,7 +87,7 @@ local function onEquipped()
 	local mouse = player:GetMouse()
 	mouse.Icon = script.Parent.Parent:WaitForChild("Cursor").Texture
 	bev_UpdateCurrentCharacter:Fire(character)
-	soundObjects.equip:Play()
+	rev_playSound:FireServer(soundObjects.equip, 0, SFX_part)
 	currentAnimationManager.animationTracks.equip:Play()
 	currentAnimationManager.animationTracks.equip.Stopped:Wait()
 	if isEquipped() then --checking this because during the equip animation, players can unequip the tool, causing a bug
@@ -101,7 +103,7 @@ local function onActivated()
 		currentAnimationManager.animationTracks.swing:Play()
 		currentAnimationManager.animationTracks.swing:GetMarkerReachedSignal("ForwardSwing"):Connect(function()
 			bev_ForwardSwing:Fire(true)
-			soundObjects.swing:Play()
+			rev_playSound:FireServer(soundObjects.swing, 0, SFX_part)
 		end)
 		currentAnimationManager.animationTracks.swing:GetMarkerReachedSignal("EndSwing"):Connect(function()
 			bev_ForwardSwing:Fire(false)

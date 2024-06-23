@@ -1,0 +1,86 @@
+--maybe modify this in the future by centralizing it (making it so there's only one of this script in the server) & use CollectionService
+
+------------------------------------------------------------------------<<<ROBLOX LIBRARIES & SERVICES>>>
+local CollectionService = game:GetService("CollectionService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+------------------------------------------------------------------------<<<LOCAL VARIABLES>>>
+local COLLECTION_TAG = "PUP" --acronym for Pick Up Prompt
+
+------------------------------------------------------------------------<<<Modules (Classes, Data Package, Utility, Functional)>>>
+local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
+
+------------------------------------------------------------------------<<<SFX>>>
+local pickUpSound = game:GetService("SoundService"):WaitForChild("Item Pick Up")
+
+------------------------------------------------------------------------<<<FUNCTIONS>>>
+local function handleTaggedInstance(taggedObject)
+    assert(taggedObject:IsA("Tool"), "Instance with PickUpPrompt Collection Tag is not a tool that contains a PickUpPrompt inside of a BodyAttach")
+    local tool = taggedObject
+    local SFX_part = tool:WaitForChild("SFX_part")
+    local ProximityPrompt = tool:WaitForChild("BodyAttach"):WaitForChild("PickUpPrompt")
+    if tool.Parent:IsA("Backpack") then
+        ProximityPrompt.Enabled = false
+    end
+
+    --[[
+        ProximityPrompt event for picking up the tool
+    ]]
+    ProximityPrompt.Triggered:Connect(function(playerWhoTriggered)
+        local backpack = playerWhoTriggered:WaitForChild("Backpack")
+        if backpack then
+            playSound(pickUpSound, 0, SFX_part)
+            tool.Parent = backpack
+        end
+    end)
+
+    --[[
+        Loops through each part in the ToolModel (which is a model inside of every tool in this game that stores all the physicals parts of the 
+        tool) and sets CanCollide to either true or false depending on the @Param shouldEnable
+    ]]
+    local function modifyToolModelCollisions(toolModel : Model, shouldEnable : boolean)
+        if shouldEnable then
+            for _, v in toolModel:GetChildren() do
+                if v:IsA("BasePart") then
+                    v.CanCollide = true
+                end
+            end
+        else
+            for _, v in toolModel:GetChildren() do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+        end
+    end
+
+    --[[
+        Turns the tool model's collisions and ProximityPrompt off or on depending on whether the tool is equipped or not.
+    ]]
+    tool.AncestryChanged:Connect(function(child, parent)
+        local toolModel = tool:FindFirstChild("ToolModel")
+        if parent:FindFirstChild("Humanoid") == nil and not parent:IsA("Backpack") then --if the tool isn't equipped by a player or npc
+            ProximityPrompt.Enabled = true
+            if toolModel then
+                modifyToolModelCollisions(toolModel, true)
+            else
+                warn("ToolModel not found in " .. tool.Name)
+            end
+        else
+            --tool has been equipped by a player or npc
+            ProximityPrompt.Enabled = false
+            if toolModel then
+                modifyToolModelCollisions(toolModel, false)
+            else
+                warn("ToolModel not found in " .. tool.Name)
+            end
+        end
+    end)
+end
+------------------------------------------------------------------------<<<EVENT CONNECTIONS>>>
+for _, v in CollectionService:GetTagged(COLLECTION_TAG) do
+    handleTaggedInstance(v)
+end
+CollectionService:GetInstanceAddedSignal(COLLECTION_TAG):Connect(function(object)
+    handleTaggedInstance(object)
+end)

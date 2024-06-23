@@ -1,33 +1,30 @@
+------------------------------------------------------------------------<<<LOCAL VARIABLES>>>
 local tool = script.Parent.Parent
+local droppedDetector = tool:WaitForChild("DropDetector")
 
---Remote Events
+------------------------------------------------------------------------<<<ROBLOX LIBRARIES & SERVICES>>>
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+------------------------------------------------------------------------<<<Modules (Classes, Data Package, Utility, Functional)>>>
+local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
+
+------------------------------------------------------------------------<<<REMOTE & BINDABLE EVENTS>>>
 local Events = tool:WaitForChild("Events")
 local RemoteEvents = Events:WaitForChild("RemoteEvents")
 local rev_dropped : RemoteEvent = RemoteEvents:WaitForChild("Dropped")
 
-local droppedDetector = tool:WaitForChild("DropDetector")
-
+------------------------------------------------------------------------<<<SFX>>>
 local SFX_part = tool:WaitForChild("SFX_part")
 local softDropSound = SFX_part:WaitForChild("softDrop")
 local hardDropSound = SFX_part:WaitForChild("hardDrop")
-local DebrisService = game:GetService("Debris")
 
 local softMaterials = {
     Enum.Material.Sand,
     Enum.Material.Fabric,
     Enum.Material.Grass,
-    Enum.Material.LeafyGrass
+    Enum.Material.LeafyGrass,
+    Enum.Material.Snow
 }
-
-local function playSound(soundObject : Sound, delayCorrection : number)
-	local soundClone = soundObject:Clone()
-	if delayCorrection then
-		soundClone.TimePosition = delayCorrection
-	end
-	soundClone.Parent = SFX_part
-	soundClone:Play()
-	DebrisService:AddItem(soundClone, soundClone.TimeLength)
-end
 
 rev_dropped.OnServerEvent:Connect(function(player)
     tool.Parent = game.Workspace
@@ -41,10 +38,10 @@ rev_dropped.OnServerEvent:Connect(function(player)
                 end
             end
             if isOnSoftMaterial then
-                playSound(softDropSound, 0.4)
+                playSound(softDropSound, 0.4, SFX_part)
                 touchedEvent:Disconnect()
             else
-                playSound(hardDropSound, 0.1)
+                playSound(hardDropSound, 0.1, SFX_part)
                 touchedEvent:Disconnect()
             end
         end
