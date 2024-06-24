@@ -1,11 +1,15 @@
 local viewModelController = {}
 viewModelController.__index = viewModelController
 
-function viewModelController.new()
+function viewModelController.new(viewModel : Model)
     local self = {}
     --self.viewModel = 
     self.connections = {}
     return setmetatable(self, viewModelController)
+end
+
+function viewModelController:Intiialize()
+    --fill the self.connections table
 end
 
 function viewModelController:enable()
