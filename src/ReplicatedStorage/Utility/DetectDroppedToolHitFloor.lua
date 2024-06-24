@@ -30,9 +30,6 @@ return function(tool : Tool)
                     isOnSoftMaterial = true
                 end
             end
-            print(partThatTouched.Name)
-            --print(partThatTouched.Parent.Name)
-            --print(partThatTouched.Parent.Parent.Name)
             if isOnSoftMaterial then
                 playSound(softDropSound, 0.4, SFX_part)
                 touchedEvent:Disconnect()

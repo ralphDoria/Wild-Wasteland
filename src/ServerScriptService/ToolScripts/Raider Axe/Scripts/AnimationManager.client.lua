@@ -88,11 +88,11 @@ local function onEquipped()
 	mouse.Icon = script.Parent.Parent:WaitForChild("Cursor").Texture
 	bev_UpdateCurrentCharacter:Fire(character)
 	rev_playSound:FireServer(soundObjects.equip, 0, SFX_part)
+	ContextActionService:BindAction(ACTION_DROP_TOOL, handleAction, true, Enum.KeyCode.X)
 	currentAnimationManager.animationTracks.equip:Play()
 	currentAnimationManager.animationTracks.equip.Stopped:Wait()
 	if isEquipped() then --checking this because during the equip animation, players can unequip the tool, causing a bug
 		currentAnimationManager.animationTracks.idle:Play()
-		ContextActionService:BindAction(ACTION_DROP_TOOL, handleAction, true, Enum.KeyCode.X)
 		canSwing = true
 	end
 end
