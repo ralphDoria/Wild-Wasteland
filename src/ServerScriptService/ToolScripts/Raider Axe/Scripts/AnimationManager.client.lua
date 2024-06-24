@@ -57,7 +57,7 @@ local function onUnequipped()
 			animTrack:Stop()
 		end
 	end
-	currentAnimationManager:delete()
+	currentAnimationManager:destroy()
 	character:SetAttribute(string.gsub(tool.Name, " ", "") .. "AnimsLoaded", nil)
 	bev_UpdateCurrentCharacter:Fire(nil)
 end

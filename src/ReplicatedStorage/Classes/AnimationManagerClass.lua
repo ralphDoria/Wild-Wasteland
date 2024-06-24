@@ -27,7 +27,7 @@ function AnimationManager.new(animator : Animator, animationObjectsTable)
     return self
 end
 
-function AnimationManager:delete()
+function AnimationManager:destroy()
     for _, v in pairs(self.animationTracks) do
         v:Destroy()
     end
