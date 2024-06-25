@@ -25,7 +25,8 @@ local M6Ds : Motor6D = {
 	rightShoulder = torso:WaitForChild("Right Shoulder"),
 	leftShoulder = torso:WaitForChild("Left Shoulder"),
     neck = torso:WaitForChild("Neck"),
-    waist = hrp:WaitForChild("RootJoint")
+    waist = hrp:WaitForChild("RootJoint"),
+    bodyAttachJoint = torso.BodyAttachJoint
 }
 
 --mapping function for 
@@ -47,6 +48,10 @@ M6Ds.neck.MaxVelocity = 1/3
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local tiltAt = ReplicatedStorage:WaitForChild("tiltAt")
+
+------------------------------------------------------------------------<<<Motor6D Stuff>>>
+
+
 ------------------------------------------------------------------------<<<Run Service Loop>>>
 --*understand the difference between different RunService Events
 local timeAccumulated = 0
@@ -57,6 +62,18 @@ RunService.RenderStepped:Connect(function(dt)
         timeAccumulated += dt
     else
         timeAccumulated = 0
-        tiltAt:FireServer(math.asin(camera.CFrame.LookVector.Y))
+
+        local theta = math.asin(camera.CFrame.LookVector.Y)
+
+        local yOffsetTorsoFromShoulder = M6Ds.rightShoulder.C0.Y - 0.3
+
+        --moved calculations to to client-sided
+        local newCalculatedCFrames : CFrame = {
+            neck = originC0.neck * CFrame.Angles(-theta, 0, 0),
+            rightShoulder = originC0.rightShoulder * CFrame.Angles(0, 0, theta),
+            leftShoulder = originC0.leftShoulder * CFrame.Angles(0, 0, -theta),
+            bodyAttachJoint = originC0.bodyAttachJoint* CFrame.new(0, yOffsetTorsoFromShoulder, 0) * CFrame.Angles(theta, 0, 0)
+        }
+        tiltAt:FireServer(newCalculatedCFrames)
     end
 end)
