@@ -51,8 +51,8 @@ end)
 ]]
 
 RunService:BindToRenderStep("viewModel", 200, function(dt)
-    head.CFrame = camera.CFrame
-    M6Ds.rightShoulder.C0 = character.Torso["Right Shoulder"].C0
+    head.CFrame = camera.CFrame * CFrame.new(Vector3.new(0, 0, -0.5))
+    M6Ds.rightShoulder.C0 = character.Torso["Right Shoulder"].C0 * CFrame.Angles(0, 0, math.rad(90))
     M6Ds.leftShoulder.C0 = originC0.leftShoulder * CFrame.Angles(0, 0, -math.rad(90))
 end)
 

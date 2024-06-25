@@ -22,6 +22,8 @@ local camera = workspace.CurrentCamera
 local M6Ds : Motor6D = {
     rightHip = torso:WaitForChild("Right Hip"),
     leftHip = torso:WaitForChild("Left Hip"),
+	rightShoulder = torso:WaitForChild("Right Shoulder"),
+	leftShoulder = torso:WaitForChild("Left Shoulder"),
     neck = torso:WaitForChild("Neck"),
     waist = hrp:WaitForChild("RootJoint")
 }
@@ -43,41 +45,18 @@ M6Ds.neck.MaxVelocity = 1/3
 
 ------------------------------------------------------------------------<<<ROBLOX LIBRARIES>>>
 local RunService = game:GetService("RunService")
-
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local tiltAt = ReplicatedStorage:WaitForChild("tiltAt")
 ------------------------------------------------------------------------<<<Run Service Loop>>>
 --*understand the difference between different RunService Events
+local timeAccumulated = 0
+local remoteEventFireRate = 0
+
 RunService.RenderStepped:Connect(function(dt)
-    local CameraCFrame = camera.CFrame
-
-	if character:FindFirstChild("Torso") and character:FindFirstChild("Head") then --Player could die due to void and these parts get deleted
-		local TorsoLookVector = torso.CFrame.lookVector
-		local HeadPosition = head.CFrame.p
-
-		if M6Ds.neck and M6Ds.waist then
-			if camera.CameraSubject:IsDescendantOf(character) or camera.CameraSubject:IsDescendantOf(player) then
-				local point : Vector3 = mouse.Hit.Position
-
-				local Distance = (head.CFrame.p - point).magnitude
-				local Difference = head.CFrame.Y - point.Y
-				
-				
-				local goalNeckCFrame = CFrame.Angles(-(math.atan(Difference / Distance) * 0.5), (((HeadPosition - point).Unit):Cross(TorsoLookVector)).Y * 1, 0)
-				M6Ds.neck.C0 = M6Ds.neck.C0:lerp(goalNeckCFrame*originC0.neck, 0.5 / 2).Rotation + originC0.neck.Position
-				
-				local xAxisWaistRotation = -(math.atan(Difference / Distance) * 0.5)
-				local yAxisWaistRotation = (((HeadPosition - point).Unit):Cross(TorsoLookVector)).Y * 0.5
-				local rotationWaistCFrame = CFrame.Angles(xAxisWaistRotation, yAxisWaistRotation, 0)
-				local goalWaistCFrame = rotationWaistCFrame*originC0.waist
-				M6Ds.waist.C0 = M6Ds.waist.C0:lerp(goalWaistCFrame, 0.5 / 2).Rotation + originC0.waist.Position
-				
-				
-				local currentLegCounterCFrame = M6Ds.waist.C0*originC0.waist:Inverse()
-
-				local legsCounterCFrame = currentLegCounterCFrame:Inverse()
-				
-				M6Ds.rightHip.C0 =  legsCounterCFrame*originC0.rightHip
-				M6Ds.leftHip.C0 = legsCounterCFrame*originC0.leftHip
-			end
-		end
-	end	
+    if timeAccumulated < remoteEventFireRate then
+        timeAccumulated += dt
+    else
+        timeAccumulated = 0
+        tiltAt:FireServer(math.asin(camera.CFrame.LookVector.Y))
+    end
 end)
