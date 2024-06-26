@@ -65,15 +65,14 @@ RunService.RenderStepped:Connect(function(dt)
 
         local theta = math.asin(camera.CFrame.LookVector.Y)
 
-        local yOffsetTorsoFromShoulder = M6Ds.rightShoulder.C0.Y - 0.3
-
         --moved calculations to to client-sided
         local newCalculatedCFrames : CFrame = {
             neck = originC0.neck * CFrame.Angles(-theta, 0, 0),
             rightShoulder = originC0.rightShoulder * CFrame.Angles(0, 0, theta),
-            leftShoulder = originC0.leftShoulder * CFrame.Angles(0, 0, -theta),
-            bodyAttachJoint = originC0.bodyAttachJoint* CFrame.new(0, yOffsetTorsoFromShoulder, 0) * CFrame.Angles(theta, 0, 0)
+            leftShoulder = originC0.leftShoulder * CFrame.Angles(0, 0, -theta), 
+            bodyAttachJoint = originC0.bodyAttachJoint * CFrame.Angles(theta, 0, 0)
         }
-        tiltAt:FireServer(newCalculatedCFrames)
+        tiltAt:FireServer(newCalculatedCFrames, character:FindFirstChildOfClass("Tool"))
     end
 end)
+

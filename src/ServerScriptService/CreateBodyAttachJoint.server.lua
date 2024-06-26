@@ -26,6 +26,14 @@ Players.PlayerAdded:Connect(function(plr: Player)
 		M6D.Name = "BodyAttachJoint"
 		M6D.Part0 = torso
 		M6D.Part1 = nil --temporarily empty, when a tool is equipped, this will be set to the tool's bodyAttach
+		local originC0 = M6D.C0
+		--[[
+		Offsetting the tool's M6D, as show below, aligns this M6D with the character's shoulders, which keeps everything consistent, 
+		including the animations, with the TiltCharacterLimbs script.
+		the line torso["Right Shoulder"].C0.Y for R6 is probably always equal to 0.5, but I do it for readability.
+		]]
+		
+		M6D.C0 = originC0 * CFrame.new(Vector3.new(0, torso["Right Shoulder"].C0.Y, 0)) 
         M6D.Parent = torso
 		
 
