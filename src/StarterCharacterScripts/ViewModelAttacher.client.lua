@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local vmController = ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("viewModelController")
+local vmController = ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("ViewModelController")
 local camera = workspace.CurrentCamera
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -52,22 +52,8 @@ end)
 local rightArm = character["Right Arm"]
 local leftArm = character["Left Arm"]
 
-rightArm.CastShadow = false
-leftArm.CastShadow = false
-character.Torso.CastShadow = false
-character["Left Leg"].CastShadow = false
-character["Right Leg"].CastShadow = false
-character.Head.CastShadow = false
-
 RunService:BindToRenderStep("viewModel", 200, function(dt)
-    character.Humanoid.CameraOffset = Vector3.new(0, 0, -1)
-    
     head.CFrame = camera.CFrame
-    rightArm.LocalTransparencyModifier = 0
-    leftArm.LocalTransparencyModifier = 0
-    character.Torso.LocalTransparencyModifier = 0
-    character["Left Leg"].LocalTransparencyModifier = 0
-    character["Right Leg"].LocalTransparencyModifier = 0
 end)
 
 --RunService:UnbindFromRenderStep("viewModel")

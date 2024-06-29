@@ -1,41 +1,41 @@
-local viewModelController = {}
-viewModelController.__index = viewModelController
+local ViewModelController = {}
+ViewModelController.__index = ViewModelController
 
-function viewModelController.new(viewModel : Model)
+function ViewModelController.new(viewModel : Model)
     local self = {}
     --self.viewModel = 
     self.connections = {}
-    return setmetatable(self, viewModelController)
+    return setmetatable(self, ViewModelController)
 end
 
-function viewModelController:Intiialize()
+function ViewModelController:Intiialize()
     --fill the self.connections table
 end
 
-function viewModelController:enable()
+function ViewModelController:enable()
     --use RunService:BindToRenderStep(bindName : String, Enum.RenderPriority, functionToBind)
 end
 
-function viewModelController:disable()
+function ViewModelController:disable()
     --use RunService:UnbindFromRenderStep(bindName : String)
 end
 
-function viewModelController:hideToolInstances()
+function ViewModelController:hideToolInstances()
     --use LocalTransparencyModifier
 end
 
-function viewModelController:unhideToolInstances()
+function ViewModelController:unhideToolInstances()
     --use LocalTransparencyModifier
 end
 
-function viewModelController:update()
+function ViewModelController:update()
     --[[
         -Procedurally animated bobbing effect and ADS
     ]]
 end
 
-function viewModelController:destroy()
+function ViewModelController:destroy()
 
 end
 
-return viewModelController
+return ViewModelController

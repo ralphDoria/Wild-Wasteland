@@ -75,14 +75,13 @@ RunService.RenderStepped:Connect(function(dt)
         timeAccumulated = 0
 
         local theta = math.asin(camera.CFrame.LookVector.Y)
-        local clampedTheta = math.clamp(theta, math.rad(-22), math.rad(50))
 
         --moved calculations to to client-sided
         local newCalculatedCFrames : CFrame = {
             neck = originC0.neck * CFrame.Angles(-theta, 0, 0),
-            rightShoulder = originC0.rightShoulder  * CFrame.Angles(0, 0, clampedTheta),
-            leftShoulder = originC0.leftShoulder * CFrame.Angles(0, 0, -clampedTheta), 
-            bodyAttachJoint = originC0.bodyAttachJoint * CFrame.Angles(clampedTheta, 0, 0)
+            rightShoulder = originC0.rightShoulder  * CFrame.Angles(0, 0, theta),
+            leftShoulder = originC0.leftShoulder * CFrame.Angles(0, 0, -theta), 
+            bodyAttachJoint = originC0.bodyAttachJoint * CFrame.Angles(theta, 0, 0)
         }
         tiltAt:FireServer(newCalculatedCFrames, character:FindFirstChildOfClass("Tool"))
     end
