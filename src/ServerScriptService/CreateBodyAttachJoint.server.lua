@@ -32,7 +32,6 @@ Players.PlayerAdded:Connect(function(plr: Player)
 		including the animations, with the TiltCharacterLimbs script.
 		the line torso["Right Shoulder"].C0.Y for R6 is probably always equal to 0.5, but I do it for readability.
 		]]
-		
 		M6D.C0 = originC0 * CFrame.new(Vector3.new(0, torso["Right Shoulder"].C0.Y, 0)) 
         M6D.Parent = torso
 		
@@ -54,3 +53,6 @@ Players.PlayerAdded:Connect(function(plr: Player)
 		end)
 	end)	
 end)
+
+game:GetService("ReplicatedStorage"):WaitForChild("originC0Holder"):WaitForChild("Torso"):WaitForChild("BodyAttachJoint").C0 = CFrame.new(0, 0.5, 0)
+game:GetService("ReplicatedStorage"):WaitForChild("viewModel"):WaitForChild("Torso"):WaitForChild("BodyAttachJoint").C0 = CFrame.new(0, 0.5, 0)

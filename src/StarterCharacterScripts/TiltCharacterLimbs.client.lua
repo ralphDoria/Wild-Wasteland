@@ -10,6 +10,11 @@
         By the way, this is only client sided for now.
 ]]
 
+------------------------------------------------------------------------<<<ROBLOX LIBRARIES>>>
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local tiltAt = ReplicatedStorage:WaitForChild("tiltAt")
+
 ------------------------------------------------------------------------<<<PLAYER SPECIFICS>>>
 local player = game:GetService("Players").LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -25,7 +30,6 @@ local M6Ds : Motor6D = {
 	rightShoulder = torso:WaitForChild("Right Shoulder"),
 	leftShoulder = torso:WaitForChild("Left Shoulder"),
     neck = torso:WaitForChild("Neck"),
-    waist = hrp:WaitForChild("RootJoint"),
     bodyAttachJoint = torso.BodyAttachJoint
 }
 
@@ -36,18 +40,14 @@ local M6Ds : Motor6D = {
 --V
 
 local originC0 : CFrame = {} --this is so we know the default positions for each Motor6D
+local originC0Holder = ReplicatedStorage:WaitForChild("originC0Holder")
 
 for key, v in pairs(M6Ds) do --populating the originC0 table
-    originC0[key] = M6Ds[key].C0
+    originC0[key] = originC0Holder:WaitForChild("Torso"):WaitForChild(M6Ds[key].Name).C0
 end
 
 M6Ds.neck.MaxVelocity = 1/3
 ------------------------------------------------------------------------<<<LOCAL VARIABLES>>>
-
-------------------------------------------------------------------------<<<ROBLOX LIBRARIES>>>
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local tiltAt = ReplicatedStorage:WaitForChild("tiltAt")
 
 ------------------------------------------------------------------------<<<Motor6D Stuff>>>
 
@@ -55,8 +55,19 @@ local tiltAt = ReplicatedStorage:WaitForChild("tiltAt")
 ------------------------------------------------------------------------<<<Run Service Loop>>>
 --*understand the difference between different RunService Events
 local timeAccumulated = 0
-local remoteEventFireRate = 0
+local remoteEventFireRate = 0.1
 
+--trying to make the arms rotate relative to head position
+
+--[[ scratch work
+    targetCFrameOfRightArm = CFrame.new(head.Position) * CFrame.Angles(0, 0, theta) * CFrame.new(0, -1, 0)
+    currentCFrameOfRightArm * offset = targetCFrameOfRightArm
+    offset = currentCFrameOfRightArm:Inverse() * targetCFrameOfRightArm
+
+    torso.CFrame * rightShoulder.C0 = rightArm.CFrame * rightShoulder.C1
+    targetCFrameOfRightArm * torso.CFrame * rightShoulder.C0 = targetCFrameOfRightArm * rightArm.CFrame * rightShoulder.C1
+    rightShoulder.C0 = 
+]]
 RunService.RenderStepped:Connect(function(dt)
     if timeAccumulated < remoteEventFireRate then
         timeAccumulated += dt
@@ -64,13 +75,14 @@ RunService.RenderStepped:Connect(function(dt)
         timeAccumulated = 0
 
         local theta = math.asin(camera.CFrame.LookVector.Y)
+        local clampedTheta = math.clamp(theta, math.rad(-22), math.rad(50))
 
         --moved calculations to to client-sided
         local newCalculatedCFrames : CFrame = {
             neck = originC0.neck * CFrame.Angles(-theta, 0, 0),
-            rightShoulder = originC0.rightShoulder * CFrame.Angles(0, 0, theta),
-            leftShoulder = originC0.leftShoulder * CFrame.Angles(0, 0, -theta), 
-            bodyAttachJoint = originC0.bodyAttachJoint * CFrame.Angles(theta, 0, 0)
+            rightShoulder = originC0.rightShoulder  * CFrame.Angles(0, 0, clampedTheta),
+            leftShoulder = originC0.leftShoulder * CFrame.Angles(0, 0, -clampedTheta), 
+            bodyAttachJoint = originC0.bodyAttachJoint * CFrame.Angles(clampedTheta, 0, 0)
         }
         tiltAt:FireServer(newCalculatedCFrames, character:FindFirstChildOfClass("Tool"))
     end

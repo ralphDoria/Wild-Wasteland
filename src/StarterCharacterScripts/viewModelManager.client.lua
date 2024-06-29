@@ -49,11 +49,25 @@ RunService.RenderStepped:Connect(function(dt)
     viewModel.Head.CFrame = camera.CFrame
 end)
 ]]
+local rightArm = character["Right Arm"]
+local leftArm = character["Left Arm"]
+
+rightArm.CastShadow = false
+leftArm.CastShadow = false
+character.Torso.CastShadow = false
+character["Left Leg"].CastShadow = false
+character["Right Leg"].CastShadow = false
+character.Head.CastShadow = false
 
 RunService:BindToRenderStep("viewModel", 200, function(dt)
-    head.CFrame = camera.CFrame * CFrame.new(Vector3.new(0, 0, -0.5))
-    M6Ds.rightShoulder.C0 = character.Torso["Right Shoulder"].C0 * CFrame.Angles(0, 0, math.rad(90))
-    M6Ds.leftShoulder.C0 = originC0.leftShoulder * CFrame.Angles(0, 0, -math.rad(90))
+    character.Humanoid.CameraOffset = Vector3.new(0, 0, -1)
+    
+    head.CFrame = camera.CFrame
+    rightArm.LocalTransparencyModifier = 0
+    leftArm.LocalTransparencyModifier = 0
+    character.Torso.LocalTransparencyModifier = 0
+    character["Left Leg"].LocalTransparencyModifier = 0
+    character["Right Leg"].LocalTransparencyModifier = 0
 end)
 
 --RunService:UnbindFromRenderStep("viewModel")
