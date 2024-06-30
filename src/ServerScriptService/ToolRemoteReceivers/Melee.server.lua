@@ -29,8 +29,11 @@ rev_activate.OnServerEvent:Connect(function(player: Player, tool : Tool, isActiv
 end)
 
 rev_hit.OnServerEvent:Connect(function(player : Player, tool : Tool, humanoid : Humanoid, hitSound : Sound, hitLocationCFrame : CFrame)
-    print(humanoid.Parent.Name .. " & " .. humanoid.ClassName)
-    if humanoid.Health > 0 then
+    --[[ This commented out block is for debugging because sometime the humanoid is nil for some reason
+	print("humanoid name: " .. humanoid.Name)
+	print("humanoid's parent's name: " .. humanoid.Parent.Name)
+	]]
+	if humanoid.Health > 0 then
 		playSound(hitSound, 0.2, hitSound.Parent)
 		humanoid:TakeDamage(tool:GetAttribute("Damage"))
 	end

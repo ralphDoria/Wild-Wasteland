@@ -1,37 +1,112 @@
+local Constants = {
+	VIEW_MODEL_OFFSET = CFrame.new(0, 0, -1),
+	VIEW_MODEL_BOBBING_SPEED = 0.4,
+	VIEW_MODEL_BOBBING_AMOUNT = 0.05,
+	VIEW_MODEL_BOBBING_TRANSITION_SPEED = 10
+}
+
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local lerp = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("lerp"))
+local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationController"))
+
 local ViewModelController = {}
 ViewModelController.__index = ViewModelController
 
-function ViewModelController.new(viewModel : Model)
-    local self = {}
-    --self.viewModel = 
-    self.connections = {}
+function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hrp)
+    local vmTool = tool:Clone()
+    vmTool.Scripts:Destroy()
+    local toolInstances = {}
+    for _, v in tool:GetDescendants() do
+        if v:IsA("BasePart") then
+            table.insert(toolInstances, v)
+        end
+    end
+
+    local self = {
+        enabled = false,
+        viewModel = viewModel,
+        vmTool = vmTool,
+        toolInstances = toolInstances,
+        animObjects = animObjects,
+        animationController = AnimationController.new(viewModel.Humanoid.Animator, animObjects),
+        stride = 0,
+		bobbing = 0,
+        hrp = hrp
+    }
+
     return setmetatable(self, ViewModelController)
 end
 
-function ViewModelController:Intiialize()
-    --fill the self.connections table
-end
-
 function ViewModelController:enable()
-    --use RunService:BindToRenderStep(bindName : String, Enum.RenderPriority, functionToBind)
+    if self.enabled then
+		return
+	end
+	self.enabled = true
+
+    --hide toolInstances
+    for _, instance in self.toolInstances do
+        instance.LocalTransparencyModifier = 1
+    end
+
+    RunService:BindToRenderStep("ViewModelTool", 200, function(deltaTime)
+        --[[
+        if ViewModelController.vmTool:GetAttribute("weaponType") == "Gun" then
+            --ADS code here
+        end
+        ]]
+
+        -- View model bobbing animation
+        local moveSpeed = self.hrp.AssemblyLinearVelocity.Magnitude    
+        local bobbingSpeed = moveSpeed * Constants.VIEW_MODEL_BOBBING_SPEED
+        local bobbing = math.min(bobbingSpeed, 1)
+
+        self.stride = (self.stride + bobbingSpeed * deltaTime) % (math.pi * 2)
+        self.bobbing = lerp(self.bobbing, bobbing, math.min(deltaTime * Constants.VIEW_MODEL_BOBBING_TRANSITION_SPEED, 1))
+
+        local x = math.sin(self.stride)
+        local y = math.sin(self.stride * 2)
+        local bobbingOffset = Vector3.new(x, y, 0) * Constants.VIEW_MODEL_BOBBING_AMOUNT * self.bobbing
+        local bobbingCFrame = CFrame.new(bobbingOffset)
+
+        self.viewModel.Head.CFrame = workspace.CurrentCamera.CFrame * Constants.VIEW_MODEL_OFFSET * bobbingCFrame
+    end)
 end
 
 function ViewModelController:disable()
-    --use RunService:UnbindFromRenderStep(bindName : String)
+    if not self.enabled then
+		return
+	end
+	self.enabled = false
+    
+    --unhide toolInstances
+    for _, instance in self.toolInstances do
+        instance.LocalTransparencyModifier = 0
+    end
+
+    RunService:UnbindFromRenderStep("ViewModelTool")
 end
 
-function ViewModelController:hideToolInstances()
-    --use LocalTransparencyModifier
+
+function ViewModelController:equipTool()
+   self.vmTool.Parent = self.viewModel
+   self.viewModel.Torso.BodyAttachJoint.Part1 = self.vmTool.BodyAttach 
 end
 
-function ViewModelController:unhideToolInstances()
-    --use LocalTransparencyModifier
+function ViewModelController:unequipTool()
+    self.vmTool.Parent = nil
+    self.viewModel.Torso.BodyAttachJoint.Part1 = nil
 end
 
-function ViewModelController:update()
-    --[[
-        -Procedurally animated bobbing effect and ADS
-    ]]
+function ViewModelController:stopAllViewModelAnimations()
+    for _, animTrack : AnimationTrack in self.viewModel.Humanoid.Animator:GetPlayingAnimationTracks() do
+		for _, anim : Animation in self.animObjects do
+            if animTrack.Animation == anim then
+                animTrack:Stop()
+            end
+        end
+	end
 end
 
 function ViewModelController:destroy()

@@ -9,7 +9,7 @@ local Constants = {
 
 local RaycastHitbox = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("RaycastHitboxV4"))
 local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationController"))
-local ViewModelController
+local ViewModelController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("ViewModelController"))
 
 local remotes : Folder = ReplicatedStorage:WaitForChild("Tools"):WaitForChild("Melee"):WaitForChild("Remotes")
 local rev_playSound : RemoteEvent = remotes:WaitForChild("PlaySound")
@@ -17,18 +17,27 @@ local rev_droppedTool : RemoteEvent = remotes:WaitForChild("DroppedTool")
 local rev_hit : RemoteEvent = remotes:WaitForChild("Hit")
 local rev_activate : RemoteEvent = remotes:WaitForChild("Activate")
 
+local function isFirstPerson()
+    return Players.LocalPlayer.Character.Torso.LocalTransparencyModifier >= 1
+end
+
 local MeleeController = {}
 MeleeController.__index = MeleeController
 
 function MeleeController.new(melee : Tool)
+    local animObjects = {
+        equip = melee:WaitForChild("Anims"):WaitForChild("equip"),
+        idle = melee:WaitForChild("Anims"):WaitForChild("idle"),
+        activate = melee:WaitForChild("Anims"):WaitForChild("activate")
+    }
+
+    local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
+    local hrp = character.HumanoidRootPart
+
     local self = {
         tool = melee,
         hitboxController = RaycastHitbox.new(melee:WaitForChild("Hitbox")),
-        animObjects = {
-            equip = melee:WaitForChild("Anims"):WaitForChild("equip"),
-            idle = melee:WaitForChild("Anims"):WaitForChild("idle"),
-            activate = melee:WaitForChild("Anims"):WaitForChild("activate")
-        },
+        animObjects = animObjects,
         currentCharacterAnimationController = nil,
         currentPlayer = nil,
         currentCharacter = nil,
@@ -38,7 +47,7 @@ function MeleeController.new(melee : Tool)
 	        activate = melee:WaitForChild("SFX_part"):WaitForChild("Sword Swing Metal Heavy"),
             hit = melee:WaitForChild("SFX_part"):WaitForChild("Sword Hit (Impact)")
         },
-        --viewModelController = ViewModelController.new(),
+        viewModelController = ViewModelController.new(workspace.CurrentCamera:WaitForChild("viewModel"), melee, animObjects, hrp),
         canActivate = false,
         equipped = false,
         connections = {}
@@ -73,9 +82,28 @@ function MeleeController:initialize()
             self:unequip()
         end)
     )
+    table.insert(
+        self.connections,
+        Players.LocalPlayer.Character.Torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
+            if isFirstPerson() then
+                if self.equipped then
+                    self.viewModelController:enable()
+                end
+            else
+                if self.equipped then
+                    self.viewModelController:disable()
+                end
+            end
+        end)
+    )
 end
 
 function MeleeController:equip()
+    if isFirstPerson() then
+        self.viewModelController:enable()
+    end
+    self.viewModelController:equipTool()
+
     rev_playSound:FireServer(self.soundObjects.equip, 0, self.SFX_part)
     self.equipped = true
     self.currentPlayer = Players.LocalPlayer
@@ -87,6 +115,7 @@ function MeleeController:equip()
     self.currentPlayer:GetMouse().Icon = self.tool:GetAttribute("Cursor")
 
     self.currentCharacterAnimationController.animationTracks.equip:Play()
+    self.viewModelController.animationController.animationTracks.equip:Play()
     self.currentCharacterAnimationController.animationTracks.equip.Stopped:Wait()
     if self.equipped then --checking this because during the equip animation, players can unequip the tool, causing a bug
         ContextActionService:BindAction(Constants.ACTION_DROP_TOOL, function(actionName, inputState, _inputObject)
@@ -96,6 +125,7 @@ function MeleeController:equip()
             end
         end, true, Enum.KeyCode.X)
         self.currentCharacterAnimationController.animationTracks.idle:Play()
+        self.viewModelController.animationController.animationTracks.idle:Play()
         self.canActivate = true
     end
 end
@@ -104,6 +134,7 @@ function MeleeController:activate()
     if self.canActivate then
 		self.canActivate = false
 		self.currentCharacterAnimationController.animationTracks.activate:Play()
+        self.viewModelController.animationController.animationTracks.activate:Play()
 		self.currentCharacterAnimationController.animationTracks.activate:GetMarkerReachedSignal("ForwardSwing"):Once(function()
 			self.hitboxController:HitStart()
             rev_activate:FireServer(self.tool, true, self.soundObjects.activate, 0, self.SFX_part)
@@ -120,6 +151,9 @@ function MeleeController:activate()
 end
 
 function MeleeController:unequip()
+    self.viewModelController:disable()
+    self.viewModelController:unequipTool()
+
     self.equipped = false
     ContextActionService:UnbindAction(Constants.ACTION_DROP_TOOL)
 	self.currentPlayer:GetMouse().Icon = ""
@@ -132,6 +166,7 @@ function MeleeController:unequip()
             end
         end
 	end
+    self.viewModelController:stopAllViewModelAnimations()
 	self.currentCharacterAnimationController:destroy()
 	self.currentCharacter:SetAttribute(string.gsub(self.tool.Name, " ", "") .. "AnimsLoaded", nil)
 end
