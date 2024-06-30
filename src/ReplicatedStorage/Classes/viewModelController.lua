@@ -17,6 +17,7 @@ ViewModelController.__index = ViewModelController
 function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hrp)
     local vmTool = tool:Clone()
     vmTool.Scripts:Destroy()
+    vmTool.SFX_part:Destroy()
     local toolInstances = {}
     for _, v in tool:GetDescendants() do
         if v:IsA("BasePart") then
@@ -28,6 +29,7 @@ function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hr
         enabled = false,
         viewModel = viewModel,
         vmTool = vmTool,
+        toolEquipped = false,
         toolInstances = toolInstances,
         animObjects = animObjects,
         animationController = AnimationController.new(viewModel.Humanoid.Animator, animObjects),
@@ -50,6 +52,8 @@ function ViewModelController:enable()
         instance.LocalTransparencyModifier = 1
     end
 
+    local timeAccumulated = 0
+
     RunService:BindToRenderStep("ViewModelTool", 200, function(deltaTime)
         --[[
         if ViewModelController.vmTool:GetAttribute("weaponType") == "Gun" then
@@ -69,8 +73,19 @@ function ViewModelController:enable()
         local y = math.sin(self.stride * 2)
         local bobbingOffset = Vector3.new(x, y, 0) * Constants.VIEW_MODEL_BOBBING_AMOUNT * self.bobbing
         local bobbingCFrame = CFrame.new(bobbingOffset)
+        --
 
-        self.viewModel.Head.CFrame = workspace.CurrentCamera.CFrame * Constants.VIEW_MODEL_OFFSET * bobbingCFrame
+        local viewModelInitialOffset : CFrame = CFrame.new(0, -1, 0)
+        local viewModelOffset
+        if not self.toolEquipped and timeAccumulated <= self.animationController.animationTracks.equip.Length then
+            timeAccumulated += deltaTime
+            local lerpAlpha = timeAccumulated/self.animationController.animationTracks.equip.Length
+            viewModelOffset = viewModelInitialOffset:Lerp(Constants.VIEW_MODEL_OFFSET, lerpAlpha)
+        else
+            viewModelOffset = Constants.VIEW_MODEL_OFFSET
+        end
+
+        self.viewModel.Head.CFrame = workspace.CurrentCamera.CFrame * viewModelOffset * bobbingCFrame
     end)
 end
 

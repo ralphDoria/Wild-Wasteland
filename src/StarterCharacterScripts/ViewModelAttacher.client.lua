@@ -44,25 +44,20 @@ end
 
 --initially hide the viewModel if player is in first person
 if isFirstPerson() then
-    --print("first person")
     changeViewModelTransparency(0)
 else
-    --print("not first person")
     changeViewModelTransparency(1)
 end
 
 --shows the view model in first person and hides it in third person
 torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
     if isFirstPerson() then
-        --print("first person")
         changeViewModelTransparency(0)
     else
-        --print("not first person")
         changeViewModelTransparency(1)
     end
 end)
 
-
 RunService:BindToRenderStep("ViewModel", 200, function(dt)
-    head.CFrame = camera.CFrame * CFrame.new(Vector3.new(0, 0, -1))-- * CFrame.new(Vector3.new(0, 0, -5)) * CFrame.Angles(0, math.rad(180), 0)
+    head.CFrame = camera.CFrame
 end)

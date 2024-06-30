@@ -30,13 +30,14 @@ function MeleeController.new(melee : Tool)
         idle = melee:WaitForChild("Anims"):WaitForChild("idle"),
         activate = melee:WaitForChild("Anims"):WaitForChild("activate")
     }
-
     local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
     local hrp = character.HumanoidRootPart
+    local newHitbox = RaycastHitbox.new(melee:WaitForChild("Hitbox"))
+    newHitbox.DetectionMode = RaycastHitbox.DetectionMode.Default
 
     local self = {
         tool = melee,
-        hitboxController = RaycastHitbox.new(melee:WaitForChild("Hitbox")),
+        hitboxController = newHitbox,
         animObjects = animObjects,
         currentCharacterAnimationController = nil,
         currentPlayer = nil,
@@ -118,6 +119,8 @@ function MeleeController:equip()
     self.viewModelController.animationController.animationTracks.equip:Play()
     self.currentCharacterAnimationController.animationTracks.equip.Stopped:Wait()
     if self.equipped then --checking this because during the equip animation, players can unequip the tool, causing a bug
+        self.equipped = true
+        self.viewModelController.toolEquipped = true
         ContextActionService:BindAction(Constants.ACTION_DROP_TOOL, function(actionName, inputState, _inputObject)
             if actionName == Constants.ACTION_DROP_TOOL and inputState == Enum.UserInputState.Begin then
                 self:unequip()
@@ -151,6 +154,9 @@ function MeleeController:activate()
 end
 
 function MeleeController:unequip()
+    self.equipped = false
+    self.viewModelController.toolEquipped = false
+    rev_activate:FireServer(self.tool, false) --for safety
     self.viewModelController:disable()
     self.viewModelController:unequipTool()
 
