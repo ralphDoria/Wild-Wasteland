@@ -42,15 +42,9 @@ function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hr
 end
 
 function ViewModelController:enable()
-    if self.enabled then
-		return
-	end
 	self.enabled = true
 
-    --hide toolInstances
-    for _, instance in self.toolInstances do
-        instance.LocalTransparencyModifier = 1
-    end
+    self:showViewModelTool()
 
     local timeAccumulated = 0
 
@@ -90,19 +84,38 @@ function ViewModelController:enable()
 end
 
 function ViewModelController:disable()
-    if not self.enabled then
-		return
-	end
 	self.enabled = false
-    
-    --unhide toolInstances
-    for _, instance in self.toolInstances do
-        instance.LocalTransparencyModifier = 0
-    end
+
+    self:hideViewModelTool()
 
     RunService:UnbindFromRenderStep("ViewModelTool")
 end
 
+function ViewModelController:showViewModelTool()
+    --shows view model tool
+    for _, instance in self.vmTool:GetDescendants() do
+        if instance:IsA("BasePart") then
+            instance.LocalTransparencyModifier = 0
+        end
+    end
+    --hides real character's tool
+    for _, instance in self.toolInstances do
+        instance.LocalTransparencyModifier = 1
+    end 
+end
+
+function ViewModelController:hideViewModelTool()
+    --hides view model tool
+    for _, instance in self.vmTool:GetDescendants() do
+        if instance:IsA("BasePart") then
+            instance.LocalTransparencyModifier = 1
+        end
+    end
+    --shows real character's tool
+    for _, instance in self.toolInstances do
+        instance.LocalTransparencyModifier = 0
+    end
+end
 
 function ViewModelController:equipTool()
    self.vmTool.Parent = self.viewModel

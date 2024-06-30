@@ -102,6 +102,8 @@ end
 function MeleeController:equip()
     if isFirstPerson() then
         self.viewModelController:enable()
+    else
+        self.viewModelController:disable()
     end
     self.viewModelController:equipTool()
 

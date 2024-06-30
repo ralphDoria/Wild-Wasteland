@@ -41,13 +41,18 @@ rev_activate.OnServerEvent:Connect(function(player: Player, tool : Tool, isActiv
 end)
 
 rev_hit.OnServerEvent:Connect(function(player : Player, tool : Tool, humanoid : Humanoid, hitSound : Sound, hitLocationCFrame : CFrame)
-    --[[ This commented out block is for debugging because sometime the humanoid is nil for some reason
-	print("humanoid name: " .. humanoid.Name)
-	print("humanoid's parent's name: " .. humanoid.Parent.Name)
-	]]
 	if humanoid then
 		if humanoid.Health > 0 then
 			playSound(hitSound, 0.2, hitSound.Parent)
+
+			--knockback
+			local isOneShot = humanoid.Health <= tonumber(tool:GetAttribute("Damage"))
+			if not isOneShot then
+				humanoid.Parent.Torso:ApplyImpulse(player.Character.HumanoidRootPart.CFrame.LookVector * 1000)
+			else
+				humanoid.Parent.Torso:ApplyImpulse(player.Character.HumanoidRootPart.CFrame.LookVector * 300)
+			end
+
 			humanoid:TakeDamage(tool:GetAttribute("Damage"))
 			--modifyBloodDecalTransparency(tool, 0)   | this works but there are inconsistencies with the view model that I don't feel like doing right now, so I'm temporarily disabling it 
 		end
