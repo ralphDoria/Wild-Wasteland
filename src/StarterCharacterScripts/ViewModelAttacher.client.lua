@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
 local vmController = ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("ViewModelController")
 local camera = workspace.CurrentCamera
 local Players = game:GetService("Players")
@@ -60,4 +61,10 @@ end)
 
 RunService:BindToRenderStep("ViewModel", 200, function(dt)
     head.CFrame = camera.CFrame
+end)
+
+character:WaitForChild("Humanoid").Died:Connect(function()
+    RunService:UnbindFromRenderStep("ViewModel")
+    Debris:AddItem(viewModel, Players.RespawnTime)
+    script:Destroy() --this implicitly happens since this LocalScript is located in the Character, but this line of code is here for readability
 end)

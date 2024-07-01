@@ -56,7 +56,7 @@ rev_hit.OnServerEvent:Connect(function(player : Player, tool : Tool, humanoid : 
 			humanoid:TakeDamage(tool:GetAttribute("Damage"))
 			--modifyBloodDecalTransparency(tool, 0)   | this works but there are inconsistencies with the view model that I don't feel like doing right now, so I'm temporarily disabling it 
 		end
-		--
+		-- put this on the client
 			local character = humanoid.Parent
 			local x = blood:Clone()
 			x.CFrame = hitLocationCFrame
