@@ -1,14 +1,69 @@
 local ContentProvider = game:GetService("ContentProvider")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local ui : ScreenGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("LoadingScreenUI")
 local assetCounter : TextLabel = ui:FindFirstChild("assetCounter", true)
 local loadingLabel : TextLabel = ui:FindFirstChild("loadingLabel", true)
-local loadedSound : Sound = ui:WaitForChild("Piano Short 10 (b)")
 local plr = game:GetService("Players").LocalPlayer
 
-if ui.Enabled == false then
-    ui.Enabled = true
+local spawnPoints = game.Workspace:FindFirstChild("spawnPoints", true)
+local loadingScreenSpawn = spawnPoints:WaitForChild("loadingScreenSpawn")
+local spawn0 = spawnPoints:WaitForChild("spawn0")
+
+local SFX = {
+	backgroundMusic = ui:WaitForChild("SFX"):WaitForChild("Lonely Christmas 2"),
+	finishedLoadingCue1 = ui:WaitForChild("SFX"):WaitForChild("ONESHOT FX-Lonely Call Slide"),
+	finishedLoadingCue2 = ui:WaitForChild("SFX"):WaitForChild("Piano Short 10 (b)"),
+	desertAmbience = workspace:WaitForChild("Desert Ambience")
+}
+
+local currentBackgroundMusic : Sound = SFX.backgroundMusic
+local currentFinishedLoadingCue : Sound = SFX.finishedLoadingCue1
+
+local char = plr.Character or plr.CharacterAdded:Wait()
+char:WaitForChild("Humanoid").WalkSpeed = 0
+char:WaitForChild("Humanoid").JumpHeight = 0
+char:WaitForChild("HumanoidRootPart").CFrame = loadingScreenSpawn.CFrame
+plr.RespawnLocation = loadingScreenSpawn
+
+SFX.desertAmbience:Stop()
+currentBackgroundMusic:Play()
+
+local function fadeAudio(sound : Sound, endVolume : number, fadeTime : number)
+	local originalVolume = sound.Volume
+	assert(sound.Volume ~= endVolume, "endVolume parameter needs to be different from current sound volume")
+	repeat
+		if endVolume > originalVolume then
+			local difference = endVolume - originalVolume
+			local divided = difference/fadeTime
+			sound.Volume = math.clamp(sound.Volume + task.wait()*divided, originalVolume, endVolume)
+		else
+			local difference = originalVolume - endVolume
+			local divided = difference/fadeTime
+			sound.Volume = math.clamp(sound.Volume - task.wait()*divided, endVolume, originalVolume)
+		end
+	until sound.Volume == endVolume
 end
+
+local function fadeOutGuis(guiTable, tweenInfo : TweenInfo, propertyToTween)
+	local tweens = {}
+	for _, gui in guiTable do
+		assert(gui:IsA("GuiBase"), "guiTable contains non-guis")
+		table.insert(
+			tweens,
+			TweenService:Create(gui, tweenInfo, propertyToTween)
+		)
+	end
+	for _, tween in tweens do
+		tween:Play()
+	end
+	tweens[1].Completed:Wait()
+	return
+end
+
+ui.Enabled = true
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 
 -- Disables the Reset Button
 ----[ Creates a Loop to make sure that the ResetButtonCallBack works.
@@ -20,30 +75,6 @@ local disableResetButton = task.spawn(function()
 		task.wait(1)
 	until success
 end)
-
-local char = plr.Character or plr.CharacterAdded:Wait()
-char:WaitForChild("Humanoid").WalkSpeed = 0
-char:WaitForChild("Humanoid").JumpHeight = 0
-char:WaitForChild("HumanoidRootPart").CFrame = game.Workspace.World.spawnPoints.loadingScreenSpawn.CFrame
-plr.RespawnLocation = game.Workspace.World.spawnPoints.loadingScreenSpawn
-
-local fadeTime = 3
-local TweenService = game:GetService("TweenService")
-local fadeOutGui3 = TweenService:Create(
-	loadingLabel,
-	TweenInfo.new(fadeTime, Enum.EasingStyle.Linear, Enum.EasingDirection.In),
-	{TextTransparency = 1}
-)
-local fadeOutGui2 = TweenService:Create(
-	assetCounter,
-	TweenInfo.new(fadeTime, Enum.EasingStyle.Linear, Enum.EasingDirection.In),
-	{TextTransparency = 1}
-)
-local fadeOutGui1 = TweenService:Create(
-	ui:WaitForChild("blackBackground"),
-	TweenInfo.new(fadeTime, Enum.EasingStyle.Linear, Enum.EasingDirection.In),
-	{BackgroundTransparency = 1}
-)
 
 repeat wait() until game:IsLoaded()
 
@@ -73,13 +104,19 @@ end)
 
 assetCounter.Text = 0 .. "/" .. maxAssets
 
-for i, assetToLoad in ipairs(assets) do
-	ContentProvider:PreloadAsync({assetToLoad})
-	assetCounter.Text = i .. "/" .. maxAssets
+if not RunService:IsStudio() then
+	for i, assetToLoad in ipairs(assets) do
+		ContentProvider:PreloadAsync({assetToLoad})
+		assetCounter.Text = i .. "/" .. maxAssets
+	end
+else
+	print("testing in studio")
 end
 
-char:WaitForChild("HumanoidRootPart").CFrame = game.Workspace.World.spawnPoints.spawn0.CFrame
-plr.RespawnLocation = game.Workspace.World.spawnPoints.spawn0
+
+
+char:WaitForChild("HumanoidRootPart").CFrame = spawn0.CFrame
+plr.RespawnLocation = spawn0
 
 
 task.cancel(thread)
@@ -87,12 +124,18 @@ loadingLabel.Text = "Loaded!"
 char:WaitForChild("Humanoid").WalkSpeed = 16
 char:WaitForChild("Humanoid").JumpHeight = 7.2
 
-loadedSound:Play()
-fadeOutGui3:Play()
-fadeOutGui2:Play()
-fadeOutGui1:Play()
-fadeOutGui1.Completed:Connect(function()
-	ui:Destroy()
-end)
+fadeAudio(SFX.backgroundMusic, 0, 2)
+currentBackgroundMusic:Stop()
+currentFinishedLoadingCue:Play()
+local tweenInfo = TweenInfo.new(currentFinishedLoadingCue.TimeLength, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
+TweenService:Create(ui:WaitForChild("blackBackground"), tweenInfo, {BackgroundTransparency = 1}):Play()
+fadeOutGuis(
+	{loadingLabel, assetCounter},
+	tweenInfo,
+	{TextTransparency = 1}
+)
+ui:Destroy()
 task.cancel(disableResetButton)
+
 StarterGui:SetCore("ResetButtonCallback", true) 
