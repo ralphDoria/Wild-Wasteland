@@ -2,6 +2,7 @@ local ContentProvider = game:GetService("ContentProvider")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
+local StarterPlayer = game:GetService("StarterPlayer")
 local ui : ScreenGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("LoadingScreenUI")
 local assetCounter : TextLabel = ui:FindFirstChild("assetCounter", true)
 local loadingLabel : TextLabel = ui:FindFirstChild("loadingLabel", true)
@@ -121,8 +122,8 @@ plr.RespawnLocation = spawn0
 
 task.cancel(thread)
 loadingLabel.Text = "Loaded!"
-char:WaitForChild("Humanoid").WalkSpeed = 16
-char:WaitForChild("Humanoid").JumpHeight = 7.2
+char:WaitForChild("Humanoid").WalkSpeed = StarterPlayer.CharacterWalkSpeed
+char:WaitForChild("Humanoid").JumpHeight = StarterPlayer.CharacterJumpHeight
 
 fadeAudio(SFX.backgroundMusic, 0, 2)
 currentBackgroundMusic:Stop()
