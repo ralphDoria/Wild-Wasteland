@@ -48,9 +48,9 @@ rev_hit.OnServerEvent:Connect(function(player : Player, tool : Tool, humanoid : 
 			--knockback
 			local isOneShot = humanoid.Health <= tonumber(tool:GetAttribute("Damage"))
 			if not isOneShot then
-				humanoid.Parent.Torso:ApplyImpulse(player.Character.HumanoidRootPart.CFrame.LookVector * 1000)
+				humanoid.Parent.Torso:ApplyImpulse(player.Character:WaitForChild("HumanoidRootPart").CFrame.LookVector * 1000)
 			else
-				humanoid.Parent.Torso:ApplyImpulse(player.Character.HumanoidRootPart.CFrame.LookVector * 300)
+				humanoid.Parent.Torso:ApplyImpulse(player.Character:WaitForChild("HumanoidRootPart").CFrame.LookVector * 300)
 			end
 
 			humanoid:TakeDamage(tool:GetAttribute("Damage"))

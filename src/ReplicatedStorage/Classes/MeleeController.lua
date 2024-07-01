@@ -31,7 +31,7 @@ function MeleeController.new(melee : Tool)
         activate = melee:WaitForChild("Anims"):WaitForChild("activate")
     }
     local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
-    local hrp = character.HumanoidRootPart
+    local hrp = character:WaitForChild("HumanoidRootPart")
     local newHitbox = RaycastHitbox.new(melee:WaitForChild("Hitbox"))
     newHitbox.DetectionMode = RaycastHitbox.DetectionMode.Default
 
