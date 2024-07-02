@@ -119,12 +119,12 @@ end
 
 function ViewModelController:equipTool()
    self.vmTool.Parent = self.viewModel
-   self.viewModel.Torso.BodyAttachJoint.Part1 = self.vmTool.BodyAttach 
+   self.viewModel:WaitForChild("Torso").BodyAttachJoint.Part1 = self.vmTool.BodyAttach 
 end
 
 function ViewModelController:unequipTool()
     self.vmTool.Parent = nil
-    self.viewModel.Torso.BodyAttachJoint.Part1 = nil
+    self.viewModel:WaitForChild("Torso").BodyAttachJoint.Part1 = nil
 end
 
 function ViewModelController:stopAllViewModelAnimations()
@@ -138,7 +138,8 @@ function ViewModelController:stopAllViewModelAnimations()
 end
 
 function ViewModelController:destroy()
-
+    table.clear(self)
+    self = nil
 end
 
 return ViewModelController

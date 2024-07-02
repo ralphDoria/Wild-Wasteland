@@ -128,6 +128,7 @@ char:WaitForChild("Humanoid").JumpHeight = StarterPlayer.CharacterJumpHeight
 fadeAudio(SFX.backgroundMusic, 0, 2)
 currentBackgroundMusic:Stop()
 currentFinishedLoadingCue:Play()
+SFX.desertAmbience:Play()
 local tweenInfo = TweenInfo.new(currentFinishedLoadingCue.TimeLength, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
 TweenService:Create(ui:WaitForChild("blackBackground"), tweenInfo, {BackgroundTransparency = 1}):Play()

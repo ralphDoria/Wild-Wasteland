@@ -21,6 +21,11 @@ local function handleTaggedInstance(taggedObject)
     local ProximityPrompt = tool:WaitForChild("BodyAttach"):WaitForChild("PickUpPrompt")
     if tool.Parent:IsA("Backpack") then
         ProximityPrompt.Enabled = false
+        for _, v in tool:WaitForChild("ToolModel"):GetChildren() do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
+        end
     end
 
     --[[

@@ -40,17 +40,45 @@ rev_activate.OnServerEvent:Connect(function(player: Player, tool : Tool, isActiv
     end
 end)
 
+--[[
+	VectorFroce approach to applying knockback, but there are two problems. (1) It's delayed & (2) I need to find out how to convert the 
+	forceDirection to the object space of the attachment which the VectorForce is attached to.
+]]
+local function applyKnockback(part : BasePart, forceDirection : Vector3, forceMagnitude : number)
+	local vf = Instance.new("VectorForce")
+	local attachment = Instance.new("Attachment")
+	vf.Enabled = false
+	attachment.Parent = part
+	vf.Parent = part
+	vf.Attachment0 = attachment
+	attachment.CFrame = CFrame.new()
+	forceDirection = CFrame.new(forceDirection):ToObjectSpace(attachment.CFrame).Position
+	vf.Force = forceDirection * forceMagnitude
+	vf.Enabled = true
+	Debris:AddItem(vf, 5)
+	Debris:AddItem(attachment, 5)
+	task.spawn(function()
+		task.wait(1)
+		vf.Enabled = false
+	end)
+end
+
 rev_hit.OnServerEvent:Connect(function(player : Player, tool : Tool, humanoid : Humanoid, hitSound : Sound, hitLocationCFrame : CFrame)
 	if humanoid then
 		if humanoid.Health > 0 then
 			playSound(hitSound, 0.2, hitSound.Parent)
 
 			--knockback
+			local kbForce = 1_000
+			local enemyHrp = humanoid.Parent:WaitForChild("HumanoidRootPart")
+			local playerHrp = player.Character:WaitForChild("HumanoidRootPart")
 			local isOneShot = humanoid.Health <= tonumber(tool:GetAttribute("Damage"))
 			if not isOneShot then
-				humanoid.Parent.Torso:ApplyImpulse(player.Character:WaitForChild("HumanoidRootPart").CFrame.LookVector * 1000)
+				--applyKnockback(enemyHrp, playerHrp.CFrame.LookVector, 5_000	)
+				enemyHrp:ApplyImpulse(playerHrp.CFrame.LookVector * kbForce)
 			else
-				humanoid.Parent.Torso:ApplyImpulse(player.Character:WaitForChild("HumanoidRootPart").CFrame.LookVector * 300)
+				--applyKnockback(enemyHrp, playerHrp.CFrame.LookVector, 200)
+				enemyHrp:ApplyImpulse(playerHrp.CFrame.LookVector * (kbForce * 0.5))
 			end
 
 			humanoid:TakeDamage(tool:GetAttribute("Damage"))

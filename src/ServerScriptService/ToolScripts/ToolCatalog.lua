@@ -4,7 +4,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local ToolModels = ServerStorage:WaitForChild("ToolModels")
 local ToolScripts = ServerScriptService:WaitForChild("RojoManaged_SSS"):WaitForChild("ToolScripts")
 
-ToolCatalog = {}
+local ToolCatalog = {}
 
 local function addTool(toolName : String, description : String)
     if ToolModels:FindFirstChild(toolName) or ToolScripts:FindFirstChild(toolName) then
@@ -20,6 +20,7 @@ local function addTool(toolName : String, description : String)
 end
 
 addTool("Raider Axe", "An axe from the Joyful Viking from the land of rectangular prisms in the sky.")
+addTool("Healing Injection", "An autoinjector that fills the bloodstream with healing medication.")
 --addTool("Beretta", "Simple, but can get the job done.")
 
 return ToolCatalog
