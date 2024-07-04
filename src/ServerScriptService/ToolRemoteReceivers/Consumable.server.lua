@@ -14,7 +14,7 @@ local rev_droppedTool : RemoteEvent = consumableRemotes:WaitForChild("DroppedToo
 local rev_activate : RemoteEvent = consumableRemotes:WaitForChild("Activate")
 
 rev_playSound.OnServerEvent:Connect(function(player: Player, soundObject : Sound, delayCorrection : number, soundParent : BasePart)
-    playSound(soundObject, delayCorrection, soundParent)
+    playSound(soundObject, soundParent, delayCorrection)
 end)
 
 rev_activate.OnServerEvent:Connect(function(player: Player, tool : Tool)

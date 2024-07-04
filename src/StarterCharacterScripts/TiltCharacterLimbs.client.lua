@@ -13,7 +13,7 @@
 ------------------------------------------------------------------------<<<ROBLOX LIBRARIES>>>
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local tiltAt = ReplicatedStorage:WaitForChild("tiltAt")
+local tiltAt = ReplicatedStorage:WaitForChild("CharacterRemotes"):WaitForChild("tiltAt")
 
 ------------------------------------------------------------------------<<<PLAYER SPECIFICS>>>
 local player = game:GetService("Players").LocalPlayer

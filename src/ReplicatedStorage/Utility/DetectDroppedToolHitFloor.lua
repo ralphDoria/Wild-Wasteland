@@ -31,10 +31,10 @@ return function(tool : Tool)
                 end
             end
             if isOnSoftMaterial then
-                playSound(softDropSound, 0.4, SFX_part)
+                playSound(softDropSound, SFX_part, 0.4)
                 touchedEvent:Disconnect()
             else
-                playSound(hardDropSound, 0.1, SFX_part)
+                playSound(hardDropSound, SFX_part, 0.1)
                 touchedEvent:Disconnect()
             end
         end

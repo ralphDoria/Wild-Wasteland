@@ -3,7 +3,7 @@ local Debris = game:GetService("Debris")
 local SoundService = game:GetService("SoundService")
 
 ------------------------------------------------------------------------<<<FUNCTION>>>
-return function(soundObject : Sound, delayCorrection : number, soundParent : BasePart)
+return function(soundObject : Sound, soundParent : BasePart, delayCorrection : number)
     local soundClone = soundObject:Clone()
     if delayCorrection then
 		soundClone.TimePosition = delayCorrection

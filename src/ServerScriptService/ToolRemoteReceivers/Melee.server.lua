@@ -27,14 +27,14 @@ local function modifyBloodDecalTransparency(tool : Tool, newTransparency : numbe
 end
 
 rev_playSound.OnServerEvent:Connect(function(player: Player, soundObject : Sound, delayCorrection : number, soundParent : BasePart)
-    playSound(soundObject, delayCorrection, soundParent)
+    playSound(soundObject, soundParent, delayCorrection)
 end)
 
 rev_activate.OnServerEvent:Connect(function(player: Player, tool : Tool, isActivated : boolean, soundObject : Sound, delayCorrection : number, soundParent : BasePart)
     local trail : Trail = tool.Hitbox.Trail
     if isActivated then
         trail.Enabled = true
-        playSound(soundObject, delayCorrection, soundParent)
+        playSound(soundObject, soundParent, delayCorrection)
     else
         trail.Enabled = false
     end
@@ -66,7 +66,7 @@ end
 rev_hit.OnServerEvent:Connect(function(player : Player, tool : Tool, humanoid : Humanoid, hitSound : Sound, hitLocationCFrame : CFrame)
 	if humanoid then
 		if humanoid.Health > 0 then
-			playSound(hitSound, 0.2, hitSound.Parent)
+			playSound(hitSound, hitSound.Parent, 0.2)
 
 			--knockback
 			local kbForce = 1_000

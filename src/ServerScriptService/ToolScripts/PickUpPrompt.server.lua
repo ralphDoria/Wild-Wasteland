@@ -36,7 +36,7 @@ local function handleTaggedInstance(taggedObject)
         if humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
             local backpack = playerWhoTriggered:WaitForChild("Backpack")
             if backpack then
-                playSound(pickUpSound, 0, SFX_part)
+                playSound(pickUpSound, SFX_part, 0)
                 tool.Parent = backpack
             end 
         end

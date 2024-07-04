@@ -1,12 +1,4 @@
 --[[
-    *A separate script will deal with updating the Stamina HUD Gui based on a couple things
-
-    -w/ SFX means this script will also handle footstep sounds
-
-    -play animation based on player speed
-
-    !!!!
-    this script is currently hecka buggy & needs to be fixed later
 ]]
 ------------------------------------------------------------------------<<<LOCAL VARIABLES>>>
 local ACTION_SPRINT = "Sprint"
@@ -15,12 +7,36 @@ local ACTION_CROUCH = "Crouch"
 ------------------------------------------------------------------------<<<PLAYER SPECIFICS>>>
 local player = game.Players.LocalPlayer
 local humanoid = player.Character:WaitForChild("Humanoid")
+local camera = workspace.CurrentCamera
 
 ------------------------------------------------------------------------<<<ROBLOX LIBRARIES>>>
 local ContextActionService = game:GetService("ContextActionService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
-------------------------------------------------------------------------<<<MODULES>>>
+local rev_sprint = ReplicatedStorage:WaitForChild("CharacterRemotes"):WaitForChild("Sprint")
+
+UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessedEvent: boolean) 
+	if gameProcessedEvent then return end
+
+	if input.KeyCode == Enum.KeyCode.LeftShift then
+		camera.FieldOfView = 75
+		rev_sprint:FireServer(humanoid, true)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input: InputObject, gameProcessedEvent: boolean) 
+	if gameProcessedEvent then return end
+
+	if input.KeyCode == Enum.KeyCode.LeftShift then
+		camera.FieldOfView = 70
+		rev_sprint:FireServer(humanoid, false)
+	end
+end)
+
+--[[<<<<<<<<<<<<<<<<<<<<<<<< OLD CUSTOM MOVEMENT CODE >>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+	------------------------------------------------------------------------<<<MODULES>>>
 local Sprint = require(script.Parent.Modules:WaitForChild("Sprint"))
 local Crouch = require(script.Parent.Modules:WaitForChild("Crouch"))
 local StaminaManager = require(script.Parent.Modules:WaitForChild("StaminaManager"))
@@ -78,3 +94,4 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		StaminaManager.indicateInsufficientStaminaForJump()
 	end
 end)
+]]

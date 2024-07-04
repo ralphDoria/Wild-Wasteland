@@ -1,5 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local tiltAt = ReplicatedStorage:WaitForChild("tiltAt")
+local tiltAt = ReplicatedStorage:WaitForChild("CharacterRemotes"):WaitForChild("tiltAt")
 local TweenService = game:GetService("TweenService")
 
 local originC0 = {
