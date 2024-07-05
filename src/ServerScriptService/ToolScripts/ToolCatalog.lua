@@ -21,6 +21,7 @@ end
 
 addTool("Raider Axe", "An axe from the Joyful Viking from the land of rectangular prisms in the sky.")
 addTool("Healing Injection", "An autoinjector that fills the bloodstream with healing medication.")
+addTool("Beretta", "A semiautomatic, magazine fed, recoil operated, double action pistol, chambered for the 9mm cartridge.")
 --addTool("Beretta", "Simple, but can get the job done.")
 
 return ToolCatalog

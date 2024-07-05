@@ -4,7 +4,7 @@ local rfn_getShirtTemplateId :RemoteFunction = ReplicatedStorage:WaitForChild("g
 
 rfn_getShirtTemplateId.OnServerInvoke = function(player, shirtAssetId)
     local model = InsertService:LoadAsset(shirtAssetId)
-    model.Parent = workspace
     local shirtTemplateId = model:FindFirstChildOfClass("Shirt").ShirtTemplate
+    model:Destroy()
     return shirtTemplateId
 end

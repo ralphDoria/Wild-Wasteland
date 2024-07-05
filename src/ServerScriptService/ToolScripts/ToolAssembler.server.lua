@@ -30,6 +30,7 @@ end
 local Players = game:GetService("Players")
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function(character)
+        assembleTool("Beretta", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
         assembleTool("Raider Axe", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
         assembleTool("Healing Injection", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
         assembleTool("Healing Injection", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
