@@ -31,7 +31,8 @@ function GunController.new(gun : Tool)
         equip = gun:WaitForChild("Anims"):WaitForChild("equip"),
         idle = gun:WaitForChild("Anims"):WaitForChild("idle"),
         shoot = gun:WaitForChild("Anims"):WaitForChild("shoot"),
-        reload = gun:WaitForChild("Anims"):WaitForChild("reload")
+        reload = gun:WaitForChild("Anims"):WaitForChild("reload"),
+        adsIdle = gun:WaitForChild("Anims"):WaitForChild("adsIdle")
     }
     local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
     local hrp = character:WaitForChild("HumanoidRootPart")
@@ -52,13 +53,16 @@ function GunController.new(gun : Tool)
             ["slideRelease"]    = gun:WaitForChild("SFX_part"):WaitForChild("[SFX] m9_slideRelease"),
             --activate
             ["fire"]            = gun:WaitForChild("SFX_part"):WaitForChild("M9 Fire [Insurgency Sandstorm]"),
-            ["dryFire"]         = gun:WaitForChild("SFX_part"):WaitForChild("Ammo Magazine 3 (SFX) (dryfire)")
-
+            ["dryFire"]         = gun:WaitForChild("SFX_part"):WaitForChild("Ammo Magazine 3 (SFX) (dryfire)"),
+            --Aim down sight
+            ["adsIn"]           = gun:WaitForChild("SFX_part"):WaitForChild("ads_in"),
+            ["adsOut"]          = gun:WaitForChild("SFX_part"):WaitForChild("ads_out")
         },
         viewModelController = ViewModelController.new(workspace.CurrentCamera:WaitForChild("viewModel"), gun, animObjects, hrp),
         canActivate = false,
         equipped = false,
         reloading = false,
+        aiming = false,
         connections = {}
     }
     assert(self.tool.RequiresHandle == false, "Need to turn of RequiresHandle in the given tool")
@@ -104,7 +108,6 @@ end
 
 function GunController:equip()
     rev_playSound:FireServer(self.soundObjects.equip, 0, self.SFX_part)
-    print("equipping")
     if isFirstPerson() then
         self.viewModelController:enable()
     else
@@ -134,6 +137,7 @@ function GunController:equip()
         end, true, Constants.KEYBOARD_DROP_TOOL_KEY_CODE)
         local function handleAction(actionName, inputState, _inputObject)
             if actionName == Constants.ACTION_RELOAD and inputState == Enum.UserInputState.Begin then
+                self.reloading = true
                 ContextActionService:UnbindAction(Constants.ACTION_RELOAD)
                 local connection
                 connection = self.currentCharacterAnimationController.animationTracks.reload:GetMarkerReachedSignal("Sound"):Connect(function(param)
@@ -147,12 +151,26 @@ function GunController:equip()
                 self.currentCharacterAnimationController.animationTracks.reload.Stopped:Wait()
                 connection:Disconnect()
                 ContextActionService:BindAction(Constants.ACTION_RELOAD, handleAction, true, Constants.KEYBOARD_RELOAD_KEY_CODE)
+                self.reloading = false
             elseif actionName == Constants.ACTION_AIM_DOWN_SIGHT then
-                
+                local adsIdle = self.currentCharacterAnimationController.animationTracks.adsIdle
+                local adsSpeed = 0.1
+                if inputState == Enum.UserInputState.End or self.reloading then
+                    self.aiming = false
+                    self.soundObjects.adsOut:Play()
+                    adsIdle:Stop(adsSpeed)
+                    --viewModel animations will be animated w/ CFrame
+                elseif inputState == Enum.UserInputState.Begin then
+                    self.aiming = true
+                    self.soundObjects.adsIn:Play()
+                    adsIdle:play(adsSpeed)
+                    --viewModel animations will be animated w/ CFrame
+                end
             end
         end
 
         ContextActionService:BindAction(Constants.ACTION_RELOAD, handleAction, true, Constants.KEYBOARD_RELOAD_KEY_CODE)
+        ContextActionService:BindAction(Constants.ACTION_AIM_DOWN_SIGHT, handleAction, true, Enum.UserInputType.MouseButton2)
         self.currentCharacterAnimationController.animationTracks.idle:Play()
         self.viewModelController.animationController.animationTracks.idle:Play()
         self.canActivate = true
@@ -160,7 +178,7 @@ function GunController:equip()
 end
 
 function GunController:activate()
-    if self.canActivate then
+    if self.canActivate and not self.reloading then
 		self.canActivate = false
 
 		self.currentCharacterAnimationController.animationTracks.shoot:Play()
@@ -185,6 +203,7 @@ function GunController:unequip()
     self.equipped = false
     ContextActionService:UnbindAction(Constants.ACTION_DROP_TOOL)
     ContextActionService:UnbindAction(Constants.ACTION_RELOAD)
+    ContextActionService:UnbindAction(Constants.ACTION_AIM_DOWN_SIGHT)
 	self.currentPlayer:GetMouse().Icon = ""
 	self.canActivate = false
 	for _, animTrack : AnimationTrack in self.currentCharacter.Humanoid.Animator:GetPlayingAnimationTracks() do

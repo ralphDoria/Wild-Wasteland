@@ -13,12 +13,18 @@ local messages = {
 	"plssssss wait :D"
 }
 
+local function typewriterEffect(guiLabel : GuiLabel, message : string)
+
+end
+
 local SoundService = game:GetService("SoundService")
 local loadingScreenBackgroundMusic = SoundService:WaitForChild("LoadingScreenBackgroundMusic")
 
 local backgroundSongs = {}
 for _, v in loadingScreenBackgroundMusic:GetChildren() do
-	table.insert(backgroundSongs, v)
+	if v:IsA("Sound") then
+		table.insert(backgroundSongs, v)
+	end
 end
 local SFX = {
 	finishedLoadingCue1 = SoundService:WaitForChild("ONESHOT FX-Lonely Call Slide"),
@@ -48,15 +54,19 @@ local function playSound(sound : Sound)
 	Debris:AddItem(x, x.TimeLength)
 end
 
+local connections = {}
+
 for _, v in soundSettingButtons	 do
 	if v:IsA("GuiButton") then
+		table.insert(connections, 
 		v.MouseEnter:Connect(function()
 			playSound(SFX.hover)
 			v.BackgroundTransparency = 0.5
-		end)
+		end))
+		table.insert(connections, 
 		v.MouseLeave:Connect(function()
 			v.BackgroundTransparency = 1
-		end)
+		end))
 	end
 end
 
@@ -65,6 +75,7 @@ currentBackgroundSong.Volume = 0.5
 soundSettingButtons.songTitle.Text = "\"" .. currentBackgroundSong.Name .. "\""
 soundSettingButtons.soundIcon.Image = soundSettingButtons.soundIcon:WaitForChild("fullVolume").Texture
 
+table.insert(connections,
 soundSettingButtons.soundIcon.MouseButton1Click:Connect(function()
 	if muted then
 		playSound(SFX.decision)
@@ -79,8 +90,9 @@ soundSettingButtons.soundIcon.MouseButton1Click:Connect(function()
 		soundSettingButtons.songTitle.Text = "[Muted]"
 		soundSettingButtons.soundIcon.Image = soundSettingButtons.soundIcon:WaitForChild("mute").Texture
 	end
-end)
+end))
 
+table.insert(connections,
 soundSettingButtons.rightArrow.MouseButton1Click:Connect(function()
 	currentBackgroundSong:Stop()
 	playSound(SFX.decision)
@@ -91,8 +103,9 @@ soundSettingButtons.rightArrow.MouseButton1Click:Connect(function()
 	currentBackgroundSong = backgroundSongs[currentSongIndex]
 	soundSettingButtons.songTitle.Text = "\"" .. currentBackgroundSong.Name .. "\""
 	currentBackgroundSong:Play()
-end)
+end))
 
+table.insert(connections,
 soundSettingButtons.leftArrow.MouseButton1Click:Connect(function()
 	currentBackgroundSong:Stop()
 	playSound(SFX.decision)
@@ -103,7 +116,7 @@ soundSettingButtons.leftArrow.MouseButton1Click:Connect(function()
 	currentBackgroundSong = backgroundSongs[currentSongIndex]
 	soundSettingButtons.songTitle.Text = "\"" .. currentBackgroundSong.Name .. "\""
 	currentBackgroundSong:Play()
-end)
+end))
 
 --------------------------Satchel
 --[[
@@ -209,7 +222,7 @@ end)
 assetCounter.Text = "0%"
 
 --not RunService:IsStudio()
-if true then
+if not RunService:IsStudio()then
 	for i, assetToLoad in ipairs(assets) do
 		ContentProvider:PreloadAsync({assetToLoad})
 		assetCounter.Text = tostring(math.round(i/maxAssets * 100)) .. "%"
@@ -229,29 +242,26 @@ loadingLabel.Text = "LOADED"
 char:WaitForChild("Humanoid").WalkSpeed = StarterPlayer.CharacterWalkSpeed
 char:WaitForChild("Humanoid").JumpHeight = StarterPlayer.CharacterJumpHeight
 
+for _, connection in pairs(connections) do
+	connection:Disconnect()
+	connection = nil
+end
 
-fadeAudio(SFX.backgroundMusic, 0, 2)
+fadeAudio(currentBackgroundSong, 0, 2)
 currentBackgroundSong:Stop()
 currentFinishedLoadingCue:Play()
 satchel:SetBackpackEnabled(true)
 SFX.desertAmbience:Play()
 local tweenInfo = TweenInfo.new(currentFinishedLoadingCue.TimeLength, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
-TweenService:Create(loadingUI:WaitForChild("blackBackground"), tweenInfo, {BackgroundTransparency = 1}):Play()
 fadeOutGuis(
-	{loadingLabel, assetCounter},
-	tweenInfo,
-	{TextTransparency = 1}
-)
-local imageLabels = {}
-for _, v in loadingUI:GetDescendants() do
-	if v:IsA("ImageLabel") then
-		table.insert(imageLabels, v)
-	end
-end
-local lastTween = fadeOutGuis(
-	imageLabels,
+	{soundSettingButtons.soundIcon, loadingUI:FindFirstChild("Wallpaper", true)},
 	tweenInfo,
 	{ImageTransparency = 1}
+)
+local lastTween = fadeOutGuis(
+	{loadingLabel, assetCounter, soundSettingButtons.leftArrow, soundSettingButtons.rightArrow, soundSettingButtons.songTitle},
+	tweenInfo,
+	{TextTransparency = 1}
 )
 lastTween.Completed:Wait()
 loadingUI:Destroy()
