@@ -6,7 +6,8 @@ local Constants = {
     KEYBOARD_DROP_TOOL_KEY_CODE = Enum.KeyCode.X,
     KEYBOARD_RELOAD_KEY_CODE = Enum.KeyCode.R,
     ACTION_DROP_TOOL = "Dropped",
-    ACTION_RELOAD = "Reload"
+    ACTION_RELOAD = "Reload",
+    ACTION_AIM_DOWN_SIGHT = "AimDownSight"
 }
 
 local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationController"))
@@ -131,7 +132,6 @@ function GunController:equip()
                 rev_droppedTool:FireServer(self.tool)
             end
         end, true, Constants.KEYBOARD_DROP_TOOL_KEY_CODE)
-
         local function handleAction(actionName, inputState, _inputObject)
             if actionName == Constants.ACTION_RELOAD and inputState == Enum.UserInputState.Begin then
                 ContextActionService:UnbindAction(Constants.ACTION_RELOAD)
@@ -147,6 +147,8 @@ function GunController:equip()
                 self.currentCharacterAnimationController.animationTracks.reload.Stopped:Wait()
                 connection:Disconnect()
                 ContextActionService:BindAction(Constants.ACTION_RELOAD, handleAction, true, Constants.KEYBOARD_RELOAD_KEY_CODE)
+            elseif actionName == Constants.ACTION_AIM_DOWN_SIGHT then
+                
             end
         end
 

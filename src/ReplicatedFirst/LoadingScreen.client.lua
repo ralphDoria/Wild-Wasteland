@@ -3,24 +3,130 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local StarterPlayer = game:GetService("StarterPlayer")
-local ui : ScreenGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("LoadingScreenUI")
-local assetCounter : TextLabel = ui:FindFirstChild("assetCounter", true)
-local loadingLabel : TextLabel = ui:FindFirstChild("loadingLabel", true)
+local loadingUI : ScreenGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("LoadingScreenUI")
+local assetCounter : TextLabel = loadingUI:FindFirstChild("assetCounter", true)
+local loadingLabel : TextLabel = loadingUI:FindFirstChild("loadingLabel", true)
 local plr = game:GetService("Players").LocalPlayer
+
+local randomMessages : TextLabel = loadingUI:FindFirstChild("randomMessages", true)
+local messages = {
+	"plssssss wait :D"
+}
+
+local SoundService = game:GetService("SoundService")
+local loadingScreenBackgroundMusic = SoundService:WaitForChild("LoadingScreenBackgroundMusic")
+
+local backgroundSongs = {}
+for _, v in loadingScreenBackgroundMusic:GetChildren() do
+	table.insert(backgroundSongs, v)
+end
+local SFX = {
+	finishedLoadingCue1 = SoundService:WaitForChild("ONESHOT FX-Lonely Call Slide"),
+	desertAmbience = SoundService:WaitForChild("Desert Ambience"),
+	decision = SoundService:WaitForChild("guiSFX"):WaitForChild("OneShot - Menu Decision"),
+	cancel = SoundService:WaitForChild("guiSFX"):WaitForChild("OneShot - Menu Cancel"),
+	hover = SoundService:WaitForChild("guiSFX"):WaitForChild("minorSelect")
+}
+
+local currentSongIndex = math.random(1, #backgroundSongs)
+local currentBackgroundSong : Sound = backgroundSongs[currentSongIndex]
+local currentFinishedLoadingCue : Sound = SFX.finishedLoadingCue1
+
+local soundSettingButtons = {
+	soundIcon = loadingUI:FindFirstChild("soundIcon", true),
+	rightArrow = loadingUI:FindFirstChild("rightArrow", true),
+	leftArrow = loadingUI:FindFirstChild("leftArrow", true),
+	songTitle = loadingUI:FindFirstChild("songTitle", true)
+}
+
+local Debris = game:GetService("Debris")
+
+local function playSound(sound : Sound)
+	local x = sound:Clone()
+	x.Parent = sound.Parent
+	x:Play()
+	Debris:AddItem(x, x.TimeLength)
+end
+
+for _, v in soundSettingButtons	 do
+	if v:IsA("GuiButton") then
+		v.MouseEnter:Connect(function()
+			playSound(SFX.hover)
+			v.BackgroundTransparency = 0.5
+		end)
+		v.MouseLeave:Connect(function()
+			v.BackgroundTransparency = 1
+		end)
+	end
+end
+
+local muted = false
+currentBackgroundSong.Volume = 0.5
+soundSettingButtons.songTitle.Text = "\"" .. currentBackgroundSong.Name .. "\""
+soundSettingButtons.soundIcon.Image = soundSettingButtons.soundIcon:WaitForChild("fullVolume").Texture
+
+soundSettingButtons.soundIcon.MouseButton1Click:Connect(function()
+	if muted then
+		playSound(SFX.decision)
+		muted = false
+		currentBackgroundSong.Volume = 0.5
+		soundSettingButtons.songTitle.Text = "\"" .. currentBackgroundSong.Name .. "\""
+		soundSettingButtons.soundIcon.Image = soundSettingButtons.soundIcon:WaitForChild("fullVolume").Texture
+	else
+		playSound(SFX.cancel)
+		muted = true
+		currentBackgroundSong.Volume = 0
+		soundSettingButtons.songTitle.Text = "[Muted]"
+		soundSettingButtons.soundIcon.Image = soundSettingButtons.soundIcon:WaitForChild("mute").Texture
+	end
+end)
+
+soundSettingButtons.rightArrow.MouseButton1Click:Connect(function()
+	currentBackgroundSong:Stop()
+	playSound(SFX.decision)
+	currentSongIndex += 1
+	if currentSongIndex > #backgroundSongs then
+		currentSongIndex = 1
+	end
+	currentBackgroundSong = backgroundSongs[currentSongIndex]
+	soundSettingButtons.songTitle.Text = "\"" .. currentBackgroundSong.Name .. "\""
+	currentBackgroundSong:Play()
+end)
+
+soundSettingButtons.leftArrow.MouseButton1Click:Connect(function()
+	currentBackgroundSong:Stop()
+	playSound(SFX.decision)
+	currentSongIndex -= 1
+	if currentSongIndex < 1 then
+		currentSongIndex = #backgroundSongs
+	end
+	currentBackgroundSong = backgroundSongs[currentSongIndex]
+	soundSettingButtons.songTitle.Text = "\"" .. currentBackgroundSong.Name .. "\""
+	currentBackgroundSong:Play()
+end)
+
+--------------------------Satchel
+--[[
+	Name: Satchel
+	Description: Loads the Satchel backpack system.
+	DevForum: https://devforum.roblox.com/t/2451549
+]]
+
+--[[
+	This Source Code Form is subject to the terms of the Mozilla Public
+	License, v. 2.0. If a copy of the MPL was not distributed with this
+	file, You can obtain one at Mozilla Public License Version 2.0.
+]]
+
+game:GetService('StarterGui'):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+local satchel = require(game:GetService("ReplicatedFirst"):WaitForChild("Satchel")) -- Initialize Satchel
+satchel:SetBackpackEnabled(false)
+--------------------------
 
 local spawnPoints = game.Workspace:FindFirstChild("spawnPoints", true)
 local loadingScreenSpawn = spawnPoints:WaitForChild("loadingScreenSpawn")
 local spawn0 = spawnPoints:WaitForChild("spawn0")
-
-local SFX = {
-	backgroundMusic = ui:WaitForChild("SFX"):WaitForChild("Lonely Christmas 2"),
-	finishedLoadingCue1 = ui:WaitForChild("SFX"):WaitForChild("ONESHOT FX-Lonely Call Slide"),
-	finishedLoadingCue2 = ui:WaitForChild("SFX"):WaitForChild("Piano Short 10 (b)"),
-	desertAmbience = workspace:WaitForChild("Desert Ambience")
-}
-
-local currentBackgroundMusic : Sound = SFX.backgroundMusic
-local currentFinishedLoadingCue : Sound = SFX.finishedLoadingCue1
 
 local char = plr.Character or plr.CharacterAdded:Wait()
 char:WaitForChild("Humanoid").WalkSpeed = 0
@@ -29,7 +135,7 @@ char:WaitForChild("HumanoidRootPart").CFrame = loadingScreenSpawn.CFrame
 plr.RespawnLocation = loadingScreenSpawn
 
 SFX.desertAmbience:Stop()
-currentBackgroundMusic:Play()
+currentBackgroundSong:Play()
 
 local function fadeAudio(sound : Sound, endVolume : number, fadeTime : number)
 	local originalVolume = sound.Volume
@@ -59,13 +165,10 @@ local function fadeOutGuis(guiTable, tweenInfo : TweenInfo, propertyToTween)
 	for _, tween in tweens do
 		tween:Play()
 	end
-	tweens[1].Completed:Wait()
-	return
+	return tweens[1]
 end
 
-ui.Enabled = true
-StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
-
+loadingUI.Enabled = true
 -- Disables the Reset Button
 ----[ Creates a Loop to make sure that the ResetButtonCallBack works.
 local disableResetButton = task.spawn(function()
@@ -85,7 +188,7 @@ local maxAssets = #assets
 local plr = game:GetService("Players").LocalPlayer
 local plrGui : PlayerGui = plr:WaitForChild("PlayerGui")
 
-ui.Parent = plrGui --loading begin
+loadingUI.Parent = plrGui --loading begin
 
 local thread = task.spawn(function()
 	local dotCount = 0
@@ -103,12 +206,13 @@ local thread = task.spawn(function()
 	end
 end)
 
-assetCounter.Text = 0 .. "/" .. maxAssets
+assetCounter.Text = "0%"
 
-if not RunService:IsStudio() then
+--not RunService:IsStudio()
+if true then
 	for i, assetToLoad in ipairs(assets) do
 		ContentProvider:PreloadAsync({assetToLoad})
-		assetCounter.Text = i .. "/" .. maxAssets
+		assetCounter.Text = tostring(math.round(i/maxAssets * 100)) .. "%"
 	end
 else
 	print("testing in studio")
@@ -121,23 +225,33 @@ plr.RespawnLocation = spawn0
 
 
 task.cancel(thread)
-loadingLabel.Text = "Loaded!"
+loadingLabel.Text = "LOADED"
 char:WaitForChild("Humanoid").WalkSpeed = StarterPlayer.CharacterWalkSpeed
 char:WaitForChild("Humanoid").JumpHeight = StarterPlayer.CharacterJumpHeight
 
+
 fadeAudio(SFX.backgroundMusic, 0, 2)
-currentBackgroundMusic:Stop()
+currentBackgroundSong:Stop()
 currentFinishedLoadingCue:Play()
+satchel:SetBackpackEnabled(true)
 SFX.desertAmbience:Play()
 local tweenInfo = TweenInfo.new(currentFinishedLoadingCue.TimeLength, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
-StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
-TweenService:Create(ui:WaitForChild("blackBackground"), tweenInfo, {BackgroundTransparency = 1}):Play()
+TweenService:Create(loadingUI:WaitForChild("blackBackground"), tweenInfo, {BackgroundTransparency = 1}):Play()
 fadeOutGuis(
 	{loadingLabel, assetCounter},
 	tweenInfo,
 	{TextTransparency = 1}
 )
-ui:Destroy()
-task.cancel(disableResetButton)
-
-StarterGui:SetCore("ResetButtonCallback", true) 
+local imageLabels = {}
+for _, v in loadingUI:GetDescendants() do
+	if v:IsA("ImageLabel") then
+		table.insert(imageLabels, v)
+	end
+end
+local lastTween = fadeOutGuis(
+	imageLabels,
+	tweenInfo,
+	{ImageTransparency = 1}
+)
+lastTween.Completed:Wait()
+loadingUI:Destroy()
