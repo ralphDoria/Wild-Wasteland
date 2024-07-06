@@ -7,7 +7,9 @@ local Constants = {
 
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
+local SpringModule = require(ReplicatedStorage.RojoManaged_RS.SpringModule)
 local lerp = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("lerp"))
 local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationController"))
 
@@ -47,6 +49,9 @@ function ViewModelController:enable()
     self:showViewModelTool()
 
     local timeAccumulated = 0
+    local mouseSway = SpringModule.new(Vector3.new())
+    mouseSway.Speed = 10
+    mouseSway.Damper = 1
 
     RunService:BindToRenderStep("ViewModelTool", 200, function(deltaTime)
         --[[
@@ -55,7 +60,7 @@ function ViewModelController:enable()
         end
         ]]
 
-        -- View model bobbing animation
+        -- View model bobbing procedural animation calculation
         local moveSpeed = self.hrp.AssemblyLinearVelocity.Magnitude    
         local bobbingSpeed = moveSpeed * Constants.VIEW_MODEL_BOBBING_SPEED
         local bobbing = math.min(bobbingSpeed, 1)
@@ -69,6 +74,12 @@ function ViewModelController:enable()
         local bobbingCFrame = CFrame.new(bobbingOffset)
         --
 
+        --view model sway procedural animation calculation
+        local mouseDelta = UserInputService:GetMouseDelta()
+        mouseSway.Velocity += Vector3.new(mouseDelta.X/50, mouseDelta.Y/50)
+        local swayCFrame = CFrame.Angles(-mouseSway.Position.Y, -mouseSway.Position.X, 0)
+        --
+
         local viewModelInitialOffset : CFrame = CFrame.new(0, -1, 0)
         local viewModelOffset
         if not self.toolEquipped and timeAccumulated <= self.animationController.animationTracks.equip.Length then
@@ -79,7 +90,7 @@ function ViewModelController:enable()
             viewModelOffset = Constants.VIEW_MODEL_OFFSET
         end
 
-        self.viewModel.Head.CFrame = workspace.CurrentCamera.CFrame * viewModelOffset * bobbingCFrame
+        self.viewModel.Head.CFrame = workspace.CurrentCamera.CFrame * viewModelOffset * bobbingCFrame * swayCFrame
     end)
 end
 

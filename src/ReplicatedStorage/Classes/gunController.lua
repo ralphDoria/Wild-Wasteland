@@ -102,6 +102,7 @@ function GunController:initialize()
 end
 
 function GunController:equip()
+    rev_playSound:FireServer(self.soundObjects.equip, 0, self.SFX_part)
     print("equipping")
     if isFirstPerson() then
         self.viewModelController:enable()
@@ -109,8 +110,6 @@ function GunController:equip()
         self.viewModelController:disable()
     end
     self.viewModelController:equipTool()
-
-    rev_playSound:FireServer(self.soundObjects.equip, 0, self.SFX_part)
     self.equipped = true
     self.currentPlayer = Players.LocalPlayer
     self.currentCharacter = self.currentPlayer.Character
