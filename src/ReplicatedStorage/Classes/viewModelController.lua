@@ -39,7 +39,9 @@ function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hr
 		bobbing = 0,
         hrp = hrp,
         aiming = false,
-        aimPart = vmTool:FindFirstChild("aimPart")
+        _actuallyAimingIn = false, --terrible variable name
+        aimPart = vmTool:FindFirstChild("aimPart"),
+        adsSpeed = 0 --this is later going to change from the GunController module
     }
 
     return setmetatable(self, ViewModelController)
@@ -57,7 +59,8 @@ function ViewModelController:enable()
 
     self:showViewModelTool()
 
-    local timeAccumulated = 0
+    local equipTimeAccumulated = 0
+    local aimTransitionTimeAccumulated = 0
     local mouseSway = SpringModule.new(Vector3.new())
     mouseSway.Speed = 10
     mouseSway.Damper = 1
@@ -108,15 +111,56 @@ function ViewModelController:enable()
 
         local viewModelInitialOffset : CFrame = CFrame.new(0, -1, 0)
         local viewModelOffset
-        if not self.toolEquipped and timeAccumulated <= self.animationController.animationTracks.equip.Length then
-            timeAccumulated += deltaTime
-            local lerpAlpha = timeAccumulated/self.animationController.animationTracks.equip.Length
+        if not self.toolEquipped and equipTimeAccumulated <= self.animationController.animationTracks.equip.Length then
+            equipTimeAccumulated += deltaTime
+            local lerpAlpha = equipTimeAccumulated/self.animationController.animationTracks.equip.Length
             viewModelOffset = viewModelInitialOffset:Lerp(Constants.VIEW_MODEL_OFFSET, lerpAlpha)
         else
             viewModelOffset = Constants.VIEW_MODEL_OFFSET
         end
 
-        self.viewModel.Head.CFrame = workspace.CurrentCamera.CFrame * viewModelOffset * bobbingCFrame * swayCFrame * ads_CFrame
+        self.viewModel.Head.CFrame = workspace.CurrentCamera.CFrame * viewModelOffset * bobbingCFrame * swayCFrame--this mainly makes the magic happen
+
+        ------
+        if self.vmTool:HasTag("Gun") then
+            if self.aiming == true then
+                if self._actuallyAimingIn then
+                    self.viewModel.Head.CFrame *= ads_CFrame
+                else
+                    if aimTransitionTimeAccumulated <= self.adsSpeed then
+                        self._actuallyAimingIn = false
+                        aimTransitionTimeAccumulated += deltaTime
+                        local lerpAlpha = aimTransitionTimeAccumulated/self.adsSpeed
+                        print(lerpAlpha)
+                        local actual_ads_CFrame = CFrame.new():Lerp(ads_CFrame, lerpAlpha)
+                        self.viewModel.Head.CFrame *= actual_ads_CFrame
+                        if lerpAlpha >= 1 then
+                            self._actuallyAimingIn = true
+                        end
+                    end
+                end
+            elseif self.aiming == false then
+                if self._actuallyAimingIn == false then
+                    print("no ads") --this is also working
+                    self.viewModel.Head.CFrame *= CFrame.new() --for demonstrational purposes (idk im tired, this line of code doesn't even need to be here)
+                else
+                    --lerp out
+                    if aimTransitionTimeAccumulated >= 0 then
+                        self._actuallyAimingIn = true
+                        aimTransitionTimeAccumulated -= deltaTime
+                        local lerpAlpha = aimTransitionTimeAccumulated/self.adsSpeed
+                        --print(lerpAlpha) | lerp is apparently working, 
+                        local actual_ads_CFrame = CFrame.new():Lerp(ads_CFrame, lerpAlpha) --so then I think the bug might be due to some side effect overriding this line of code right here
+                        self.viewModel.Head.CFrame *= ads_CFrame
+                        if lerpAlpha <= 0 then
+                            print("lerpAlpha has reached 0") -- this part is also apparently working
+                            self._actuallyAimingIn = false
+                        end
+                    end
+                end
+            end
+        end
+        -----
     end)
 end
 

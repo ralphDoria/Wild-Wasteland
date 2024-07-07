@@ -114,6 +114,7 @@ end
 
 function GunController:_aimDownSight(shouldAim : boolean)
     local adsSpeed = 0.1
+    self.viewModelController.adsSpeed = adsSpeed
     if shouldAim then
         self.aiming = true
         self.viewModelController:SetAiming(true)

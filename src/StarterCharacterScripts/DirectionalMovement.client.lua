@@ -26,7 +26,7 @@ local PlayersTable = {}
 --Customizable Settings
 
 local RangeOfMotion = 45
-local RangeOfMotionTorso = 90 - RangeOfMotion
+local RangeOfMotionTorso = 0
 local RangeOfMotionXZ = RangeOfMotion/140
 local LerpSpeed = 0.005
 
