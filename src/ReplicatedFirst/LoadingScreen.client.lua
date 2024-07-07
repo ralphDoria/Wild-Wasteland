@@ -259,7 +259,7 @@ fadeOutGuis(
 	{ImageTransparency = 1}
 )
 local lastTween = fadeOutGuis(
-	{loadingLabel, assetCounter, soundSettingButtons.leftArrow, soundSettingButtons.rightArrow, soundSettingButtons.songTitle},
+	{loadingLabel, assetCounter, soundSettingButtons.leftArrow, soundSettingButtons.rightArrow, soundSettingButtons.songTitle, randomMessages},
 	tweenInfo,
 	{TextTransparency = 1}
 )

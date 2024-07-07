@@ -14,7 +14,8 @@ local JUMP_STAMINA_COST = MAX_STAMINA * 0.3
 local SLIDE_STAMINA_COST
 local currentStamina = MAX_STAMINA
 local MIN_REQUIRED_STAMINA = 15 --this is a percentage
-local staminaBar = CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForChild("bgFrame"):WaitForChild("staminaFrame")
+local staminaFrame = CharacterStatusGui:FindFirstChild("stamina", true)
+local staminaBar = staminaFrame.bar.fill
 local minRequiredStaminaBar = staminaBar:Clone()
 minRequiredStaminaBar.Size = UDim2.new(1*(MIN_REQUIRED_STAMINA/100), 0, 1, 0)
 minRequiredStaminaBar.Name = "minimumRequiredStaminaForSprintBar"

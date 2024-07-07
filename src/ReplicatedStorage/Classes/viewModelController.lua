@@ -37,10 +37,19 @@ function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hr
         animationController = AnimationController.new(viewModel.Humanoid.Animator, animObjects),
         stride = 0,
 		bobbing = 0,
-        hrp = hrp
+        hrp = hrp,
+        aiming = false,
+        aimPart = vmTool:FindFirstChild("aimPart")
     }
 
     return setmetatable(self, ViewModelController)
+end
+
+function ViewModelController:SetAiming(value : boolean)
+    if not self.vmTool:hasTag("Gun") then
+        warn("This function is only meant for the tool type of gun")
+    end
+    self.aiming = value
 end
 
 function ViewModelController:enable()
@@ -54,11 +63,22 @@ function ViewModelController:enable()
     mouseSway.Damper = 1
 
     RunService:BindToRenderStep("ViewModelTool", 200, function(deltaTime)
-        --[[
-        if ViewModelController.vmTool:GetAttribute("weaponType") == "Gun" then
-            --ADS code here
+        local ads_CFrame = CFrame.new()
+        if self.vmTool:HasTag("Gun") then
+            if self.aiming then
+                workspace.CurrentCamera.FieldOfView = 60
+                if self.aimPart then
+                    local manualOffsetCorretion = CFrame.new(0, 0.02, -1)
+                    local aimPartOffsetFromCamera = (workspace.CurrentCamera.CFrame:Inverse() * self.aimPart.CFrame):Inverse()
+                    ads_CFrame = aimPartOffsetFromCamera * manualOffsetCorretion
+                    --[[
+                    wtffffff I got this CFrame calculation with educated guessing & checking, so surprised it worked
+                    ]]
+                end
+            else
+                workspace.CurrentCamera.FieldOfView = 70
+            end
         end
-        ]]
 
         -- View model bobbing procedural animation calculation
         local moveSpeed = self.hrp.AssemblyLinearVelocity.Magnitude    
@@ -72,12 +92,18 @@ function ViewModelController:enable()
         local y = math.sin(self.stride * 2)
         local bobbingOffset = Vector3.new(x, y, 0) * Constants.VIEW_MODEL_BOBBING_AMOUNT * self.bobbing
         local bobbingCFrame = CFrame.new(bobbingOffset)
+        if self.aiming then
+            bobbingCFrame = CFrame.new() --negates the bobbingCFrame if the player is aiming in
+        end
         --
 
         --view model sway procedural animation calculation
         local mouseDelta = UserInputService:GetMouseDelta()
         mouseSway.Velocity += Vector3.new(mouseDelta.X/50, mouseDelta.Y/50)
         local swayCFrame = CFrame.Angles(-mouseSway.Position.Y, -mouseSway.Position.X, 0)
+        if self.aiming then
+            swayCFrame = CFrame.new() --negates the swayCFrame if the player is aiming in
+        end
         --
 
         local viewModelInitialOffset : CFrame = CFrame.new(0, -1, 0)
@@ -90,7 +116,7 @@ function ViewModelController:enable()
             viewModelOffset = Constants.VIEW_MODEL_OFFSET
         end
 
-        self.viewModel.Head.CFrame = workspace.CurrentCamera.CFrame * viewModelOffset * bobbingCFrame * swayCFrame
+        self.viewModel.Head.CFrame = workspace.CurrentCamera.CFrame * viewModelOffset * bobbingCFrame * swayCFrame * ads_CFrame
     end)
 end
 
