@@ -16,8 +16,8 @@ local function assembleTool(toolName : String, parent)
     local bodyAttach = tool:FindFirstChild("BodyAttach")
     if bodyAttach then
         local x = proxProm:Clone()
-        x.ObjectText = string.upper(tool.Name)
-        x.ActionText = "PICK UP"
+        x.ObjectText = "\"" .. string.upper(tool.Name) .. "\""
+        x.ActionText = "[PICK UP]"
         x.Parent = bodyAttach
     else
         print("tool is missing body attach")

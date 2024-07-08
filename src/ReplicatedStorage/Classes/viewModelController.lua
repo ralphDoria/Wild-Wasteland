@@ -91,8 +91,8 @@ function ViewModelController:enable()
         local bobbingSpeed = moveSpeed * Constants.VIEW_MODEL_BOBBING_SPEED
         local bobbing = math.min(bobbingSpeed, 1)
 
-        self._stride = (self.stride + bobbingSpeed * deltaTime) % (math.pi * 2)
-        self._bobbing = lerp(self.bobbing, bobbing, math.min(deltaTime * Constants.VIEW_MODEL_BOBBING_TRANSITION_SPEED, 1))
+        self.stride = (self.stride + bobbingSpeed * deltaTime) % (math.pi * 2)
+        self.bobbing = lerp(self.bobbing, bobbing, math.min(deltaTime * Constants.VIEW_MODEL_BOBBING_TRANSITION_SPEED, 1))
 
         local x = math.sin(self.stride)
         local y = math.sin(self.stride * 2)
@@ -127,16 +127,6 @@ function ViewModelController:enable()
         ------
         if self.vmTool:HasTag("Gun") then
             if self.aiming == true then
-                --print(self.animationController.animationTracks.viewModelFire.TimePosition) | animation seems to be playing al the way here, but not when checking the animation.IsPlaying
-                if self.animationController.animationTracks.viewModelFire.IsPlaying then
-                    --recoil from cframe, not traditional animation
-                    --print(tostring(self.animationController.animationTracks.viewModelFire.TimePosition) .. "/" .. tostring(self.animationController.animationTracks.viewModelFire.Length))
-                    local ads_recoil_offset = CFrame.new(0, 0, 0.3) * CFrame.Angles(math.rad(5), 0, 0)
-                    local alpha = self.animationController.animationTracks.viewModelFire.TimePosition/self.animationController.animationTracks.viewModelFire.Length
-                    print(alpha)
-                    local transition_ads_recoil_offset = CFrame.new():Lerp(ads_recoil_offset, alpha)
-                    self.viewModel.Head.CFrame *= transition_ads_recoil_offset
-                end
                 aimTransitionTimeAccumulated = math.clamp(aimTransitionTimeAccumulated + deltaTime, 0, self.adsSpeed)
                 local lerpAlpha = math.clamp(aimTransitionTimeAccumulated/self.adsSpeed, 0, 1)
                 local actual_ads_CFrame = CFrame.new():Lerp(ads_CFrame, lerpAlpha)
@@ -146,6 +136,29 @@ function ViewModelController:enable()
                 local lerpAlpha = math.clamp(aimTransitionTimeAccumulated/self.adsSpeed, 0, 1)
                 local actual_ads_CFrame = CFrame.new():Lerp(ads_CFrame, lerpAlpha) --so then I think the bug might be due to some side effect overriding this line of code right here
                 self.viewModel.Head.CFrame *= actual_ads_CFrame
+            end
+
+            --[[
+            camera recoil
+            ]]
+            --print(self.animationController.animationTracks.viewModelFire.TimePosition) | animation seems to be playing al the way here, but not when checking the animation.IsPlaying
+            if self.animationController.animationTracks.viewModelFire.IsPlaying then
+                --recoil from cframe, not traditional animation
+                --if the animation viewModelFire is playing, then it is implied that the player is aiming down sight
+                --print(tostring(self.animationController.animationTracks.viewModelFire.TimePosition) .. "/" .. tostring(self.animationController.animationTracks.viewModelFire.Length))
+                local ads_recoil_offset = CFrame.new(0, 0, 0.3) * CFrame.Angles(math.rad(5), 0, 0)
+                local alpha = self.animationController.animationTracks.viewModelFire.TimePosition/self.animationController.animationTracks.viewModelFire.Length
+                --print(alpha) | isn't reaching 1, but it doesn't matter because it's just the recoil animation and the last frame isn't really needed to be shown
+                local transition_ads_recoil_offset = CFrame.new():Lerp(ads_recoil_offset, alpha)
+                self.viewModel.Head.CFrame *= transition_ads_recoil_offset
+                workspace.CurrentCamera.FieldOfView = 72
+                workspace.CurrentCamera.CFrame *= CFrame.Angles(math.rad(0.5), 0, 0)
+            elseif self.animationController.animationTracks.hipfire.IsPlaying then
+                --more recoil when hipfiring
+                workspace.CurrentCamera.FieldOfView = 75
+                workspace.CurrentCamera.CFrame *= CFrame.Angles(math.rad(1), 0, 0)
+            else
+                workspace.CurrentCamera.FieldOfView = 70
             end
         end
         -----
