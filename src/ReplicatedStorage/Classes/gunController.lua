@@ -69,8 +69,10 @@ function GunController.new(gun : Tool)
         reloading = false,
         aiming = aiming,
         cooldown = 0.1, --in rounds/minute (RPM),
+        adsSpeed = 0.1,
         connections = {}
     }
+    self.viewModelController.adsSpeed = self.adsSpeed
     assert(self.tool.RequiresHandle == false, "Need to turn of RequiresHandle in the given tool")
     setmetatable(self, GunController)
     self:initialize()
@@ -113,19 +115,19 @@ function GunController:initialize()
 end
 
 function GunController:_aimDownSight(shouldAim : boolean)
-    local adsSpeed = 0.1
-    self.viewModelController.adsSpeed = adsSpeed
     if shouldAim then
+        UserInputService.MouseIconEnabled = false
         self.aiming = true
         self.viewModelController:SetAiming(true)
         self.soundObjects.adsIn:Play()
-        self.currentCharacterAnimationController.animationTracks.adsIdle:play(adsSpeed)
+        self.currentCharacterAnimationController.animationTracks.adsIdle:play(self.adsSpeed)
         --viewModel animations will be animated w/ CFrame
     else
+        UserInputService.MouseIconEnabled = true
         self.aiming = false
         self.viewModelController:SetAiming(false)
         self.soundObjects.adsOut:Play()
-        self.currentCharacterAnimationController.animationTracks.adsIdle:Stop(adsSpeed)
+        self.currentCharacterAnimationController.animationTracks.adsIdle:Stop(self.adsSpeed)
         --viewModel animations will be animated w/ CFrame
     end
 end
@@ -182,10 +184,8 @@ function GunController:equip()
             elseif actionName == Constants.ACTION_AIM_DOWN_SIGHT then
                 if inputState == Enum.UserInputState.End or self.reloading then
                     self:_aimDownSight(false)
-                    UserInputService.MouseIconEnabled = true
                 elseif inputState == Enum.UserInputState.Begin then
                     self:_aimDownSight(true)
-                    UserInputService.MouseIconEnabled = false
                 end
             end
         end
@@ -221,6 +221,7 @@ function GunController:activate()
 end
 
 function GunController:unequip()
+    self:_aimDownSight(false)
     self.equipped = false
     self.viewModelController.toolEquipped = false
     self.viewModelController:disable()

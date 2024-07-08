@@ -26,7 +26,7 @@ end)
 rev_droppedTool.OnServerEvent:Connect(function(player: Player, tool : Tool, dispose : boolean)
     tool.Parent = game.Workspace
     if dispose then
-        tool.BodyAttach.PickUpPrompt:Destroy()
+        tool:FindFirstChildWhichIsA("ProximityPrompt", true):Destroy()
         Debris:AddItem(tool, 10)
     end
     detectDroppedToolHitFloor(tool)

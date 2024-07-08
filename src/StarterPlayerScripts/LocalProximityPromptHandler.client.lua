@@ -1,4 +1,28 @@
 local ProximityPromptService = game:GetService("ProximityPromptService")
+local ppInstances = game:GetService("ReplicatedStorage").ProxPromInstances
+local highlight = ppInstances.Highlight
+
+ProximityPromptService.PromptShown:Connect(function(prompt)
+	local tool = prompt:FindFirstAncestorOfClass("Tool")
+	if tool then
+		highlight:Clone().Parent = tool
+	end
+end)
+
+ProximityPromptService.PromptHidden:Connect(function(prompt)
+	local tool = prompt:FindFirstAncestorOfClass("Tool")
+	if tool then
+		local highlight = tool:FindFirstChildOfClass("Highlight")
+		if highlight then
+			highlight:Destroy()
+		end
+	end
+end)
+
+
+
+--[[ OLD CODE for custom proximity prompts
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local squarePPUI = game.ReplicatedStorage:WaitForChild("CustomProximityPromptUI"):WaitForChild("SquareProximityPrompt")
 local HoldToClickGui = require(game:GetService("ReplicatedStorage"):WaitForChild("RojoManaged_RS"):WaitForChild("HoldToClickGui"))
 
@@ -28,3 +52,4 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt, plr)
 	local customPP = prompt.Parent:FindFirstChild("SquareProximityPrompt")
 	customPP.Frame.BackgroundTransparency = 0.5
 end)
+]]

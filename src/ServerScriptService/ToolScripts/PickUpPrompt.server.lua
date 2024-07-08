@@ -5,7 +5,7 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 ------------------------------------------------------------------------<<<LOCAL VARIABLES>>>
-local COLLECTION_TAG = "PUP" --acronym for Pick Up Prompt
+local COLLECTION_TAG = "PUP" --acronym for Pick Up Prompt   
 
 ------------------------------------------------------------------------<<<Modules (Classes, Data Package, Utility, Functional)>>>
 local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
@@ -17,10 +17,13 @@ local pickUpSound = game:GetService("SoundService"):WaitForChild("Item Pick Up")
 local function handleTaggedInstance(taggedObject)
     assert(taggedObject:IsA("Tool"), "Instance with PickUpPrompt Collection Tag is not a tool that contains a PickUpPrompt inside of a BodyAttach")
     local tool = taggedObject
+    local toolModel = tool:FindFirstChild("ToolModel")
     local SFX_part = tool:WaitForChild("SFX_part")
-    local ProximityPrompt = tool:WaitForChild("BodyAttach"):WaitForChild("PickUpPrompt")
+    local ProximityPrompt = tool:FindFirstChildWhichIsA("ProximityPrompt", true)
+
     if tool.Parent:IsA("Backpack") then
         ProximityPrompt.Enabled = false
+        local toolModel = tool:FindFirstChild("ToolModel")
         for _, v in tool:WaitForChild("ToolModel"):GetChildren() do
             if v:IsA("BasePart") then
                 v.CanCollide = false
@@ -66,7 +69,6 @@ local function handleTaggedInstance(taggedObject)
         Turns the tool model's collisions and ProximityPrompt off or on depending on whether the tool is equipped or not.
     ]]
     tool.AncestryChanged:Connect(function(child, parent)
-        local toolModel = tool:FindFirstChild("ToolModel")
         if parent and parent:FindFirstChild("Humanoid") == nil and not parent:IsA("Backpack") then --if the tool isn't equipped by a player or npc
             ProximityPrompt.Enabled = true
             if toolModel then

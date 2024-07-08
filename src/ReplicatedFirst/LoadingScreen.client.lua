@@ -133,6 +133,7 @@ end))
 
 game:GetService('StarterGui'):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 local satchel = require(game:GetService("ReplicatedFirst"):WaitForChild("Satchel")) -- Initialize Satchel
 satchel:SetBackpackEnabled(false)
 --------------------------
@@ -265,3 +266,5 @@ local lastTween = fadeOutGuis(
 )
 lastTween.Completed:Wait()
 loadingUI:Destroy()
+
+StarterGui:SetCore("ResetButtonCallback", true)

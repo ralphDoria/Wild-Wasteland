@@ -1,4 +1,5 @@
 local ToolCatalog = require(script.Parent:WaitForChild("ToolCatalog"))
+local proxProm : ProximityPrompt = game:GetService("ServerStorage").ToolModels:FindFirstChildOfClass("ProximityPrompt")
 
 local function assembleTool(toolName : String, parent)
     --Exception Handler
@@ -11,6 +12,16 @@ local function assembleTool(toolName : String, parent)
     local tool : Tool = ToolCatalog[toolName].Model:Clone()
     local scripts = ToolCatalog[toolName].Scripts:Clone()
     scripts.Parent = tool
+
+    local bodyAttach = tool:FindFirstChild("BodyAttach")
+    if bodyAttach then
+        local x = proxProm:Clone()
+        x.ObjectText = string.upper(tool.Name)
+        x.ActionText = "PICK UP"
+        x.Parent = bodyAttach
+    else
+        print("tool is missing body attach")
+    end
 
     --enabling the scripts
     for _, file : Script in scripts:GetChildren() do

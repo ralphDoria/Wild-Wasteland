@@ -68,6 +68,7 @@ rev_hit.OnServerEvent:Connect(function(player : Player, tool : Tool, humanoid : 
 		if humanoid.Health > 0 then
 			playSound(hitSound, hitSound.Parent, 0.2)
 
+			--[[ I'm going to comment out the knockback code for know until I find a way to make the knockback feature not so laggy (network ownership maybe is the answer))
 			--knockback
 			local kbForce = 1_000
 			local enemyHrp = humanoid.Parent:WaitForChild("HumanoidRootPart")
@@ -80,6 +81,7 @@ rev_hit.OnServerEvent:Connect(function(player : Player, tool : Tool, humanoid : 
 				--applyKnockback(enemyHrp, playerHrp.CFrame.LookVector, 200)
 				enemyHrp:ApplyImpulse(playerHrp.CFrame.LookVector * (kbForce * 0.5))
 			end
+			]]
 
 			humanoid:TakeDamage(tool:GetAttribute("Damage"))
 			--modifyBloodDecalTransparency(tool, 0)   | this works but there are inconsistencies with the view model that I don't feel like doing right now, so I'm temporarily disabling it 

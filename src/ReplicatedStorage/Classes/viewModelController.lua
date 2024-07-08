@@ -13,6 +13,13 @@ local SpringModule = require(ReplicatedStorage.RojoManaged_RS.SpringModule)
 local lerp = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("lerp"))
 local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationController"))
 
+local originC0Holder = ReplicatedStorage:WaitForChild("originC0Holder")
+local OriginC0 : CFrame = {
+    rightShoulder = originC0Holder.Torso["Right Shoulder"],
+    leftShoulder = originC0Holder.Torso["Left Shoulder"],
+    bodyAttachJoint = originC0Holder.Torso.BodyAttachJoint
+}
+
 local ViewModelController = {}
 ViewModelController.__index = ViewModelController
 
@@ -28,7 +35,7 @@ function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hr
     end
 
     local self = {
-        enabled = false,
+        _enabled = false,
         viewModel = viewModel,
         vmTool = vmTool,
         toolEquipped = false,
@@ -37,13 +44,13 @@ function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hr
         animationController = AnimationController.new(viewModel.Humanoid.Animator, animObjects),
         stride = 0,
 		bobbing = 0,
-        hrp = hrp,
         aiming = false,
-        _actuallyAimingIn = false, --terrible variable name
+        hrp = hrp,
         aimPart = vmTool:FindFirstChild("aimPart"),
-        adsSpeed = 0 --this is later going to change from the GunController module
+        adsSpeed = 0 --this is later going to change from the GunController module,
     }
 
+    self._hrp = hrp
     return setmetatable(self, ViewModelController)
 end
 
@@ -55,7 +62,7 @@ function ViewModelController:SetAiming(value : boolean)
 end
 
 function ViewModelController:enable()
-	self.enabled = true
+	self._enabled = true
 
     self:showViewModelTool()
 
@@ -68,18 +75,14 @@ function ViewModelController:enable()
     RunService:BindToRenderStep("ViewModelTool", 200, function(deltaTime)
         local ads_CFrame = CFrame.new()
         if self.vmTool:HasTag("Gun") then
-            if self.aiming then
-                workspace.CurrentCamera.FieldOfView = 60
-                if self.aimPart then
-                    local manualOffsetCorretion = CFrame.new(0, 0.02, -1)
-                    local aimPartOffsetFromCamera = (workspace.CurrentCamera.CFrame:Inverse() * self.aimPart.CFrame):Inverse()
-                    ads_CFrame = aimPartOffsetFromCamera * manualOffsetCorretion
-                    --[[
-                    wtffffff I got this CFrame calculation with educated guessing & checking, so surprised it worked
-                    ]]
-                end
-            else
-                workspace.CurrentCamera.FieldOfView = 70
+            -- workspace.CurrentCamera.FieldOfView = 60 | FOV changed sensitivity, so I don't know if I want to do this until I find a way to keep sensitivity consistent regardless of FOV (which is probably just going to take some simple math that I don't care to look up right now)
+            if self.aimPart then
+                local manualOffsetCorretion = CFrame.new(0, 0.02, -1)
+                local aimPartOffsetFromCamera = (workspace.CurrentCamera.CFrame:Inverse() * self.aimPart.CFrame):Inverse()
+                ads_CFrame = aimPartOffsetFromCamera * manualOffsetCorretion
+                --[[
+                wtffffff I got this CFrame calculation with educated guessing & checking, so surprised it worked
+                ]]
             end
         end
 
@@ -88,8 +91,8 @@ function ViewModelController:enable()
         local bobbingSpeed = moveSpeed * Constants.VIEW_MODEL_BOBBING_SPEED
         local bobbing = math.min(bobbingSpeed, 1)
 
-        self.stride = (self.stride + bobbingSpeed * deltaTime) % (math.pi * 2)
-        self.bobbing = lerp(self.bobbing, bobbing, math.min(deltaTime * Constants.VIEW_MODEL_BOBBING_TRANSITION_SPEED, 1))
+        self._stride = (self.stride + bobbingSpeed * deltaTime) % (math.pi * 2)
+        self._bobbing = lerp(self.bobbing, bobbing, math.min(deltaTime * Constants.VIEW_MODEL_BOBBING_TRANSITION_SPEED, 1))
 
         local x = math.sin(self.stride)
         local y = math.sin(self.stride * 2)
@@ -124,40 +127,25 @@ function ViewModelController:enable()
         ------
         if self.vmTool:HasTag("Gun") then
             if self.aiming == true then
-                if self._actuallyAimingIn then
-                    self.viewModel.Head.CFrame *= ads_CFrame
-                else
-                    if aimTransitionTimeAccumulated <= self.adsSpeed then
-                        self._actuallyAimingIn = false
-                        aimTransitionTimeAccumulated += deltaTime
-                        local lerpAlpha = aimTransitionTimeAccumulated/self.adsSpeed
-                        print(lerpAlpha)
-                        local actual_ads_CFrame = CFrame.new():Lerp(ads_CFrame, lerpAlpha)
-                        self.viewModel.Head.CFrame *= actual_ads_CFrame
-                        if lerpAlpha >= 1 then
-                            self._actuallyAimingIn = true
-                        end
-                    end
+                --print(self.animationController.animationTracks.viewModelFire.TimePosition) | animation seems to be playing al the way here, but not when checking the animation.IsPlaying
+                if self.animationController.animationTracks.viewModelFire.IsPlaying then
+                    --recoil from cframe, not traditional animation
+                    --print(tostring(self.animationController.animationTracks.viewModelFire.TimePosition) .. "/" .. tostring(self.animationController.animationTracks.viewModelFire.Length))
+                    local ads_recoil_offset = CFrame.new(0, 0, 0.3) * CFrame.Angles(math.rad(5), 0, 0)
+                    local alpha = self.animationController.animationTracks.viewModelFire.TimePosition/self.animationController.animationTracks.viewModelFire.Length
+                    print(alpha)
+                    local transition_ads_recoil_offset = CFrame.new():Lerp(ads_recoil_offset, alpha)
+                    self.viewModel.Head.CFrame *= transition_ads_recoil_offset
                 end
+                aimTransitionTimeAccumulated = math.clamp(aimTransitionTimeAccumulated + deltaTime, 0, self.adsSpeed)
+                local lerpAlpha = math.clamp(aimTransitionTimeAccumulated/self.adsSpeed, 0, 1)
+                local actual_ads_CFrame = CFrame.new():Lerp(ads_CFrame, lerpAlpha)
+                self.viewModel.Head.CFrame *= actual_ads_CFrame
             elseif self.aiming == false then
-                if self._actuallyAimingIn == false then
-                    print("no ads") --this is also working
-                    self.viewModel.Head.CFrame *= CFrame.new() --for demonstrational purposes (idk im tired, this line of code doesn't even need to be here)
-                else
-                    --lerp out
-                    if aimTransitionTimeAccumulated >= 0 then
-                        self._actuallyAimingIn = true
-                        aimTransitionTimeAccumulated -= deltaTime
-                        local lerpAlpha = aimTransitionTimeAccumulated/self.adsSpeed
-                        --print(lerpAlpha) | lerp is apparently working, 
-                        local actual_ads_CFrame = CFrame.new():Lerp(ads_CFrame, lerpAlpha) --so then I think the bug might be due to some side effect overriding this line of code right here
-                        self.viewModel.Head.CFrame *= ads_CFrame
-                        if lerpAlpha <= 0 then
-                            print("lerpAlpha has reached 0") -- this part is also apparently working
-                            self._actuallyAimingIn = false
-                        end
-                    end
-                end
+                aimTransitionTimeAccumulated = math.clamp(aimTransitionTimeAccumulated - deltaTime, 0, self.adsSpeed)
+                local lerpAlpha = math.clamp(aimTransitionTimeAccumulated/self.adsSpeed, 0, 1)
+                local actual_ads_CFrame = CFrame.new():Lerp(ads_CFrame, lerpAlpha) --so then I think the bug might be due to some side effect overriding this line of code right here
+                self.viewModel.Head.CFrame *= actual_ads_CFrame
             end
         end
         -----
@@ -165,7 +153,7 @@ function ViewModelController:enable()
 end
 
 function ViewModelController:disable()
-	self.enabled = false
+	self._enabled = false
 
     self:hideViewModelTool()
 
