@@ -3,6 +3,8 @@ local player = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
+local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
 
 local Constants = {
     KEYBOARD_DROP_TOOL_KEY_CODE = Enum.KeyCode.X,
@@ -20,6 +22,10 @@ local rev_playSound : RemoteEvent = gunRemotes:WaitForChild("PlaySound")
 local rev_droppedTool : RemoteEvent = gunRemotes:WaitForChild("DroppedTool")
 local rev_shoot : RemoteEvent = gunRemotes:WaitForChild("Shoot")
 local rev_reload : RemoteEvent = gunRemotes:WaitForChild("Reload")
+
+local effects : Folder= ReplicatedStorage.Tools.Gun.Effects
+local bulletTracer : Beam = effects.tracer
+local bulletImpactParticles : ParticleEmitter = effects.bulletImpactParticles
 
 local function isFirstPerson()
     return Players.LocalPlayer.Character.Torso.LocalTransparencyModifier >= 1
@@ -199,6 +205,8 @@ function GunController:equip()
     end
 end
 
+--[[ local functions for debugging raycast
+
 local function visualizeRay(originPosition : Vector3, targetPosition : Vector3)
     local distance = (targetPosition - originPosition).Magnitude
     local p = Instance.new("Part")
@@ -219,6 +227,8 @@ local function visualizePosition(position : Vector3)
     y.Parent = workspace
 end
 
+]]
+
 function GunController:castRay()
     local mouse = player:GetMouse()
 
@@ -236,22 +246,67 @@ function GunController:castRay()
     end
     raycastParams.FilterDescendantsInstances = blacklistedParts
     mouse.TargetFilter = self.viewModelController.vmTool
-
-    local originPosition = self.viewModelController:getMuzzlePosition()
-    local targetPosition = mouse.Hit.Position
-    print("VIEWMODEL'S GUN'S MUZZLE POSITION Y: " .. tostring(originPosition.Y))
-    print("CHARACTER'S GUN'S MUZZLE POSITION Y: " ..  tostring(self.tool.Muzzle.Position.Y))
-    print("--------------------------")
     raycastParams.FilterType = Enum.RaycastFilterType.Exclude
     raycastParams.IgnoreWater = true
+
+    local vmMuzzle = self.viewModelController:getMuzzle()
+
     local rayMaxDistance = 500
+    local originPosition = vmMuzzle.Position
+    local targetPosition = mouse.Hit.Position
     local rayDirection = (targetPosition - originPosition).Unit * rayMaxDistance
 
-    --debugging
-    visualizePosition(targetPosition)
-    visualizeRay(originPosition, targetPosition)
+    local raycastResult = workspace:Raycast(originPosition, rayDirection, raycastParams)
 
-    return workspace:Raycast(originPosition, rayDirection, raycastParams)
+    --[[ for debugging raycast
+    if raycastResult then
+        print(raycastResult.Instance)
+        visualizePosition(raycastResult.Position)
+    else
+        print("hit nothing")
+        visualizePosition(originPosition + rayDirection)
+    end
+    ]]
+
+    --adding effects to the raycast, or if that doesn't exist, the startPosition and offset from such in the case that nothing is hit
+    local clonedMuzzle = vmMuzzle:Clone() --cling the muzzlepart that is welded to the gun won't clone the weld, which is what I want
+    clonedMuzzle.Anchored = true
+    clonedMuzzle.CanQuery = false --this makes mouse.Hit ignore this part
+    clonedMuzzle.Name = "VFX part"
+    for _, v in clonedMuzzle:GetChildren() do
+        v:Destroy()
+    end
+    clonedMuzzle.Parent = workspace
+    local startBeam = Instance.new("Attachment")
+    local endBeam = Instance.new("Attachment")
+    startBeam.Parent = clonedMuzzle
+    endBeam.Parent = clonedMuzzle
+    startBeam.CFrame = CFrame.new() --this positions the start of the beam at the muzzle (remember that attachments use object space)
+    if raycastResult then
+        --print(raycastResult.Instance)
+        endBeam.CFrame = clonedMuzzle.CFrame:ToObjectSpace(CFrame.new(raycastResult.Position))
+    else
+        endBeam.CFrame = clonedMuzzle.CFrame:ToObjectSpace(CFrame.new(originPosition + rayDirection))
+    end
+    local impactParticles : ParticleEmitter = bulletImpactParticles:Clone()
+    impactParticles.Parent = endBeam
+    local tracer : Beam = bulletTracer:Clone()
+    for _, v in vmMuzzle:GetChildren() do
+        if v:IsA("ParticleEmitter") then
+            v.Enabled = true
+            task.spawn(function()
+                task.wait(self.cooldown)
+                v.Enabled = false
+            end)
+        end
+    end
+    tracer.Attachment0 = startBeam
+    tracer.Attachment1 = endBeam
+    tracer.Parent = clonedMuzzle
+    local bulletTravelTime = 0.1
+    TweenService:Create(startBeam, TweenInfo.new(bulletTravelTime, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {CFrame = endBeam.CFrame}):Play() 
+    Debris:AddItem(clonedMuzzle, bulletTravelTime) --since all the other Instances I creatd with Instance.new() are parented to this part, I only have to destroy this part to get rid of everything else
+    return raycastResult
 end
 
 function GunController:activate()
@@ -259,9 +314,6 @@ function GunController:activate()
 		self.canActivate = false
 
         local raycastResult = self:castRay()
-        if raycastResult then
-            --print(raycastResult.Instance)
-        end
 
         if self.aiming then
             --play ADS fire animation

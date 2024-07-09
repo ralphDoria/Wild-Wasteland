@@ -219,11 +219,9 @@ function ViewModelController:stopAllViewModelAnimations()
 	end
 end
 
-function ViewModelController:getMuzzlePosition()
+function ViewModelController:getMuzzle()
     assert(self.vmTool:HasTag("Gun"), self.vmTool.Name .. " doesn't have the \"Gun\" collection tag")
-    local muzzle = self.vmTool:FindFirstChild("Muzzle")
-    print(muzzle.Parent.Parent)
-    return muzzle.Position
+    return self.vmTool:FindFirstChild("Muzzle")
 end
 
 function ViewModelController:destroy()
