@@ -199,13 +199,14 @@ function GunController:equip()
     end
 end
 
-local function visualizeRay(muzzlePosition : Vector3, endPosition : Vector3)
-    local distance = (endPosition - muzzlePosition).Magnitude
+local function visualizeRay(originPosition : Vector3, targetPosition : Vector3)
+    local distance = (targetPosition - originPosition).Magnitude
     local p = Instance.new("Part")
     p.Anchored = true
     p.CanCollide = false
     p.Size = Vector3.new(0.1, 0.1, distance)
-    p.CFrame = CFrame.lookAt(muzzlePosition, endPosition)*CFrame.new(0, 0, -distance/2)
+    p.Color = Color3.new(0, 1, 0)
+    p.CFrame = CFrame.lookAt(originPosition, targetPosition)*CFrame.new(0, 0, -distance/2)
     p.Parent = workspace
 end
 
@@ -236,27 +237,32 @@ function GunController:castRay()
     raycastParams.FilterDescendantsInstances = blacklistedParts
     mouse.TargetFilter = self.viewModelController.vmTool
 
+    local originPosition = self.viewModelController:getMuzzlePosition()
     local targetPosition = mouse.Hit.Position
-    visualizePosition(targetPosition)
-    local muzzlePosition = self.viewModelController:getMuzzlePosition()
-    print(muzzlePosition)
-    print(self.tool.Muzzle.Position)
+    print("VIEWMODEL'S GUN'S MUZZLE POSITION Y: " .. tostring(originPosition.Y))
+    print("CHARACTER'S GUN'S MUZZLE POSITION Y: " ..  tostring(self.tool.Muzzle.Position.Y))
     print("--------------------------")
     raycastParams.FilterType = Enum.RaycastFilterType.Exclude
     raycastParams.IgnoreWater = true
     local rayMaxDistance = 500
-    local rayDirection = (targetPosition - muzzlePosition).Unit * rayMaxDistance 
-    return workspace:Raycast(muzzlePosition, rayDirection, raycastParams)
+    local rayDirection = (targetPosition - originPosition).Unit * rayMaxDistance
+
+    --debugging
+    visualizePosition(targetPosition)
+    visualizeRay(originPosition, targetPosition)
+
+    return workspace:Raycast(originPosition, rayDirection, raycastParams)
 end
 
 function GunController:activate()
     if self.canActivate and not self.reloading then
 		self.canActivate = false
+
         local raycastResult = self:castRay()
-        visualizeRay(self.viewModelController:getMuzzlePosition(), player:GetMouse().Hit.Position)
         if raycastResult then
             --print(raycastResult.Instance)
         end
+
         if self.aiming then
             --play ADS fire animation
             self.currentCharacterAnimationController.animationTracks.adsFire:Play()

@@ -221,7 +221,8 @@ end
 
 function ViewModelController:getMuzzlePosition()
     assert(self.vmTool:HasTag("Gun"), self.vmTool.Name .. " doesn't have the \"Gun\" collection tag")
-    local muzzle = self.vmTool:FindFirstChild("Muzzle", true)
+    local muzzle = self.vmTool:FindFirstChild("Muzzle")
+    print(muzzle.Parent.Parent)
     return muzzle.Position
 end
 

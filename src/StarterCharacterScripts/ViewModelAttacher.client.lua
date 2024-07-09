@@ -27,6 +27,15 @@ end
 
 local head = viewModel:WaitForChild("Head")
 
+--[[
+    One of the parts of the viewmodel has to be anchored in order to keep the muzzle position accurate & consistent for raycasting. Otherwise,
+    this bug will occur:
+    https://devforum.roblox.com/t/parts-position-isnt-accurate-until-i-switch-from-server-back-to-client-in-roblox-studio-playtest/3059509
+]]
+if head.Anchored == false then
+    head.Anchored = true
+end
+
 viewModel.Parent = camera
 
 local torso = character.Torso
