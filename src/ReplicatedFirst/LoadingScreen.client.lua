@@ -153,7 +153,7 @@ currentBackgroundSong:Play()
 
 local function fadeAudio(sound : Sound, endVolume : number, fadeTime : number)
 	local originalVolume = sound.Volume
-	assert(sound.Volume ~= endVolume, "endVolume parameter needs to be different from current sound volume")
+	--assert(sound.Volume ~= endVolume, "endVolume parameter needs to be different from current sound volume")
 	repeat
 		if endVolume > originalVolume then
 			local difference = endVolume - originalVolume
@@ -223,7 +223,7 @@ end)
 assetCounter.Text = "0%"
 
 --not RunService:IsStudio()
-if not RunService:IsStudio()then
+if not RunService:IsStudio() then
 	for i, assetToLoad in ipairs(assets) do
 		ContentProvider:PreloadAsync({assetToLoad})
 		assetCounter.Text = tostring(math.round(i/maxAssets * 100)) .. "%"
@@ -231,8 +231,6 @@ if not RunService:IsStudio()then
 else
 	print("testing in studio")
 end
-
-
 
 char:WaitForChild("HumanoidRootPart").CFrame = spawn0.CFrame
 plr.RespawnLocation = spawn0

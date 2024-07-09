@@ -1,4 +1,5 @@
 local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
@@ -198,9 +199,64 @@ function GunController:equip()
     end
 end
 
+local function visualizeRay(muzzlePosition : Vector3, endPosition : Vector3)
+    local distance = (endPosition - muzzlePosition).Magnitude
+    local p = Instance.new("Part")
+    p.Anchored = true
+    p.CanCollide = false
+    p.Size = Vector3.new(0.1, 0.1, distance)
+    p.CFrame = CFrame.lookAt(muzzlePosition, endPosition)*CFrame.new(0, 0, -distance/2)
+    p.Parent = workspace
+end
+
+local function visualizePosition(position : Vector3)
+    local y = Instance.new("Part")
+    y.Size = Vector3.new(0.5, 0.5, 0.5)
+    y.Anchored = true
+    y.Color = Color3.new(1, 0, 0)
+    y.Position = position
+    y.Parent = workspace
+end
+
+function GunController:castRay()
+    local mouse = player:GetMouse()
+
+    local raycastParams = RaycastParams.new()
+    local blacklistedParts = {}
+    for _, v in self.currentCharacter:GetDescendants() do
+        if v:IsA("BasePart") then
+            table.insert(blacklistedParts, v)
+        end
+    end
+    for _, v in self.viewModelController.viewModel:GetDescendants() do
+        if v:IsA("BasePart") then
+            table.insert(blacklistedParts, v)
+        end
+    end
+    raycastParams.FilterDescendantsInstances = blacklistedParts
+    mouse.TargetFilter = self.viewModelController.vmTool
+
+    local targetPosition = mouse.Hit.Position
+    visualizePosition(targetPosition)
+    local muzzlePosition = self.viewModelController:getMuzzlePosition()
+    print(muzzlePosition)
+    print(self.tool.Muzzle.Position)
+    print("--------------------------")
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.IgnoreWater = true
+    local rayMaxDistance = 500
+    local rayDirection = (targetPosition - muzzlePosition).Unit * rayMaxDistance 
+    return workspace:Raycast(muzzlePosition, rayDirection, raycastParams)
+end
+
 function GunController:activate()
     if self.canActivate and not self.reloading then
 		self.canActivate = false
+        local raycastResult = self:castRay()
+        visualizeRay(self.viewModelController:getMuzzlePosition(), player:GetMouse().Hit.Position)
+        if raycastResult then
+            --print(raycastResult.Instance)
+        end
         if self.aiming then
             --play ADS fire animation
             self.currentCharacterAnimationController.animationTracks.adsFire:Play()
