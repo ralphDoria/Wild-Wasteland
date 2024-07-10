@@ -6,24 +6,31 @@ local camera = workspace.CurrentCamera
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoidDescription : HumanoidDescription = Players:GetHumanoidDescriptionFromUserId(player.UserId)
 local rfn_getShirtTemplateId : RemoteFunction = ReplicatedStorage:WaitForChild("getShirtTemplateId")
 
-
---Replicating player's appearance onto view model
 local viewModel = ReplicatedStorage:WaitForChild("viewModel"):Clone()
-local bodyColors : BodyColors = Instance.new("BodyColors")
-bodyColors.HeadColor3 =  humanoidDescription.HeadColor
-bodyColors.RightArmColor3 = humanoidDescription.RightArmColor
-bodyColors.LeftArmColor3 = humanoidDescription.LeftArmColor
-bodyColors.Parent = viewModel
-local playerIsWearingAShirt = humanoidDescription.Shirt ~= 0
-if playerIsWearingAShirt then
-    local shirt : Shirt = Instance.new("Shirt")
-    local shirtTemplateId = rfn_getShirtTemplateId:InvokeServer(humanoidDescription.Shirt)
-    shirt.ShirtTemplate = shirtTemplateId
-    shirt.Parent = viewModel
-end
+local IdValid, IdNotValid = pcall(function()
+    game.Players:GetNameFromUserIdAsync(player.UserId)
+ end)
+ if IdValid then
+    local humanoidDescription : HumanoidDescription = Players:GetHumanoidDescriptionFromUserId(player.UserId)
+    --Replicating player's appearance onto view model
+    local bodyColors : BodyColors = Instance.new("BodyColors")
+    bodyColors.HeadColor3 =  humanoidDescription.HeadColor
+    bodyColors.RightArmColor3 = humanoidDescription.RightArmColor
+    bodyColors.LeftArmColor3 = humanoidDescription.LeftArmColor
+    bodyColors.Parent = viewModel
+    local playerIsWearingAShirt = humanoidDescription.Shirt ~= 0
+    if playerIsWearingAShirt then
+        local shirt : Shirt = Instance.new("Shirt")
+        local shirtTemplateId = rfn_getShirtTemplateId:InvokeServer(humanoidDescription.Shirt)
+        shirt.ShirtTemplate = shirtTemplateId
+        shirt.Parent = viewModel
+    end
+else
+    --While playtesting in studio with multiple players using the "TEST" tab, I was getting invalid UserId's because these are test players
+    --the viewmodel will just look grey
+ end
 
 local head = viewModel:WaitForChild("Head")
 

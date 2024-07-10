@@ -3,8 +3,7 @@ local player = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
-local Debris = game:GetService("Debris")
-local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
 
 local Constants = {
     KEYBOARD_DROP_TOOL_KEY_CODE = Enum.KeyCode.X,
@@ -17,15 +16,14 @@ local Constants = {
 local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationController"))
 local ViewModelController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("ViewModelController"))
 
+local createBulletEffects = require(ReplicatedStorage.RojoManaged_RS.Utility.createBulletEffects)
+local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
+
 local gunRemotes : Folder = ReplicatedStorage:WaitForChild("Tools"):WaitForChild("Gun"):WaitForChild("Remotes")
 local rev_playSound : RemoteEvent = gunRemotes:WaitForChild("PlaySound")
 local rev_droppedTool : RemoteEvent = gunRemotes:WaitForChild("DroppedTool")
 local rev_shoot : RemoteEvent = gunRemotes:WaitForChild("Shoot")
 local rev_reload : RemoteEvent = gunRemotes:WaitForChild("Reload")
-
-local effects : Folder= ReplicatedStorage.Tools.Gun.Effects
-local bulletTracer : Beam = effects.tracer
-local bulletImpactParticles : ParticleEmitter = effects.bulletImpactParticles
 
 local function isFirstPerson()
     return Players.LocalPlayer.Character.Torso.LocalTransparencyModifier >= 1
@@ -140,6 +138,7 @@ function GunController:_aimDownSight(shouldAim : boolean)
 end
 
 function GunController:equip()
+    player.CameraMode = Enum.CameraMode.LockFirstPerson
     rev_playSound:FireServer(self.soundObjects.equip, 0, self.SFX_part)
     if isFirstPerson() then
         self.viewModelController:enable()
@@ -269,30 +268,8 @@ function GunController:castRay()
     ]]
 
     --adding effects to the raycast, or if that doesn't exist, the startPosition and offset from such in the case that nothing is hit
-    local clonedMuzzle = vmMuzzle:Clone() --cling the muzzlepart that is welded to the gun won't clone the weld, which is what I want
-    clonedMuzzle.Anchored = true
-    clonedMuzzle.CanQuery = false --this makes mouse.Hit ignore this part
-    clonedMuzzle.Name = "VFX part"
-    for _, v in clonedMuzzle:GetChildren() do
-        v:Destroy()
-    end
-    clonedMuzzle.Parent = workspace
-    local startBeam = Instance.new("Attachment")
-    local endBeam = Instance.new("Attachment")
-    startBeam.Parent = clonedMuzzle
-    endBeam.Parent = clonedMuzzle
-    startBeam.CFrame = CFrame.new() --this positions the start of the beam at the muzzle (remember that attachments use object space)
-    if raycastResult then
-        --print(raycastResult.Instance)
-        endBeam.CFrame = clonedMuzzle.CFrame:ToObjectSpace(CFrame.new(raycastResult.Position))
-    else
-        endBeam.CFrame = clonedMuzzle.CFrame:ToObjectSpace(CFrame.new(originPosition + rayDirection))
-    end
-    local impactParticles : ParticleEmitter = bulletImpactParticles:Clone()
-    impactParticles.Parent = endBeam
-    local tracer : Beam = bulletTracer:Clone()
     for _, v in vmMuzzle:GetChildren() do
-        if v:IsA("ParticleEmitter") then
+        if v:IsA("ParticleEmitter") or v:IsA("SpotLight") then
             v.Enabled = true
             task.spawn(function()
                 task.wait(self.cooldown)
@@ -300,20 +277,15 @@ function GunController:castRay()
             end)
         end
     end
-    tracer.Attachment0 = startBeam
-    tracer.Attachment1 = endBeam
-    tracer.Parent = clonedMuzzle
-    local bulletTravelTime = 0.1
-    TweenService:Create(startBeam, TweenInfo.new(bulletTravelTime, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {CFrame = endBeam.CFrame}):Play() 
-    Debris:AddItem(clonedMuzzle, bulletTravelTime) --since all the other Instances I creatd with Instance.new() are parented to this part, I only have to destroy this part to get rid of everything else
-    return raycastResult
+    local hitPosition = if raycastResult then raycastResult.Position else CFrame.new(originPosition + rayDirection).Position
+    createBulletEffects(vmMuzzle.Position, hitPosition)
+
+    return raycastResult, hitPosition
 end
 
 function GunController:activate()
     if self.canActivate and not self.reloading then
 		self.canActivate = false
-
-        local raycastResult = self:castRay()
 
         if self.aiming then
             --play ADS fire animation
@@ -324,8 +296,19 @@ function GunController:activate()
             self.currentCharacterAnimationController.animationTracks.hipfire:Play()
             self.viewModelController.animationController.animationTracks.hipfire:Play()
         end
+
+        local raycastResult, hitPosition = self:castRay()
+        local humanoidToDamage
+        if raycastResult then
+            --print(raycastResult.Instance)
+            local humanoid = raycastResult.Instance.Parent:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoidToDamage = humanoid
+                playSound(SoundService.HitmarkerSounds.hitmarker, SoundService, 0)
+            end
+        end
 		rev_playSound:FireServer(self.soundObjects.fire, 0, self.SFX_part)
-        rev_shoot:FireServer()
+        rev_shoot:FireServer(humanoidToDamage, self.tool:FindFirstChild("Muzzle").Position, hitPosition)
 
 		task.wait(self.cooldown)
 		if self.equipped then
@@ -335,6 +318,7 @@ function GunController:activate()
 end
 
 function GunController:unequip()
+    player.CameraMode = Enum.CameraMode.Classic
     self:_aimDownSight(false)
     self.equipped = false
     self.viewModelController.toolEquipped = false

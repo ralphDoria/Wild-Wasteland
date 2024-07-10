@@ -222,7 +222,8 @@ end)
 
 assetCounter.Text = "0%"
 
---not RunService:IsStudio()
+print("skipping loading screen")
+--[[
 if not RunService:IsStudio() then
 	for i, assetToLoad in ipairs(assets) do
 		ContentProvider:PreloadAsync({assetToLoad})
@@ -231,6 +232,7 @@ if not RunService:IsStudio() then
 else
 	print("testing in studio")
 end
+]]
 
 char:WaitForChild("HumanoidRootPart").CFrame = spawn0.CFrame
 plr.RespawnLocation = spawn0
