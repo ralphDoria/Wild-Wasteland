@@ -18,6 +18,7 @@ local ViewModelController = require(ReplicatedStorage:WaitForChild("RojoManaged_
 
 local createBulletEffects = require(ReplicatedStorage.RojoManaged_RS.Utility.createBulletEffects)
 local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
+local indicateDamageToDealer = require(ReplicatedStorage.RojoManaged_RS.Utility.indicateDamageToDealer)
 
 local gunRemotes : Folder = ReplicatedStorage:WaitForChild("Tools"):WaitForChild("Gun"):WaitForChild("Remotes")
 local rev_playSound : RemoteEvent = gunRemotes:WaitForChild("PlaySound")
@@ -75,6 +76,7 @@ function GunController.new(gun : Tool)
         aiming = aiming,
         cooldown = 0.1, --in rounds/minute (RPM),
         adsSpeed = 0.1,
+        damage = 20,
         connections = {}
     }
     self.viewModelController.adsSpeed = self.adsSpeed
@@ -314,10 +316,11 @@ function GunController:activate()
             if humanoid then
                 humanoidToDamage = humanoid
                 playSound(SoundService.HitmarkerSounds.hitmarker, SoundService, 0)
+                indicateDamageToDealer(humanoid, raycastResult, self.damage)
             end
         end
 		rev_playSound:FireServer(self.soundObjects.fire, 0, self.SFX_part)
-        rev_shoot:FireServer(humanoidToDamage, self.tool:FindFirstChild("Muzzle").Position, hitPosition)
+        rev_shoot:FireServer(humanoidToDamage, self.damage, self.tool:FindFirstChild("Muzzle").Position, hitPosition)
 
 		task.wait(self.cooldown)
 		if self.equipped then

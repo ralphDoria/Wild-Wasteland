@@ -20,7 +20,7 @@ rev_playSound.OnServerEvent:Connect(function(player: Player, soundObject : Sound
     playSound(soundObject, soundParent, delayCorrection)
 end)
 
-rev_shoot.OnServerEvent:Connect(function(playerWithGun : Player, humanoidToDamage : Humanoid, bulletStartPosition : Vector3, bulletEndPosition : Vector3)
+rev_shoot.OnServerEvent:Connect(function(playerWithGun : Player, humanoidToDamage : Humanoid, damageToDeal : number, bulletStartPosition : Vector3, bulletEndPosition : Vector3)
     --draw raycast for visuals, but hit detection will be done on the client
     for _, player in game:GetService("Players"):GetChildren() do
         if player ~= playerWithGun then
@@ -28,7 +28,7 @@ rev_shoot.OnServerEvent:Connect(function(playerWithGun : Player, humanoidToDamag
         end
     end
     if humanoidToDamage then
-        humanoidToDamage:TakeDamage(20)
+        humanoidToDamage:TakeDamage(damageToDeal)
     end
 end)
 

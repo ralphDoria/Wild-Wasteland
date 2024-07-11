@@ -11,6 +11,8 @@ local RaycastHitbox = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):W
 local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationController"))
 local ViewModelController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("ViewModelController"))
 
+local indicateDamageToDealer = require(ReplicatedStorage.RojoManaged_RS.Utility.indicateDamageToDealer)
+
 local remotes : Folder = ReplicatedStorage:WaitForChild("Tools"):WaitForChild("Melee"):WaitForChild("Remotes")
 local rev_playSound : RemoteEvent = remotes:WaitForChild("PlaySound")
 local rev_droppedTool : RemoteEvent = remotes:WaitForChild("DroppedTool")
@@ -51,6 +53,7 @@ function MeleeController.new(melee : Tool)
         viewModelController = ViewModelController.new(workspace.CurrentCamera:WaitForChild("viewModel"), melee, animObjects, hrp),
         canActivate = false,
         equipped = false,
+        damage = melee:GetAttribute("Damage"),
         connections = {}
     }
     setmetatable(self, MeleeController)
@@ -59,12 +62,6 @@ function MeleeController.new(melee : Tool)
 end
 
 function MeleeController:initialize()
-    self.hitboxController.OnHit:Connect(function(hit, humanoid, raycastResult : RaycastResult)
-        if humanoid.Parent.Name ~= self.currentCharacter.Name then
-            rev_hit:FireServer(self.tool, humanoid, self.soundObjects.hit, CFrame.new(raycastResult.Position, raycastResult.Normal))
-        end
-    end)
-
     table.insert(
         self.connections,
         self.tool.Equipped:Connect(function()
@@ -97,6 +94,17 @@ function MeleeController:initialize()
             end
         end)
     )
+    self.hitboxController.OnHit:Connect(function(hit, humanoid, raycastResult : RaycastResult)
+        if humanoid.Parent.Name ~= self.currentCharacter.Name then
+            rev_hit:FireServer(self.tool, humanoid, self.soundObjects.hit)
+            --[[
+            damageIndication function goes here (might have to make the line above use a remote function so that hit indication will always)
+            display after damage is dealt. Idk, depends on how incoherent it feels while testing... also remote functions are apparently unsafe?
+            ]]
+            --CFrame.new(raycastResult.Position, raycastResult.Normal)
+            indicateDamageToDealer(humanoid, raycastResult, self.damage)
+        end
+    end)
 end
 
 function MeleeController:equip()

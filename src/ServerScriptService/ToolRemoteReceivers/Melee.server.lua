@@ -1,9 +1,5 @@
 local Debris = game:GetService("Debris") 
-local TweenService = game:GetService("TweenService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local blood = ReplicatedStorage:WaitForChild("Tools"):WaitForChild("Melee"):WaitForChild("VFX"):WaitForChild("Blood") 
-local damageIndicator = ReplicatedStorage:WaitForChild("Tools"):WaitForChild("Melee"):WaitForChild("VFX"):WaitForChild("damageIndicator") 
+local ReplicatedStorage = game:GetService("ReplicatedStorage") 
 
 local detectDroppedToolHitFloor = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("DetectDroppedToolHitFloor"))
 local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
@@ -63,59 +59,30 @@ local function applyKnockback(part : BasePart, forceDirection : Vector3, forceMa
 	end)
 end
 
-rev_hit.OnServerEvent:Connect(function(player : Player, tool : Tool, humanoid : Humanoid, hitSound : Sound, hitLocationCFrame : CFrame)
-	if humanoid then
-		if humanoid.Health > 0 then
-			playSound(hitSound, hitSound.Parent, 0.2)
+rev_hit.OnServerEvent:Connect(function(player : Player, tool : Tool, humanoid : Humanoid, hitSound : Sound)
+	if humanoid and humanoid.Health > 0 then
+		playSound(hitSound, hitSound.Parent, 0.2)
 
-			--[[ I'm going to comment out the knockback code for know until I find a way to make the knockback feature not so laggy (network ownership maybe is the answer))
-			--knockback
-			local kbForce = 1_000
-			local enemyHrp = humanoid.Parent:WaitForChild("HumanoidRootPart")
-			local playerHrp = player.Character:WaitForChild("HumanoidRootPart")
-			local isOneShot = humanoid.Health <= tonumber(tool:GetAttribute("Damage"))
-			if not isOneShot then
-				--applyKnockback(enemyHrp, playerHrp.CFrame.LookVector, 5_000	)
-				enemyHrp:ApplyImpulse(playerHrp.CFrame.LookVector * kbForce)
-			else
-				--applyKnockback(enemyHrp, playerHrp.CFrame.LookVector, 200)
-				enemyHrp:ApplyImpulse(playerHrp.CFrame.LookVector * (kbForce * 0.5))
-			end
-			]]
-
-			humanoid:TakeDamage(tool:GetAttribute("Damage"))
-			--modifyBloodDecalTransparency(tool, 0)   | this works but there are inconsistencies with the view model that I don't feel like doing right now, so I'm temporarily disabling it 
+		--[[ I'm going to comment out the knockback code for know until I find a way to make the knockback feature not so laggy (network ownership maybe is the answer))
+		--knockback
+		local kbForce = 1_000
+		local enemyHrp = humanoid.Parent:WaitForChild("HumanoidRootPart")
+		local playerHrp = player.Character:WaitForChild("HumanoidRootPart")
+		local isOneShot = humanoid.Health <= tonumber(tool:GetAttribute("Damage"))
+		if not isOneShot then
+			--applyKnockback(enemyHrp, playerHrp.CFrame.LookVector, 5_000	)
+			enemyHrp:ApplyImpulse(playerHrp.CFrame.LookVector * kbForce)
+		else
+			--applyKnockback(enemyHrp, playerHrp.CFrame.LookVector, 200)
+			enemyHrp:ApplyImpulse(playerHrp.CFrame.LookVector * (kbForce * 0.5))
 		end
-		-- put this on the client
-			local character = humanoid.Parent
-			local x = blood:Clone()
-			x.CFrame = hitLocationCFrame
-			x.Parent = workspace
-			task.wait(0.1)
-			x.ParticleEmitter.Enabled = false
-			Debris:AddItem(x, 0.5)
-			local d = damageIndicator:Clone()
-			d.BillboardGui.TextLabel.Text = tostring(humanoid.Health)
-			d.Parent = character
-			d.Anchored = false
-			local weld = Instance.new("Weld")
-			weld.Part0 = character.Head
-			weld.Part1 = d
-			weld.Name = d.Name
-			weld.Parent = character
-			local slideUp = TweenService:Create(
-				weld, 
-				TweenInfo.new(1, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), 
-				{C0 = CFrame.new(0, 2, 0)}
-			)
-			local fadeOut = TweenService:Create(
-				d.BillboardGui.TextLabel, 
-				TweenInfo.new(1, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), 
-				{TextTransparency = 1}
-			)
-			slideUp:Play()
-			fadeOut:Play()
-		--
+		]]
+
+		humanoid:TakeDamage(tool:GetAttribute("Damage"))
+		--[[modifyBloodDecalTransparency(tool, 0)
+		The line above works but there are inconsistencies with the view model that I don't feel like doing right now, so I'm 
+		temporarily disabling it 
+		]]
 	end
 end)
 
