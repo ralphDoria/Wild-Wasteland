@@ -28,7 +28,6 @@ for _, v in loadingScreenBackgroundMusic:GetChildren() do
 end
 local SFX = {
 	finishedLoadingCue1 = SoundService:WaitForChild("ONESHOT FX-Lonely Call Slide"),
-	desertAmbience = SoundService:WaitForChild("Desert Ambience"),
 	decision = SoundService:WaitForChild("guiSFX"):WaitForChild("OneShot - Menu Decision"),
 	cancel = SoundService:WaitForChild("guiSFX"):WaitForChild("OneShot - Menu Cancel"),
 	hover = SoundService:WaitForChild("guiSFX"):WaitForChild("minorSelect")
@@ -148,7 +147,6 @@ char:WaitForChild("Humanoid").JumpHeight = 0
 char:WaitForChild("HumanoidRootPart").CFrame = loadingScreenSpawn.CFrame
 plr.RespawnLocation = loadingScreenSpawn
 
-SFX.desertAmbience:Stop()
 currentBackgroundSong:Play()
 
 local function fadeAudio(sound : Sound, endVolume : number, fadeTime : number)
@@ -252,7 +250,6 @@ fadeAudio(currentBackgroundSong, 0, 2)
 currentBackgroundSong:Stop()
 currentFinishedLoadingCue:Play()
 satchel:SetBackpackEnabled(true)
-SFX.desertAmbience:Play()
 local tweenInfo = TweenInfo.new(currentFinishedLoadingCue.TimeLength, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
 fadeOutGuis(
 	{soundSettingButtons.soundIcon, loadingUI:FindFirstChild("Wallpaper", true)},

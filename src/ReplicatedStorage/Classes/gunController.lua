@@ -117,6 +117,13 @@ function GunController:initialize()
             end
         end)
     )
+    table.insert(
+        self.connections,
+        Players.LocalPlayer.Character.Humanoid.Died:Connect(function()
+            print("died")
+            self:unequip()
+        end)
+    )
 end
 
 function GunController:_aimDownSight(shouldAim : boolean)
@@ -229,8 +236,6 @@ end
 ]]
 
 function GunController:castRay()
-    local mouse = player:GetMouse()
-
     local raycastParams = RaycastParams.new()
     local blacklistedParts = {}
     for _, v in self.currentCharacter:GetDescendants() do
@@ -243,8 +248,12 @@ function GunController:castRay()
             table.insert(blacklistedParts, v)
         end
     end
+    for _, v in workspace:FindFirstChild("Zones", true):GetDescendants() do
+        if v:IsA("BasePart") then
+            table.insert(blacklistedParts, v)
+        end
+    end
     raycastParams.FilterDescendantsInstances = blacklistedParts
-    mouse.TargetFilter = self.viewModelController.vmTool
     raycastParams.FilterType = Enum.RaycastFilterType.Exclude
     raycastParams.IgnoreWater = true
 
@@ -252,7 +261,7 @@ function GunController:castRay()
 
     local rayMaxDistance = 500
     local originPosition = vmMuzzle.Position
-    local targetPosition = mouse.Hit.Position
+    local targetPosition = (workspace.CurrentCamera.CFrame * CFrame.new(Vector3.new(0, 0, -rayMaxDistance))).Position
     local rayDirection = (targetPosition - originPosition).Unit * rayMaxDistance
 
     local raycastResult = workspace:Raycast(originPosition, rayDirection, raycastParams)
@@ -318,6 +327,7 @@ function GunController:activate()
 end
 
 function GunController:unequip()
+    print("called unequip functino")
     player.CameraMode = Enum.CameraMode.Classic
     self:_aimDownSight(false)
     self.equipped = false
