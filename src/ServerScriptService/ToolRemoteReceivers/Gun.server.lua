@@ -12,15 +12,15 @@ local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitF
 local gunRemotes : Folder = ReplicatedStorage:WaitForChild("Tools"):WaitForChild("Gun"):WaitForChild("Remotes")
 local rev_playSound : RemoteEvent = gunRemotes:WaitForChild("PlaySound")
 local rev_droppedTool : RemoteEvent = gunRemotes:WaitForChild("DroppedTool")
-local rev_shoot : RemoteEvent = gunRemotes:WaitForChild("Shoot")
 local rev_reload : RemoteEvent = gunRemotes:WaitForChild("Reload")
+local rev_shoot : RemoteEvent = gunRemotes:WaitForChild("Shoot")
 local rev_replicateBulletEffects : RemoteEvent = gunRemotes.ReplicateBulletEffects
 
 rev_playSound.OnServerEvent:Connect(function(player: Player, soundObject : Sound, delayCorrection : number, soundParent : BasePart)
     playSound(soundObject, soundParent, delayCorrection)
 end)
 
-rev_shoot.OnServerEvent:Connect(function(playerWithGun : Player, humanoidToDamage : Humanoid, damageToDeal : number, bulletStartPosition : Vector3, bulletEndPosition : Vector3)
+rev_shoot.OnServerEvent:Connect(function(playerWithGun : Player, humanoidToDamage : Humanoid, damageToDeal : number, isHeadshot : boolean, bulletStartPosition : Vector3, bulletEndPosition : Vector3)
     --draw raycast for visuals, but hit detection will be done on the client
     for _, player in game:GetService("Players"):GetChildren() do
         if player ~= playerWithGun then
@@ -28,7 +28,11 @@ rev_shoot.OnServerEvent:Connect(function(playerWithGun : Player, humanoidToDamag
         end
     end
     if humanoidToDamage then
-        humanoidToDamage:TakeDamage(damageToDeal)
+        if isHeadshot then
+            humanoidToDamage:TakeDamage(damageToDeal * 2)
+        else
+            humanoidToDamage:TakeDamage(damageToDeal)   
+        end
     end
 end)
 

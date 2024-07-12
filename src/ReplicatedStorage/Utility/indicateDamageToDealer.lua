@@ -5,7 +5,7 @@ local sharedVFX = game:GetService("ReplicatedStorage").Tools.Shared.VFX
 local blood = sharedVFX.Blood
 local damageIndicator = sharedVFX.DamageIndicator
 
-return function(humanoid : Humanoid, raycastResult : RaycastResult, damageDealt : number)
+return function(humanoid : Humanoid, raycastResult : RaycastResult, damageDealt : number, isCriticalHit : boolean)
     local character = humanoid.Parent
 
     --blood VFX
@@ -17,6 +17,9 @@ return function(humanoid : Humanoid, raycastResult : RaycastResult, damageDealt 
     --damage indicator for dealer VFX
     local d = damageIndicator:Clone()
     d.BillboardGui.TextLabel.Text = tostring(damageDealt)
+    if isCriticalHit then
+        d.BillboardGui.TextLabel.TextColor3 = Color3.new(1, 0, 0)
+    end
     d.Parent = character
     d.Anchored = false
     local weld = Instance.new("Weld")

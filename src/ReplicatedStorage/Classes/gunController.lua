@@ -5,6 +5,8 @@ local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
 local SoundService = game:GetService("SoundService")
 
+local hitmarkerSounds = SoundService.HitmarkerSounds
+
 local Constants = {
     KEYBOARD_DROP_TOOL_KEY_CODE = Enum.KeyCode.X,
     KEYBOARD_RELOAD_KEY_CODE = Enum.KeyCode.R,
@@ -23,8 +25,8 @@ local indicateDamageToDealer = require(ReplicatedStorage.RojoManaged_RS.Utility.
 local gunRemotes : Folder = ReplicatedStorage:WaitForChild("Tools"):WaitForChild("Gun"):WaitForChild("Remotes")
 local rev_playSound : RemoteEvent = gunRemotes:WaitForChild("PlaySound")
 local rev_droppedTool : RemoteEvent = gunRemotes:WaitForChild("DroppedTool")
-local rev_shoot : RemoteEvent = gunRemotes:WaitForChild("Shoot")
 local rev_reload : RemoteEvent = gunRemotes:WaitForChild("Reload")
+local rev_shoot : RemoteEvent = gunRemotes:WaitForChild("Shoot")
 
 local function isFirstPerson()
     return Players.LocalPlayer.Character.Torso.LocalTransparencyModifier >= 1
@@ -311,16 +313,21 @@ function GunController:activate()
         local raycastResult, hitPosition = self:castRay()
         local humanoidToDamage
         if raycastResult then
-            --print(raycastResult.Instance)
             local humanoid = raycastResult.Instance.Parent:FindFirstChild("Humanoid")
             if humanoid then
+                local isHeadshot
+                if raycastResult.Instance.Name == "Head" then
+                    isHeadshot = true
+                else
+                    isHeadshot = false
+                end
                 humanoidToDamage = humanoid
-                playSound(SoundService.HitmarkerSounds.hitmarker, SoundService, 0)
-                indicateDamageToDealer(humanoid, raycastResult, self.damage)
+                rev_shoot:FireServer(humanoidToDamage, self.damage, isHeadshot, self.tool:FindFirstChild("Muzzle").Position, hitPosition)
+                playSound(if isHeadshot then hitmarkerSounds.headHitmarker else hitmarkerSounds.hitmarker, SoundService, 0)
+                indicateDamageToDealer(humanoid, raycastResult, if isHeadshot then self.damage*2 else self.damage, isHeadshot)
             end
         end
 		rev_playSound:FireServer(self.soundObjects.fire, 0, self.SFX_part)
-        rev_shoot:FireServer(humanoidToDamage, self.damage, self.tool:FindFirstChild("Muzzle").Position, hitPosition)
 
 		task.wait(self.cooldown)
 		if self.equipped then
