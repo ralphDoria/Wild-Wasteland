@@ -18,6 +18,7 @@ local Constants = {
 local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationController"))
 local ViewModelController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("ViewModelController"))
 
+local toolGuiController = require(ReplicatedStorage:FindFirstChild("ToolGuiController", true))
 local createBulletEffects = require(ReplicatedStorage.RojoManaged_RS.Utility.createBulletEffects)
 local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
 local indicateDamageToDealer = require(ReplicatedStorage.RojoManaged_RS.Utility.indicateDamageToDealer)
@@ -52,6 +53,7 @@ function GunController.new(gun : Tool)
 
     local self = {
         tool = gun,
+        name = "Beretta",
         animObjects = animObjects,
         currentCharacterAnimationController = nil,
         currentPlayer = nil,
@@ -79,6 +81,9 @@ function GunController.new(gun : Tool)
         cooldown = 0.1, --in rounds/minute (RPM),
         adsSpeed = 0.1,
         damage = 20,
+        currentAmmo = 0,
+        MAX_MAG_AMMO = 15,
+        totalAmmo = 33,
         connections = {}
     }
     self.viewModelController.adsSpeed = self.adsSpeed
@@ -170,6 +175,9 @@ function GunController:equip()
     self.viewModelController.animationController.animationTracks.equip:Play()
     self.currentCharacterAnimationController.animationTracks.equip.Stopped:Wait()
     if self.equipped then --checking this because during the equip animation, players can unequip the tool, causing a bug
+        toolGuiController.setNameLabel(self.name)
+        toolGuiController.setAmmoLabels(self.currentAmmo, self.totalAmmo)
+        toolGuiController.setGuiEnabled(true)
         self.equipped = true
         self.viewModelController.toolEquipped = true
         ContextActionService:BindAction(Constants.ACTION_DROP_TOOL, function(actionName, inputState, _inputObject)
@@ -180,24 +188,39 @@ function GunController:equip()
         end, true, Constants.KEYBOARD_DROP_TOOL_KEY_CODE)
         local function handleAction(actionName, inputState, _inputObject)
             if actionName == Constants.ACTION_RELOAD and inputState == Enum.UserInputState.Begin then
-                self.reloading = true
-                if self.aiming then
-                    self:_aimDownSight(false)
-                end
-                ContextActionService:UnbindAction(Constants.ACTION_RELOAD)
-                local connection
-                connection = self.currentCharacterAnimationController.animationTracks.reload:GetMarkerReachedSignal("Sound"):Connect(function(param)
-                    local sound = self.soundObjects[param]
-                    if sound then
-                        rev_playSound:FireServer(sound, 0, self.SFX_part)
+                if self.totalAmmo <= 0 or self.currentAmmo >= self.MAX_MAG_AMMO then
+                    return
+                else
+                    self.reloading = true
+                    if self.aiming then
+                        self:_aimDownSight(false)
                     end
-                end)
-                self.currentCharacterAnimationController.animationTracks.reload:Play()
-                self.viewModelController.animationController.animationTracks.reload:Play()
-                self.currentCharacterAnimationController.animationTracks.reload.Stopped:Wait()
-                connection:Disconnect()
-                ContextActionService:BindAction(Constants.ACTION_RELOAD, handleAction, true, Constants.KEYBOARD_RELOAD_KEY_CODE)
-                self.reloading = false
+                    ContextActionService:UnbindAction(Constants.ACTION_RELOAD)
+                    local connection
+                    connection = self.currentCharacterAnimationController.animationTracks.reload:GetMarkerReachedSignal("Sound"):Connect(function(param)
+                        local sound = self.soundObjects[param]
+                        if sound then
+                            rev_playSound:FireServer(sound, 0, self.SFX_part)
+                        end
+                    end)
+                    self.currentCharacterAnimationController.animationTracks.reload:Play()
+                    self.viewModelController.animationController.animationTracks.reload:Play()
+                    self.currentCharacterAnimationController.animationTracks.reload.Stopped:Wait()
+                    connection:Disconnect()
+                    if self.equipped then
+                        local ammoNeededForFull = self.MAX_MAG_AMMO - self.currentAmmo
+                        if self.totalAmmo >= ammoNeededForFull then
+                            self.currentAmmo += ammoNeededForFull
+                            self.totalAmmo -= ammoNeededForFull
+                        else
+                            self.currentAmmo += self.totalAmmo
+                            self.totalAmmo = 0
+                        end
+                        toolGuiController.setAmmoLabels(self.currentAmmo, self.totalAmmo)
+                    end
+                    ContextActionService:BindAction(Constants.ACTION_RELOAD, handleAction, true, Constants.KEYBOARD_RELOAD_KEY_CODE)
+                    self.reloading = false
+                end
             elseif actionName == Constants.ACTION_AIM_DOWN_SIGHT then
                 if inputState == Enum.UserInputState.End or self.reloading then
                     self:_aimDownSight(false)
@@ -298,46 +321,53 @@ end
 
 function GunController:activate()
     if self.canActivate and not self.reloading then
-		self.canActivate = false
-
-        if self.aiming then
-            --play ADS fire animation
-            self.currentCharacterAnimationController.animationTracks.adsFire:Play()
-            self.viewModelController.animationController.animationTracks.viewModelFire:Play()
+        if self.currentAmmo <= 0 then
+            rev_playSound:FireServer(self.soundObjects.dryFire, 0, self.SFX_part)
         else
-            --play hipfire animation
-            self.currentCharacterAnimationController.animationTracks.hipfire:Play()
-            self.viewModelController.animationController.animationTracks.hipfire:Play()
-        end
+            self.canActivate = false
 
-        local raycastResult, hitPosition = self:castRay()
-        local humanoidToDamage
-        if raycastResult then
-            local humanoid = raycastResult.Instance.Parent:FindFirstChild("Humanoid")
-            if humanoid then
-                local isHeadshot
-                if raycastResult.Instance.Name == "Head" then
-                    isHeadshot = true
-                else
-                    isHeadshot = false
+            if self.aiming then
+                --play ADS fire animation
+                self.currentCharacterAnimationController.animationTracks.adsFire:Play()
+                self.viewModelController.animationController.animationTracks.viewModelFire:Play()
+            else
+                --play hipfire animation
+                self.currentCharacterAnimationController.animationTracks.hipfire:Play()
+                self.viewModelController.animationController.animationTracks.hipfire:Play()
+            end
+    
+            rev_playSound:FireServer(self.soundObjects.fire, 0, self.SFX_part)
+    
+            local raycastResult, hitPosition = self:castRay()
+            local humanoidToDamage
+            if raycastResult then
+                local humanoid = raycastResult.Instance.Parent:FindFirstChild("Humanoid")
+                if humanoid then
+                    local isHeadshot
+                    if raycastResult.Instance.Name == "Head" then
+                        isHeadshot = true
+                    else
+                        isHeadshot = false
+                    end
+                    humanoidToDamage = humanoid
+                    rev_shoot:FireServer(humanoidToDamage, self.damage, isHeadshot, self.tool:FindFirstChild("Muzzle").Position, hitPosition)
+                    playSound(if isHeadshot then hitmarkerSounds.headHitmarker else hitmarkerSounds.hitmarker, SoundService, 0)
+                    indicateDamageToDealer(humanoid, raycastResult, if isHeadshot then self.damage*2 else self.damage, isHeadshot)
                 end
-                humanoidToDamage = humanoid
-                rev_shoot:FireServer(humanoidToDamage, self.damage, isHeadshot, self.tool:FindFirstChild("Muzzle").Position, hitPosition)
-                playSound(if isHeadshot then hitmarkerSounds.headHitmarker else hitmarkerSounds.hitmarker, SoundService, 0)
-                indicateDamageToDealer(humanoid, raycastResult, if isHeadshot then self.damage*2 else self.damage, isHeadshot)
+            end
+    
+            self.currentAmmo -= 1
+            toolGuiController.setAmmoLabels(self.currentAmmo, self.totalAmmo)
+            task.wait(self.cooldown)
+            if self.equipped then
+                self.canActivate = true
             end
         end
-		rev_playSound:FireServer(self.soundObjects.fire, 0, self.SFX_part)
-
-		task.wait(self.cooldown)
-		if self.equipped then
-			self.canActivate = true
-		end
 	end
 end
 
 function GunController:unequip()
-    print("called unequip functino")
+    toolGuiController.setGuiEnabled(false)
     player.CameraMode = Enum.CameraMode.Classic
     self:_aimDownSight(false)
     self.equipped = false
