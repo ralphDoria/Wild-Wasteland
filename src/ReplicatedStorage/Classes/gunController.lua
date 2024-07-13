@@ -81,9 +81,9 @@ function GunController.new(gun : Tool)
         cooldown = 0.1, --in rounds/minute (RPM),
         adsSpeed = 0.1,
         damage = 20,
-        currentAmmo = 0,
+        currentAmmo = if gun:GetAttribute("ammo_current") == 999 then 0 else gun:GetAttribute("ammo_current"),
         MAX_MAG_AMMO = 15,
-        totalAmmo = 33,
+        totalAmmo = if gun:GetAttribute("ammo_total") == 999 then 30 else gun:GetAttribute("ammo_total"),
         connections = {}
     }
     self.viewModelController.adsSpeed = self.adsSpeed
@@ -367,6 +367,8 @@ function GunController:activate()
 end
 
 function GunController:unequip()
+    self.tool:SetAttribute("ammo_current", self.currentAmmo)
+    self.tool:SetAttribute("ammo_total", self.totalAmmo)
     toolGuiController.setGuiEnabled(false)
     player.CameraMode = Enum.CameraMode.Classic
     self:_aimDownSight(false)
