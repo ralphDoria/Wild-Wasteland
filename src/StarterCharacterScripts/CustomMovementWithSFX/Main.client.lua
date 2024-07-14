@@ -37,11 +37,13 @@ local tweenCamOffsetUp = TweenService:Create(humanoid, tweenInfo, {CameraOffset 
 
 local function setCrouchingState(set : boolean)
 	if set == true then
+		character:SetAttribute("Crouching", true)
 		crouching = true
 		crouchIdleTrack:Play()
 		tweenCamOffsetUp:Pause()
 		tweenCamOffsetDown:Play()
 	else
+		character:SetAttribute("Crouching", false)
 		crouching = false
 		crouchIdleTrack:Stop()
 		crouchWalkTrack:Stop()
@@ -78,8 +80,12 @@ end
 
 humanoid.Running:Connect(function(speed)
 	if crouching then
-		if speed > 0 then 
+		if speed > 0 then
+			local DirectionOfMovement = character.HumanoidRootPart.CFrame:VectorToObjectSpace( character.HumanoidRootPart.AssemblyLinearVelocity )
+			DirectionOfMovement = Vector3.new( DirectionOfMovement.X / humanoid.WalkSpeed, 0, DirectionOfMovement.Z / humanoid.WalkSpeed )
+			local newSpeed = if DirectionOfMovement.Z < 0.1 then crouchWalkTrack.Speed else -crouchWalkTrack.Speed
 			crouchWalkTrack:Play(0.5)
+			crouchWalkTrack:AdjustSpeed(newSpeed)
 		else 
 			crouchWalkTrack:Stop(0.5)
 		end

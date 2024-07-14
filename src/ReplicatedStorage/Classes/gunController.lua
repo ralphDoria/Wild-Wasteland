@@ -71,7 +71,9 @@ function GunController.new(gun : Tool)
             ["dryFire"]         = gun:WaitForChild("SFX_part"):WaitForChild("Ammo Magazine 3 (SFX) (dryfire)"),
             --Aim down sight
             ["adsIn"]           = gun:WaitForChild("SFX_part"):WaitForChild("ads_in"),
-            ["adsOut"]          = gun:WaitForChild("SFX_part"):WaitForChild("ads_out")
+            ["adsOut"]          = gun:WaitForChild("SFX_part"):WaitForChild("ads_out"),
+            ["fleshImpact"] = gun:WaitForChild("SFX_part"):WaitForChild("bulletImpact"):WaitForChild("flesh"),
+            ["hardImpact"] = gun:WaitForChild("SFX_part"):WaitForChild("bulletImpact"):WaitForChild("hardSurface")
         },
         viewModelController = ViewModelController.new(workspace.CurrentCamera:WaitForChild("viewModel"), gun, animObjects, hrp),
         canActivate = false,
@@ -239,15 +241,14 @@ function GunController:equip()
 end
 
 --[[ local functions for debugging raycast
-
-local function visualizeRay(originPosition : Vector3, targetPosition : Vector3)
-    local distance = (targetPosition - originPosition).Magnitude
+local function visualizeRay(originPosition : Vector3, endPosition : Vector3)
+    local distance = (endPosition - originPosition).Magnitude
     local p = Instance.new("Part")
     p.Anchored = true
     p.CanCollide = false
     p.Size = Vector3.new(0.1, 0.1, distance)
     p.Color = Color3.new(0, 1, 0)
-    p.CFrame = CFrame.lookAt(originPosition, targetPosition)*CFrame.new(0, 0, -distance/2)
+    p.CFrame = CFrame.lookAt(originPosition, endPosition)*CFrame.new(0, 0, -distance/2)
     p.Parent = workspace
 end
 
@@ -259,7 +260,6 @@ local function visualizePosition(position : Vector3)
     y.Position = position
     y.Parent = workspace
 end
-
 ]]
 
 function GunController:castRay()
@@ -292,16 +292,6 @@ function GunController:castRay()
     local rayDirection = (targetPosition - originPosition).Unit * rayMaxDistance
 
     local raycastResult = workspace:Raycast(originPosition, rayDirection, raycastParams)
-
-    --[[ for debugging raycast
-    if raycastResult then
-        print(raycastResult.Instance)
-        visualizePosition(raycastResult.Position)
-    else
-        print("hit nothing")
-        visualizePosition(originPosition + rayDirection)
-    end
-    ]]
 
     --adding effects to the raycast, or if that doesn't exist, the startPosition and offset from such in the case that nothing is hit
     for _, v in vmMuzzle:GetChildren() do
@@ -340,9 +330,11 @@ function GunController:activate()
     
             local raycastResult, hitPosition = self:castRay()
             local humanoidToDamage
+            local impactSoundsArray
             if raycastResult then
                 local humanoid = raycastResult.Instance.Parent:FindFirstChild("Humanoid")
                 if humanoid then
+                    impactSoundsArray = self.soundObjects.fleshImpact:GetChildren()
                     local isHeadshot
                     if raycastResult.Instance.Name == "Head" then
                         isHeadshot = true
@@ -351,9 +343,13 @@ function GunController:activate()
                     end
                     humanoidToDamage = humanoid
                     rev_shoot:FireServer(humanoidToDamage, self.damage, isHeadshot, self.tool:FindFirstChild("Muzzle").Position, hitPosition)
-                    playSound(if isHeadshot then hitmarkerSounds.headHitmarker else hitmarkerSounds.hitmarker, SoundService, 0)
                     indicateDamageToDealer(humanoid, raycastResult, if isHeadshot then self.damage*2 else self.damage, isHeadshot)
+                else
+                    impactSoundsArray = self.soundObjects.hardImpact:GetChildren()
                 end
+                local randomIndex = math.random(1, #impactSoundsArray)
+                local randomSound = impactSoundsArray[randomIndex]
+                rev_playSound:FireServer(randomSound, 0, hitPosition)
             end
     
             self.currentAmmo -= 1

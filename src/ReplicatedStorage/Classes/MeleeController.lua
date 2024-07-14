@@ -95,13 +95,8 @@ function MeleeController:initialize()
         end)
     )
     self.hitboxController.OnHit:Connect(function(hit, humanoid, raycastResult : RaycastResult)
-        if humanoid.Parent.Name ~= self.currentCharacter.Name then
+        if humanoid.Parent.Name ~= self.currentCharacter.Name and humanoid.Parent.Name ~= "viewModel" then
             rev_hit:FireServer(self.tool, humanoid, self.soundObjects.hit)
-            --[[
-            damageIndication function goes here (might have to make the line above use a remote function so that hit indication will always)
-            display after damage is dealt. Idk, depends on how incoherent it feels while testing... also remote functions are apparently unsafe?
-            ]]
-            --CFrame.new(raycastResult.Position, raycastResult.Normal)
             indicateDamageToDealer(humanoid, raycastResult, self.damage)
         end
     end)
