@@ -45,12 +45,12 @@ vaultInteriorZones.localPlayerExited:Connect(function()
 end)
 
 --------------------------<<< Day/Night Cycle >>>
-local timeAccumulated = 0
+--local timeAccumulated = 0
 RunService.RenderStepped:Connect(function(dt)
-    timeAccumulated += dt
-    timeAccumulated = if timeAccumulated > 23.9 then 0 else timeAccumulated
-    Lighting.ClockTime = timeAccumulated --speed cycle for testing
-    --Lighting.ClockTime = (workspace:GetServerTimeNow() / 60) % 24 --Normal cycle
+    --timeAccumulated += dt
+    --timeAccumulated = if timeAccumulated > 23.9 then 0 else timeAccumulated
+    --Lighting.ClockTime = timeAccumulated --speed cycle for testing
+    Lighting.ClockTime = (workspace:GetServerTimeNow() / 60) % 24 --Normal cycle
 
     if isIndoor == false then
         if isDayTime() then
