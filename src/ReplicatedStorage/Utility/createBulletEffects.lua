@@ -1,4 +1,6 @@
 local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+
 local effects : Folder = game:GetService("ReplicatedStorage").Tools.Gun.Effects
 local bulletTracer : Beam = effects.tracer
 local sparkParticles : ParticleEmitter = effects.sparks
@@ -34,8 +36,8 @@ return function(muzzlePart : BasePart, bulletEndPosition : Vector3, raycastResul
         end
     end
     tracer.Parent = vfx_container
+    local impactParticles : ParticleEmitter
     if raycastResult then
-        local impactParticles : ParticleEmitter
         if raycastResult.Material == Enum.Material.Metal or raycastResult.Material == Enum.Material.CorrodedMetal or raycastResult.Material == Enum.Material.DiamondPlate then
             impactParticles = sparkParticles:Clone()
         else
@@ -50,7 +52,10 @@ return function(muzzlePart : BasePart, bulletEndPosition : Vector3, raycastResul
     task.spawn(function()
         task.wait(bulletTravelTime)
         tracer.Enabled = false
-        task.wait(1)
-        vfx_container:Destroy()
+        task.wait(0.2)
+        if impactParticles then
+            impactParticles.Enabled = false
+        end
+        Debris:AddItem(vfx_container, 1)
     end)
 end

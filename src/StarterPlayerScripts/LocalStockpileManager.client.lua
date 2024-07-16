@@ -18,7 +18,11 @@ rev_statChangeSound.OnClientEvent:Connect(function(statName : string)
     end
 end)
 
-local statsBillboard : Frame = game:GetService("Players").LocalPlayer.PlayerGui:WaitForChild("StatsGui").Billboard
+local StatsGui : ScreenGui = game:GetService("Players").LocalPlayer.PlayerGui:WaitForChild("StatsGui")
+local statsBillboard : Frame = StatsGui.Billboard
+local storageButton : ImageButton = StatsGui:WaitForChild("StorageButton")
+--closed box: 18511847325
+--open box: 18511845518
 local openSize = UDim2.new(0.5, 0, 0.5, 0)
 local closeSize = UDim2.new(0.5, 0, 0, 0)
 local TweenService = game:GetService("TweenService")
@@ -34,7 +38,6 @@ local ACTION_STATS = "changeStatsBillboardVisibility"
 ContextActionService:BindAction(ACTION_STATS, function(actionName, inputState, _inputObject)
     if actionName == ACTION_STATS then
         if inputState == Enum.UserInputState.Begin then
-            print("test")
             if open then
                 open = false
                 tweenClose:Play()

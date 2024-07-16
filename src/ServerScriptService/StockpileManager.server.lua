@@ -5,13 +5,33 @@ local ATTRIBUTE_HEAVY_BULLETS = "HeavyBullets"
 local ATTRIBUTE_SHELLS = "Shells"
 local ATTRIBUTE_ENERGY_AMMO = "EnergyAmmo"
 local ammoAttributes = {ATTRIBUTE_LIGHT_BULLETS, ATTRIBUTE_MEDIUM_BULLETS, ATTRIBUTE_HEAVY_BULLETS, ATTRIBUTE_SHELLS, ATTRIBUTE_ENERGY_AMMO}
+local attributeIconMap = {
+    [ATTRIBUTE_CAPS] = "rbxassetid://18384549702", 
+    [ATTRIBUTE_LIGHT_BULLETS] = "http://www.roblox.com/asset/?id=18506827412", 
+    [ATTRIBUTE_MEDIUM_BULLETS] = "http://www.roblox.com/asset/?id=18506830649",
+    [ATTRIBUTE_HEAVY_BULLETS] = "http://www.roblox.com/asset/?id=18506834591",
+    [ATTRIBUTE_SHELLS] = "http://www.roblox.com/asset/?id=18506837756", 
+    [ATTRIBUTE_ENERGY_AMMO] = "http://www.roblox.com/asset/?id=18507047762"
+}
 
 local TweenService = game:GetService("TweenService")
 local Debris = game:GetService("Debris")
 
 local DataStoreService = game:GetService("DataStoreService")
 local DATA_CAPS = "PlayerCaps"
+local DATA_LIGHT_BULLETS = "PlayerLightBullets"
+local DATA_MEDIUM_BULLETS = "PlayerMediumBullets"
+local DATA_HEAVY_BULLETS = "PlayerHeavyBullets"
+local DATA_SHELLS = "PlayerShells"
+local DATA_ENERGY_AMMO = "PlayerEnergyAmmo"
 local PlayerCaps = DataStoreService:GetDataStore(DATA_CAPS)
+local DataStores = {
+    [ATTRIBUTE_LIGHT_BULLETS] = DataStoreService:GetDataStore(DATA_LIGHT_BULLETS), 
+    [ATTRIBUTE_MEDIUM_BULLETS] = DataStoreService:GetDataStore(DATA_MEDIUM_BULLETS), 
+    [ATTRIBUTE_HEAVY_BULLETS] = DataStoreService:GetDataStore(DATA_HEAVY_BULLETS),
+    [ATTRIBUTE_SHELLS] = DataStoreService:GetDataStore(DATA_SHELLS), 
+    [ATTRIBUTE_ENERGY_AMMO] = DataStoreService:GetDataStore(DATA_ENERGY_AMMO)
+}
 
 local rev_statChangeSound = game:GetService("ReplicatedStorage"):FindFirstChild("StatChangeSound", true)
 
@@ -24,55 +44,80 @@ Players.PlayerAdded:Connect(function(player)
     local StatsGui : ScreenGui = player.PlayerGui:WaitForChild("StatsGui")  
 
     local billboardCapsAmount : TextLabel = StatsGui.Billboard.Caps.BloxyCola.Amount
-    --local billboardAmmo : TextLabel = StatsGui.Billboard.Ammo
+    local billboardAmmo : Frame = StatsGui.Billboard.Ammo
+    local billboardAmmoTypes = {
+        ["LightBullets"] = billboardAmmo.LightBullets,
+        ["MediumBullets"] = billboardAmmo.MediumBullets,
+        ["HeavyBullets"] = billboardAmmo.HeavyBullets,
+        ["Shells"] = billboardAmmo.Shells,
+        ["EnergyAmmo"] = billboardAmmo.EnergyAmmo,
+    }
 
-    local hudCapsAmount : TextLabel = StatsGui.hudCapsDisplay:FindFirstChild("Amount", true)
-    local hudCapsGain :  TextLabel = StatsGui.hudCapsDisplay:FindFirstChild("Gain", true)
+    --functions for updating gui
+    local gainedResourceIndicator : CanvasGroup = StatsGui.StorageButton.Gain
 
-    local function capsGainEffect(capsGained : number)
-        local x : TextLabel = hudCapsGain:Clone()
+    local function gainedResourceEffect(attributeName : string, amountGained : number)
+        if amountGained == 0 then return end
+        local x : Frame = gainedResourceIndicator:Clone()
         x.Visible = true
-        x.Text = "+" .. tostring(capsGained)
-        x.Parent = hudCapsGain.Parent
+        x.Icon.Image = attributeIconMap[attributeName]
+        x.Amount.Text = "+" .. tostring(amountGained)
+        x.Parent = gainedResourceIndicator.Parent
         TweenService:Create(x, ti, {Position = UDim2.new(1, 0, -1, 0)}):Play()
-        TweenService:Create(x, ti, {TextTransparency = 1}):Play()
+        TweenService:Create(x, ti, {GroupTransparency = 1}):Play()
         Debris:AddItem(x, tweenTime)
     end
 
     local function updateCapGui(capsGained : number, newCapAmount : number)
         billboardCapsAmount.Text = newCapAmount
-        capsGainEffect(capsGained)
-        hudCapsAmount.Text = tostring(newCapAmount)
+        gainedResourceEffect(ATTRIBUTE_CAPS, capsGained)
     end
 
-    --[[
-    local function setBulletsAmount(bullets : number)
-        billboardBulletsAmount.Text = tostring(bullets)
+    local function updateAmmoGui(ammoType : string, ammoGained : number, newAmmoAmount : number)
+        billboardAmmoTypes[ammoType].Amount.Text = newAmmoAmount
+        gainedResourceEffect(ammoType, ammoGained)
     end
-    ]]
 
+    --getting saved data
     local wasSuccess, currentCaps = pcall(function()
         return PlayerCaps:GetAsync(player.UserId)
     end)
     player:SetAttribute(ATTRIBUTE_CAPS, if currentCaps then currentCaps else 0)
-    updateCapGui(0, currentCaps)
+    updateCapGui(0, player:GetAttribute(ATTRIBUTE_CAPS))
 
-    local oldCapAmount : number = player:GetAttribute(ATTRIBUTE_CAPS)
+    for _, attribute in ammoAttributes do
+        local wasSuccess, currentAmmo = pcall(function()
+            return DataStores[attribute]:GetAsync(player.UserId)
+        end)
+        player:SetAttribute(attribute, if currentAmmo then currentAmmo else 0)
+        updateAmmoGui(attribute, 0, player:GetAttribute(attribute))
+    end
+
+    --detecting changes to attributes & updating gui as needed
+    local lastAmounts = {
+        [ATTRIBUTE_CAPS] = player:GetAttribute(ATTRIBUTE_CAPS),
+        [ATTRIBUTE_LIGHT_BULLETS] = player:GetAttribute(ATTRIBUTE_LIGHT_BULLETS), 
+        [ATTRIBUTE_MEDIUM_BULLETS] = player:GetAttribute(ATTRIBUTE_MEDIUM_BULLETS), 
+        [ATTRIBUTE_HEAVY_BULLETS] = player:GetAttribute(ATTRIBUTE_HEAVY_BULLETS),
+        [ATTRIBUTE_SHELLS] = player:GetAttribute(ATTRIBUTE_SHELLS), 
+        [ATTRIBUTE_ENERGY_AMMO] = player:GetAttribute(ATTRIBUTE_ENERGY_AMMO)
+    }
 
     player:GetAttributeChangedSignal(ATTRIBUTE_CAPS):Connect(function()
         local newCapAmount = player:GetAttribute(ATTRIBUTE_CAPS)
-        local capGain = player:GetAttribute(ATTRIBUTE_CAPS) - oldCapAmount
+        local capGain = player:GetAttribute(ATTRIBUTE_CAPS) - lastAmounts[ATTRIBUTE_CAPS]
         --print(tostring(oldCapAmount) .. " + " .. tostring(capGain) .. " = " .. tostring(newCapAmount))
         updateCapGui(capGain, newCapAmount)
-        oldCapAmount = newCapAmount
+        lastAmounts[ATTRIBUTE_CAPS] = newCapAmount
     end)
 
     for _, attributeName in ammoAttributes do
-        player:SetAttribute(attributeName, 0) --use a pcall later
-        local oldBulletAmount : number = player:GetAttribute(attributeName)
         player:GetAttributeChangedSignal(attributeName):Connect(function()
-            local newBulletAmount
-            local bulletGain
+            local newAmount = player:GetAttribute(attributeName)
+            local gain = player:GetAttribute(attributeName) - lastAmounts[attributeName]
+            --print(tostring(oldCapAmount) .. " + " .. tostring(capGain) .. " = " .. tostring(newCapAmount))
+            updateAmmoGui(attributeName, gain, newAmount)
+            lastAmounts[attributeName] = newAmount
         end)
     end
 end)
