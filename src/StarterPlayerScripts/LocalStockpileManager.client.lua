@@ -11,7 +11,7 @@ local ammoCollectSound : Sound = SoundService:FindFirstChild("Ammo pickup", true
 rev_statChangeSound.OnClientEvent:Connect(function(statName : string)
     if statName == "Caps" then
         playSound(coinCollectSound, nil, 0)
-    elseif statName == "Bullets" then
+    elseif statName == "Ammo" then
         playSound(ammoCollectSound, nil, 0)
     else
         warn("parameter passed does not match any existing stat name")

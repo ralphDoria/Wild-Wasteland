@@ -20,11 +20,12 @@ rev_playSound.OnServerEvent:Connect(function(player: Player, soundObject : Sound
     playSound(soundObject, soundParent, delayCorrection)
 end)
 
-rev_shoot.OnServerEvent:Connect(function(playerWithGun : Player, humanoidToDamage : Humanoid, damageToDeal : number, isHeadshot : boolean, bulletStartPosition : Vector3, bulletEndPosition : Vector3)
+rev_shoot.OnServerEvent:Connect(function(playerWithGun : Player, humanoidToDamage : Humanoid, damageToDeal : number, isHeadshot : boolean, muzzlePart : BasePart, bulletEndPosition : Vector3, raycastResult : RaycastResult)
     --draw raycast for visuals, but hit detection will be done on the client
+    print("checkpoint 4")
     for _, player in game:GetService("Players"):GetChildren() do
         if player ~= playerWithGun then
-            rev_replicateBulletEffects:FireClient(player, bulletStartPosition, bulletEndPosition)
+            rev_replicateBulletEffects:FireClient(player, muzzlePart, bulletEndPosition, raycastResult)
         end
     end
     if humanoidToDamage then

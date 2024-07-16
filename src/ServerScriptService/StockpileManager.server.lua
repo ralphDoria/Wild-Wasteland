@@ -65,7 +65,6 @@ Players.PlayerAdded:Connect(function(player)
         --print(tostring(oldCapAmount) .. " + " .. tostring(capGain) .. " = " .. tostring(newCapAmount))
         updateCapGui(capGain, newCapAmount)
         oldCapAmount = newCapAmount
-        rev_statChangeSound:FireClient(player, ATTRIBUTE_CAPS)
     end)
 
     for _, attributeName in ammoAttributes do
@@ -74,7 +73,6 @@ Players.PlayerAdded:Connect(function(player)
         player:GetAttributeChangedSignal(attributeName):Connect(function()
             local newBulletAmount
             local bulletGain
-            rev_statChangeSound:FireClient(player, attributeName)
         end)
     end
 end)
@@ -108,6 +106,7 @@ local function handleTaggedInstance(tagName, taggedInstance)
         if tagName == TAG_CURRENCY then
             local pileValue = math.random(10, 20)
             player:SetAttribute(ATTRIBUTE_CAPS, player:GetAttribute(ATTRIBUTE_CAPS) + pileValue)
+            rev_statChangeSound:FireClient(player, ATTRIBUTE_CAPS)
         elseif tagName == TAG_AMMO then
             local numberOfAmmoTypesToGive = math.random(1, #ammoAttributes)
             local clonedTable = table.clone(ammoAttributes)
@@ -116,7 +115,7 @@ local function handleTaggedInstance(tagName, taggedInstance)
                 local ammoAmount = math.random(10, 30)
                 player:SetAttribute(randomAmmoType, player:GetAttribute(randomAmmoType) + ammoAmount)
             end
-            print("Ammo collection not implemented yet, but this here is a placeholder.")
+            rev_statChangeSound:FireClient(player, "Ammo")
         end
     end)
 end

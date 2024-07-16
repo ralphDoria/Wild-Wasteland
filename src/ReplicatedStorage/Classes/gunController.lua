@@ -294,17 +294,8 @@ function GunController:castRay()
     local raycastResult = workspace:Raycast(originPosition, rayDirection, raycastParams)
 
     --adding effects to the raycast, or if that doesn't exist, the startPosition and offset from such in the case that nothing is hit
-    for _, v in vmMuzzle:GetChildren() do
-        if v:IsA("ParticleEmitter") or v:IsA("SpotLight") then
-            v.Enabled = true
-            task.spawn(function()
-                task.wait(self.cooldown)
-                v.Enabled = false
-            end)
-        end
-    end
     local hitPosition = if raycastResult then raycastResult.Position else CFrame.new(originPosition + rayDirection).Position
-    createBulletEffects(vmMuzzle.Position, hitPosition)
+    createBulletEffects(vmMuzzle, hitPosition, raycastResult)
 
     return raycastResult, hitPosition
 end
@@ -331,18 +322,17 @@ function GunController:activate()
             local raycastResult, hitPosition = self:castRay()
             local humanoidToDamage
             local impactSoundsArray
+            local isHeadshot
             if raycastResult then
                 local humanoid = raycastResult.Instance.Parent:FindFirstChild("Humanoid")
                 if humanoid then
                     impactSoundsArray = self.soundObjects.fleshImpact:GetChildren()
-                    local isHeadshot
                     if raycastResult.Instance.Name == "Head" then
                         isHeadshot = true
                     else
                         isHeadshot = false
                     end
                     humanoidToDamage = humanoid
-                    rev_shoot:FireServer(humanoidToDamage, self.damage, isHeadshot, self.tool:FindFirstChild("Muzzle").Position, hitPosition)
                     indicateDamageToDealer(humanoid, raycastResult, if isHeadshot then self.damage*2 else self.damage, isHeadshot)
                 else
                     impactSoundsArray = self.soundObjects.hardImpact:GetChildren()
@@ -350,6 +340,7 @@ function GunController:activate()
                 local randomIndex = math.random(1, #impactSoundsArray)
                 local randomSound = impactSoundsArray[randomIndex]
                 rev_playSound:FireServer(randomSound, 0, hitPosition)
+                rev_shoot:FireServer(humanoidToDamage, self.damage, isHeadshot, self.tool:FindFirstChild("Muzzle"), hitPosition, raycastResult)
             end
     
             self.currentAmmo -= 1
