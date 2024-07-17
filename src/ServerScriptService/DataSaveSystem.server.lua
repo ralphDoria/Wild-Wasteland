@@ -14,23 +14,23 @@ end
 Players.PlayerAdded:Connect(function(player)
     for _, stat in playerStatsInfo.getAll() do
         local success, statValue = pcall(function()
-            dataStores[stat.name]:GetAsync(player.UserId)
+            return dataStores[stat.name]:GetAsync(player.UserId)
         end)
         if success then
             print("---retreived " .. stat.name .. " value: " .. tostring(statValue))
             player:SetAttribute(stat.name, if statValue then statValue else 30)
         end
     end
-    --player:SetAttribute("StatsLoaded", true)
+    player:SetAttribute("StatsLoaded", true)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
     for _, stat in playerStatsInfo.getAll() do
         local success, errorMessage = pcall(function()
-            dataStores[stat.name]:SetAsync(player.UserId, 2)
+            dataStores[stat.name]:SetAsync(player.UserId, player:GetAttribute(stat.name))
         end)
         if success then
-            print("---successfully saved " .. 2 .. " " .. stat.name)
+            print("---successfully saved " .. player:GetAttribute(stat.name) .. " " .. stat.name)
         else
             print("---" .. stat.name .. " saving error message: " .. errorMessage)
         end

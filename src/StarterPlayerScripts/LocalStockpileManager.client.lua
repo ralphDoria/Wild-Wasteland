@@ -8,10 +8,10 @@ local SoundService = game:GetService("SoundService")
 local coinCollectSound : Sound = SoundService.CurrencySystem["Coins ka-ching"]
 local ammoCollectSound : Sound = SoundService:FindFirstChild("Ammo pickup", true)
 
-rev_statChangeSound.OnClientEvent:Connect(function(statName : string)
-    if statName == "Caps" then
+rev_statChangeSound.OnClientEvent:Connect(function(tagName : string)
+    if tagName == "DroppedCurrency" then
         playSound(coinCollectSound, nil, 0)
-    elseif statName == "Ammo" then
+    elseif tagName == "DroppedAmmo" then
         playSound(ammoCollectSound, nil, 0)
     else
         warn("parameter passed does not match any existing stat name")
