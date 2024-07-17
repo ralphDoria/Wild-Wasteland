@@ -33,6 +33,25 @@ local function isFirstPerson()
     return Players.LocalPlayer.Character.Torso.LocalTransparencyModifier >= 1
 end
 
+--managing ammo attributes
+local ATTRIBUTE_LIGHT_BULLETS = "LightBullets"
+local ATTRIBUTE_MEDIUM_BULLETS = "MediumBullets"
+local ATTRIBUTE_HEAVY_BULLETS = "HeavyBullets"
+local ATTRIBUTE_SHELLS = "Shells"
+local ATTRIBUTE_ENERGY_AMMO = "EnergyAmmo"
+local ammoAttributes = {ATTRIBUTE_LIGHT_BULLETS, ATTRIBUTE_MEDIUM_BULLETS, ATTRIBUTE_HEAVY_BULLETS, ATTRIBUTE_SHELLS, ATTRIBUTE_ENERGY_AMMO}
+while not player:GetAttribute("StatsLoaded") do
+    task.wait()
+    --print("loading stats")
+end
+local previouslySavedAmmoAmounts = {
+    [ATTRIBUTE_LIGHT_BULLETS] = player:GetAttribute(ATTRIBUTE_LIGHT_BULLETS), 
+    [ATTRIBUTE_MEDIUM_BULLETS] = player:GetAttribute(ATTRIBUTE_MEDIUM_BULLETS), 
+    [ATTRIBUTE_HEAVY_BULLETS] = player:GetAttribute(ATTRIBUTE_HEAVY_BULLETS),
+    [ATTRIBUTE_SHELLS] = player:GetAttribute(ATTRIBUTE_SHELLS), 
+    [ATTRIBUTE_ENERGY_AMMO] = player:GetAttribute(ATTRIBUTE_ENERGY_AMMO)
+}
+
 local GunController = {}
 GunController.__index = GunController
 

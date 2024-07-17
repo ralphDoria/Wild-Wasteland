@@ -35,7 +35,7 @@ local DataStores = {
 
 local rev_statChangeSound = game:GetService("ReplicatedStorage"):FindFirstChild("StatChangeSound", true)
 
-local tweenTime = 1
+local tweenTime = 2
 local ti = TweenInfo.new(tweenTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 
 local Players = game:GetService("Players")
@@ -54,7 +54,7 @@ Players.PlayerAdded:Connect(function(player)
     }
 
     --functions for updating gui
-    local gainedResourceIndicator : CanvasGroup = StatsGui.StorageButton.Gain
+    local gainedResourceIndicator : CanvasGroup = StatsGui.StorageButton:FindFirstChild("Gain", true)
 
     local function gainedResourceEffect(attributeName : string, amountGained : number)
         if amountGained == 0 then return end
@@ -63,7 +63,6 @@ Players.PlayerAdded:Connect(function(player)
         x.Icon.Image = attributeIconMap[attributeName]
         x.Amount.Text = "+" .. tostring(amountGained)
         x.Parent = gainedResourceIndicator.Parent
-        TweenService:Create(x, ti, {Position = UDim2.new(1, 0, -1, 0)}):Play()
         TweenService:Create(x, ti, {GroupTransparency = 1}):Play()
         Debris:AddItem(x, tweenTime)
     end
@@ -79,6 +78,7 @@ Players.PlayerAdded:Connect(function(player)
     end
 
     --getting saved data
+    --[[ moved
     local wasSuccess, currentCaps = pcall(function()
         return PlayerCaps:GetAsync(player.UserId)
     end)
@@ -92,6 +92,14 @@ Players.PlayerAdded:Connect(function(player)
         player:SetAttribute(attribute, if currentAmmo then currentAmmo else 0)
         updateAmmoGui(attribute, 0, player:GetAttribute(attribute))
     end
+    player:SetAttribute("StatsLoaded", true)
+    ]]
+
+    while not player:GetAttribute("StatsLoaded") do
+        task.wait()
+        --print("loading stats")
+    end
+    --after stats have loaded, use a for loop to update the gui
 
     --detecting changes to attributes & updating gui as needed
     local lastAmounts = {

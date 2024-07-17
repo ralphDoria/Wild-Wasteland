@@ -21,8 +21,6 @@ end)
 local StatsGui : ScreenGui = game:GetService("Players").LocalPlayer.PlayerGui:WaitForChild("StatsGui")
 local statsBillboard : Frame = StatsGui.Billboard
 local storageButton : ImageButton = StatsGui:WaitForChild("StorageButton")
---closed box: 18511847325
---open box: 18511845518
 local openSize = UDim2.new(0.5, 0, 0.5, 0)
 local closeSize = UDim2.new(0.5, 0, 0, 0)
 local TweenService = game:GetService("TweenService")
@@ -35,21 +33,33 @@ local open = false
 
 local ContextActionService = game:GetService("ContextActionService")
 local ACTION_STATS = "changeStatsBillboardVisibility"
+
+local function openOrCloseStatsMenu()
+    if open then
+        storageButton.Image = "http://www.roblox.com/asset/?id=18511847292"
+        open = false
+        tweenClose:Play()
+        tweenClose.Completed:Wait()
+        if open == false then
+            statsBillboard.Visible = false 
+        end
+    else
+        storageButton.Image = "http://www.roblox.com/asset/?id=18511845492"
+        statsBillboard.Visible = true
+        open = true
+        tweenOpen:Play()
+    end
+end
+
 ContextActionService:BindAction(ACTION_STATS, function(actionName, inputState, _inputObject)
     if actionName == ACTION_STATS then
         if inputState == Enum.UserInputState.Begin then
-            if open then
-                open = false
-                tweenClose:Play()
-                tweenClose.Completed:Wait()
-                if open == false then
-                    statsBillboard.Visible = false 
-                end
-            else
-                statsBillboard.Visible = true
-                open = true
-                tweenOpen:Play()
-            end
+            openOrCloseStatsMenu()
         end
     end
-end, true, Enum.KeyCode.M)
+end, false, Enum.KeyCode.M)
+
+storageButton.Activated:Connect(function(inputObject, clickCount)
+    print(inputObject)
+    openOrCloseStatsMenu()
+end)
