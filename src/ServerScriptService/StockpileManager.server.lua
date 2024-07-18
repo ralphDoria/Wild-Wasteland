@@ -78,8 +78,8 @@ local CollectionService = game:GetService("CollectionService")
 local TAG_CURRENCY = "DroppedCurrency"
 local TAG_AMMO = "DroppedAmmo"
 
-local currencyProxProm : ProximityPrompt = workspace:FindFirstChild("BottleCaps", true).ProximityPrompt
-local ammoProxProm : ProximityPrompt = workspace:FindFirstChild("AmmoCans", true).ProximityPrompt
+local currencyProxProm : ProximityPrompt = ReplicatedStorage:FindFirstChild("BottleCaps", true).ProximityPrompt
+local ammoProxProm : ProximityPrompt = ReplicatedStorage:FindFirstChild("AmmoCans", true).ProximityPrompt
 
 local function handleTaggedInstance(tagName, taggedInstance)
     local clonedProxProm
