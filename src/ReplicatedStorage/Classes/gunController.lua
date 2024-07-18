@@ -5,8 +5,6 @@ local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
 local SoundService = game:GetService("SoundService")
 
-local hitmarkerSounds = SoundService.HitmarkerSounds
-
 local Constants = {
     KEYBOARD_DROP_TOOL_KEY_CODE = Enum.KeyCode.X,
     KEYBOARD_RELOAD_KEY_CODE = Enum.KeyCode.R,
@@ -28,29 +26,19 @@ local rev_playSound : RemoteEvent = gunRemotes:WaitForChild("PlaySound")
 local rev_droppedTool : RemoteEvent = gunRemotes:WaitForChild("DroppedTool")
 local rev_reload : RemoteEvent = gunRemotes:WaitForChild("Reload")
 local rev_shoot : RemoteEvent = gunRemotes:WaitForChild("Shoot")
+local rev_updateAmmoAttribute : RemoteEvent = gunRemotes:WaitForChild("UpdateAmmoAttributes")
+
 
 local function isFirstPerson()
     return Players.LocalPlayer.Character.Torso.LocalTransparencyModifier >= 1
 end
 
 --managing ammo attributes
-local ATTRIBUTE_LIGHT_BULLETS = "LightBullets"
-local ATTRIBUTE_MEDIUM_BULLETS = "MediumBullets"
-local ATTRIBUTE_HEAVY_BULLETS = "HeavyBullets"
-local ATTRIBUTE_SHELLS = "Shells"
-local ATTRIBUTE_ENERGY_AMMO = "EnergyAmmo"
-local ammoAttributes = {ATTRIBUTE_LIGHT_BULLETS, ATTRIBUTE_MEDIUM_BULLETS, ATTRIBUTE_HEAVY_BULLETS, ATTRIBUTE_SHELLS, ATTRIBUTE_ENERGY_AMMO}
+local playerStatsInfo = require(ReplicatedStorage:FindFirstChild("PlayerStatsInfo", true))
 while not player:GetAttribute("StatsLoaded") do
     task.wait()
     --print("loading stats")
 end
-local previouslySavedAmmoAmounts = {
-    [ATTRIBUTE_LIGHT_BULLETS] = player:GetAttribute(ATTRIBUTE_LIGHT_BULLETS), 
-    [ATTRIBUTE_MEDIUM_BULLETS] = player:GetAttribute(ATTRIBUTE_MEDIUM_BULLETS), 
-    [ATTRIBUTE_HEAVY_BULLETS] = player:GetAttribute(ATTRIBUTE_HEAVY_BULLETS),
-    [ATTRIBUTE_SHELLS] = player:GetAttribute(ATTRIBUTE_SHELLS), 
-    [ATTRIBUTE_ENERGY_AMMO] = player:GetAttribute(ATTRIBUTE_ENERGY_AMMO)
-}
 
 local GunController = {}
 GunController.__index = GunController
@@ -104,7 +92,7 @@ function GunController.new(gun : Tool)
         damage = 20,
         currentAmmo = if gun:GetAttribute("ammo_current") == 999 then 0 else gun:GetAttribute("ammo_current"),
         MAX_MAG_AMMO = 15,
-        totalAmmo = if gun:GetAttribute("ammo_total") == 999 then 30 else gun:GetAttribute("ammo_total"),
+        ammoType = gun:GetAttribute("AmmoType"),
         connections = {}
     }
     self.viewModelController.adsSpeed = self.adsSpeed
@@ -154,6 +142,10 @@ function GunController:initialize()
             self:unequip()
         end)
     )
+    table.insert(
+        self.connections,
+        toolGuiController.connectTotalAmmoUpdateEvent(self.ammoType)
+    )
 end
 
 function GunController:_aimDownSight(shouldAim : boolean)
@@ -172,6 +164,15 @@ function GunController:_aimDownSight(shouldAim : boolean)
         self.currentCharacterAnimationController.animationTracks.adsIdle:Stop(self.adsSpeed)
         --viewModel animations will be animated w/ CFrame
     end
+end
+
+local function findIconBasedOnAmmoType(ammoType : string)
+    for _, stat in playerStatsInfo.getAmmo() do
+        if stat.name == ammoType then
+            return stat.icon
+        end
+    end
+    warn(ammoType .. " is not a valid ammo type")
 end
 
 function GunController:equip()
@@ -197,7 +198,9 @@ function GunController:equip()
     self.currentCharacterAnimationController.animationTracks.equip.Stopped:Wait()
     if self.equipped then --checking this because during the equip animation, players can unequip the tool, causing a bug
         toolGuiController.setNameLabel(self.name)
-        toolGuiController.setAmmoLabels(self.currentAmmo, self.totalAmmo)
+        toolGuiController.setCurrentAmmoLabels(self.currentAmmo, self.MAX_MAG_AMMO)
+        toolGuiController.setTotalAmmoLabel(player:GetAttribute(self.ammoType))
+        toolGuiController.setAmmoIcon(findIconBasedOnAmmoType(self.ammoType))
         toolGuiController.setGuiEnabled(true)
         self.equipped = true
         self.viewModelController.toolEquipped = true
@@ -209,7 +212,7 @@ function GunController:equip()
         end, true, Constants.KEYBOARD_DROP_TOOL_KEY_CODE)
         local function handleAction(actionName, inputState, _inputObject)
             if actionName == Constants.ACTION_RELOAD and inputState == Enum.UserInputState.Begin then
-                if self.totalAmmo <= 0 or self.currentAmmo >= self.MAX_MAG_AMMO then
+                if player:GetAttribute(self.ammoType) <= 0 or self.currentAmmo >= self.MAX_MAG_AMMO then
                     return
                 else
                     self.reloading = true
@@ -230,14 +233,20 @@ function GunController:equip()
                     connection:Disconnect()
                     if self.equipped then
                         local ammoNeededForFull = self.MAX_MAG_AMMO - self.currentAmmo
-                        if self.totalAmmo >= ammoNeededForFull then
+                        if player:GetAttribute(self.ammoType) >= ammoNeededForFull then
                             self.currentAmmo += ammoNeededForFull
-                            self.totalAmmo -= ammoNeededForFull
+
+                            --ammo attribute is also set on the client to avoid delay when getting the attribute for updating the ammo labels
+                            rev_updateAmmoAttribute:FireServer(player, self.ammoType, player:GetAttribute(self.ammoType) - ammoNeededForFull)
+                            player:SetAttribute(self.ammoType, player:GetAttribute(self.ammoType) - ammoNeededForFull)
                         else
-                            self.currentAmmo += self.totalAmmo
-                            self.totalAmmo = 0
+                            self.currentAmmo += player:GetAttribute(self.ammoType)
+
+                            --ammo attribute is also set on the client to avoid delay when getting the attribute for updating the ammo labels
+                            player:SetAttribute(self.ammoType, 0)
+                            rev_updateAmmoAttribute:FireServer(player, self.ammoType, 0)
                         end
-                        toolGuiController.setAmmoLabels(self.currentAmmo, self.totalAmmo)
+                        toolGuiController.setCurrentAmmoLabels(self.currentAmmo, self.MAX_MAG_AMMO)
                     end
                     ContextActionService:BindAction(Constants.ACTION_RELOAD, handleAction, true, Constants.KEYBOARD_RELOAD_KEY_CODE)
                     self.reloading = false
@@ -363,7 +372,7 @@ function GunController:activate()
             end
     
             self.currentAmmo -= 1
-            toolGuiController.setAmmoLabels(self.currentAmmo, self.totalAmmo)
+            toolGuiController.setCurrentAmmoLabels(self.currentAmmo, self.MAX_MAG_AMMO)
             task.wait(self.cooldown)
             if self.equipped then
                 self.canActivate = true
@@ -373,8 +382,7 @@ function GunController:activate()
 end
 
 function GunController:unequip()
-    self.tool:SetAttribute("ammo_current", self.currentAmmo)
-    self.tool:SetAttribute("ammo_total", self.totalAmmo)
+    rev_updateAmmoAttribute:FireServer(self.tool, "ammo_current", self.currentAmmo)
     toolGuiController.setGuiEnabled(false)
     player.CameraMode = Enum.CameraMode.Classic
     self:_aimDownSight(false)
@@ -402,7 +410,12 @@ function GunController:unequip()
 end
 
 function GunController:destroy()
-
+    for _, connection in self.connections do
+        connection:Disconnect()
+        connection = nil
+    end
+    table.clear(self.connections)
+    table.clear(self)
 end
 
 return GunController

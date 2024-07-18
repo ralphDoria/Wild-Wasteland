@@ -18,9 +18,22 @@ function toolGuiController.setNameLabel(name : string)
     nameLabel.Text = name
 end
 
-function toolGuiController.setAmmoLabels(currentAmmo : number, totalAmmo : number)
-    currentAmmoLabel.Text = tostring(currentAmmo)
-    totalAmmoLabel.Text = tostring(totalAmmo)
+function toolGuiController.setCurrentAmmoLabels(currentAmmo : number, magCapacity : number)
+    currentAmmoLabel.Text = "[" .. tostring(currentAmmo) .. "]/" .. tostring(magCapacity)
+end
+
+function toolGuiController.setTotalAmmoLabel(totalAmmo : number)
+    totalAmmoLabel.Text = totalAmmo
+end
+
+function toolGuiController.connectTotalAmmoUpdateEvent(ammoType : string)
+    return player:GetAttributeChangedSignal(ammoType):Connect(function()
+        totalAmmoLabel.Text = tostring(player:GetAttribute(ammoType))
+    end)
+end
+
+function toolGuiController.setAmmoIcon(imageId : string)
+    ammoIcon.Image = imageId
 end
 
 return toolGuiController

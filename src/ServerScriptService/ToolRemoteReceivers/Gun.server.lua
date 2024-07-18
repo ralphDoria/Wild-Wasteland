@@ -15,6 +15,7 @@ local rev_droppedTool : RemoteEvent = gunRemotes:WaitForChild("DroppedTool")
 local rev_reload : RemoteEvent = gunRemotes:WaitForChild("Reload")
 local rev_shoot : RemoteEvent = gunRemotes:WaitForChild("Shoot")
 local rev_replicateBulletEffects : RemoteEvent = gunRemotes.ReplicateBulletEffects
+local rev_updateAmmoAttribute : RemoteEvent = gunRemotes:WaitForChild("UpdateAmmoAttributes")
 
 rev_playSound.OnServerEvent:Connect(function(player: Player, soundObject : Sound, delayCorrection : number, soundParent : BasePart)
     playSound(soundObject, soundParent, delayCorrection)
@@ -22,7 +23,6 @@ end)
 
 rev_shoot.OnServerEvent:Connect(function(playerWithGun : Player, humanoidToDamage : Humanoid, damageToDeal : number, isHeadshot : boolean, muzzlePart : BasePart, bulletEndPosition : Vector3, raycastResult : RaycastResult)
     --draw raycast for visuals, but hit detection will be done on the client
-    print("checkpoint 4")
     for _, player in game:GetService("Players"):GetChildren() do
         if player ~= playerWithGun then
             rev_replicateBulletEffects:FireClient(player, muzzlePart, bulletEndPosition, raycastResult)
@@ -35,6 +35,10 @@ rev_shoot.OnServerEvent:Connect(function(playerWithGun : Player, humanoidToDamag
             humanoidToDamage:TakeDamage(damageToDeal)   
         end
     end
+end)
+
+rev_updateAmmoAttribute.OnServerEvent:Connect(function(player : Player, attributeParent, attributeName : string, newValue : number)
+    attributeParent:SetAttribute(attributeName, newValue)
 end)
 
 rev_reload.OnServerEvent:Connect(function(player : Player)

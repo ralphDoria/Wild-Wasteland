@@ -25,28 +25,29 @@ Players.PlayerAdded:Connect(function(player)
     local gainedResourceIndicator : CanvasGroup = StatsGui.StorageButton:FindFirstChild("Gain", true)
 
     --functions for updating gui
-    local function gainedResourceEffect(attributeName : string, amountGained : number)
-        if amountGained == 0 then return end
+    local function gainedResourceEffect(stat, amountGained : number)
         local x : Frame = gainedResourceIndicator:Clone()
         x.Visible = true
-        x.Icon.Image = playerStatsInfo[attributeName].icon
+        x.Icon.Image = stat.icon
         x.Amount.Text = "+" .. tostring(amountGained)
         x.Parent = gainedResourceIndicator.Parent
         TweenService:Create(x, ti, {GroupTransparency = 1}):Play()
         Debris:AddItem(x, tweenTime)
     end
 
-    local function updateBillboardGui(statName : string, amountGained : number, newAmount : number)
-        billboardAmountLabels[statName].Text = newAmount
-        gainedResourceEffect(statName, amountGained)
+    local function updateBillboardGui(stat, amountGained : number, newAmount : number)
+        billboardAmountLabels[stat.name].Text = newAmount
+        if amountGained > 0 then
+            gainedResourceEffect(stat, amountGained)
+        end
     end
 
     while not player:GetAttribute("StatsLoaded") do
         task.wait()
-        print("loading stats")
+        --print("loading stats")
     end
     for _, stat in playerStatsInfo.getAll() do
-        updateBillboardGui(stat.name, 0, player:GetAttribute(stat.name))
+        updateBillboardGui(stat, 0, player:GetAttribute(stat.name))
     end
 
     --detecting changes to attributes & updating gui as needed
@@ -62,8 +63,8 @@ Players.PlayerAdded:Connect(function(player)
     for _, stat in playerStatsInfo.getAll() do
         player:GetAttributeChangedSignal(stat.name):Connect(function()
             local newAmount : number = player:GetAttribute(stat.name)
-            local amountGained : number = player:GetAttribute(stat.name)
-            updateBillboardGui(stat.name, amountGained, newAmount)
+            local amountGained : number = player:GetAttribute(stat.name) - lastCachedAmounts[stat.name]
+            updateBillboardGui(stat, amountGained, newAmount)
             lastCachedAmounts[stat.name] = newAmount
         end)
     end
@@ -81,7 +82,6 @@ local currencyProxProm : ProximityPrompt = workspace:FindFirstChild("BottleCaps"
 local ammoProxProm : ProximityPrompt = workspace:FindFirstChild("AmmoCans", true).ProximityPrompt
 
 local function handleTaggedInstance(tagName, taggedInstance)
-    print(taggedInstance.Name)
     local clonedProxProm
     if tagName == TAG_CURRENCY then
         clonedProxProm = currencyProxProm:Clone()
@@ -97,7 +97,7 @@ local function handleTaggedInstance(tagName, taggedInstance)
         taggedInstance:Destroy()
         if tagName == TAG_CURRENCY then
             local pileValue = math.random(10, 20)
-            player:SetAttribute(playerStatsInfo.ATTRIBUTE_CAPS, player:GetAttribute(playerStatsInfo.ATTRIBUTE_CAPS) + pileValue)
+            player:SetAttribute(playerStatsInfo.ATTRIBUTE_CAPS.name, player:GetAttribute(playerStatsInfo.ATTRIBUTE_CAPS.name) + pileValue)
             rev_statChangeSound:FireClient(player, TAG_CURRENCY)
         elseif tagName == TAG_AMMO then
             local numberOfAmmoTypesToGive = math.random(1, #playerStatsInfo.getAmmo())
