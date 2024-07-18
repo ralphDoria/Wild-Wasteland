@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
@@ -52,8 +53,9 @@ function GunController.new(gun : Tool)
         viewModelFire = gun:WaitForChild("Anims"):WaitForChild("viewModelFire"),
         reload = gun:WaitForChild("Anims"):WaitForChild("reload"),
         adsIdle = gun:WaitForChild("Anims"):WaitForChild("adsIdle"),
+        sprint = gun:WaitForChild("Anims"):WaitForChild("sprint")
     }
-    local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
+    --local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait() |this may not be needed
     local hrp = character:WaitForChild("HumanoidRootPart")
 
     local aiming = false
@@ -84,6 +86,9 @@ function GunController.new(gun : Tool)
         },
         viewModelController = ViewModelController.new(workspace.CurrentCamera:WaitForChild("viewModel"), gun, animObjects, hrp),
         canActivate = false,
+        canReload = false,
+        canAimDownSight = false,
+        cancelReload = false,
         equipped = false,
         reloading = false,
         aiming = aiming,
@@ -145,6 +150,36 @@ function GunController:initialize()
     table.insert(
         self.connections,
         toolGuiController.connectTotalAmmoUpdateEvent(self.ammoType)
+    )
+    table.insert(
+        self.connections,
+        character:GetAttributeChangedSignal("isSprinting"):Connect(function()
+            local isSprinting = character:GetAttribute("isSprinting")
+            if self.equipped then
+                if isSprinting then
+                    self.canActivate = false
+                    self.canReload = false
+                    self.canAimDownSight = false
+                    self:_aimDownSight(false)
+                    self.cancelReload = true
+                    self.currentCharacterAnimationController.animationTracks.reload:Stop()
+                    self.viewModelController.animationController.animationTracks.reload:Stop()
+                    self.currentCharacterAnimationController.animationTracks.idle:Stop()
+                    self.viewModelController.animationController.animationTracks.idle:Stop()
+                    self.currentCharacterAnimationController.animationTracks.sprint:Play()
+                    self.viewModelController.animationController.animationTracks.sprint:Play()
+                else
+                    self.canActivate = true
+                    self.canReload = true
+                    self.canAimDownSight = true
+                    self.cancelReload = false
+                    self.currentCharacterAnimationController.animationTracks.idle:Play()
+                    self.viewModelController.animationController.animationTracks.idle:Play()
+                    self.currentCharacterAnimationController.animationTracks.sprint:Stop()
+                    self.viewModelController.animationController.animationTracks.sprint:Stop()
+                end
+            end
+        end)
     )
 end
 
@@ -212,6 +247,7 @@ function GunController:equip()
         end, true, Constants.KEYBOARD_DROP_TOOL_KEY_CODE)
         local function handleAction(actionName, inputState, _inputObject)
             if actionName == Constants.ACTION_RELOAD and inputState == Enum.UserInputState.Begin then
+                if self.canReload == false then return end
                 if player:GetAttribute(self.ammoType) <= 0 or self.currentAmmo >= self.MAX_MAG_AMMO then
                     return
                 else
@@ -231,7 +267,7 @@ function GunController:equip()
                     self.viewModelController.animationController.animationTracks.reload:Play()
                     self.currentCharacterAnimationController.animationTracks.reload.Stopped:Wait()
                     connection:Disconnect()
-                    if self.equipped then
+                    if self.equipped and not self.cancelReload then
                         local ammoNeededForFull = self.MAX_MAG_AMMO - self.currentAmmo
                         if player:GetAttribute(self.ammoType) >= ammoNeededForFull then
                             self.currentAmmo += ammoNeededForFull
@@ -252,6 +288,7 @@ function GunController:equip()
                     self.reloading = false
                 end
             elseif actionName == Constants.ACTION_AIM_DOWN_SIGHT then
+                if not self.canAimDownSight then return end
                 if inputState == Enum.UserInputState.End or self.reloading then
                     self:_aimDownSight(false)
                 elseif inputState == Enum.UserInputState.Begin then
@@ -262,9 +299,16 @@ function GunController:equip()
 
         ContextActionService:BindAction(Constants.ACTION_RELOAD, handleAction, true, Constants.KEYBOARD_RELOAD_KEY_CODE)
         ContextActionService:BindAction(Constants.ACTION_AIM_DOWN_SIGHT, handleAction, true, Enum.UserInputType.MouseButton2)
-        self.currentCharacterAnimationController.animationTracks.idle:Play()
-        self.viewModelController.animationController.animationTracks.idle:Play()
-        self.canActivate = true
+        if not character:GetAttribute("isSprinting") then
+            self.canActivate = true
+            self.canAimDownSight = true
+            self.canReload = true
+            self.currentCharacterAnimationController.animationTracks.idle:Play()
+            self.viewModelController.animationController.animationTracks.idle:Play()
+        else
+            self.currentCharacterAnimationController.animationTracks.sprint:Play()
+            self.viewModelController.animationController.animationTracks.sprint:Play()
+        end
     end
 end
 
@@ -397,6 +441,8 @@ function GunController:unequip()
     ContextActionService:UnbindAction(Constants.ACTION_AIM_DOWN_SIGHT)
 	self.currentPlayer:GetMouse().Icon = ""
 	self.canActivate = false
+    self.canAimDownSight = false
+    self.canReload = false
 	for _, animTrack : AnimationTrack in self.currentCharacter.Humanoid.Animator:GetPlayingAnimationTracks() do
 		for _, anim : Animation in self.animObjects do
             if animTrack.Animation == anim then

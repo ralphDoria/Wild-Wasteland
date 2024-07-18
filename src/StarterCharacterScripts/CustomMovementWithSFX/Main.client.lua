@@ -57,23 +57,29 @@ local function handleAction(actionName, inputState, _inputObject)
 		if inputState == Enum.UserInputState.Begin then
 			setCrouchingState(false)
 			rev_changeWalkSpeed:FireServer(humanoid, true, 20)
+			humanoid.Parent:SetAttribute("isSprinting", true)
 		elseif inputState == Enum.UserInputState.End and UserInputService:IsKeyDown(CROUCH_KEY) then
 			setCrouchingState(true)
 			rev_changeWalkSpeed:FireServer(humanoid, true, 3)
+			humanoid.Parent:SetAttribute("isSprinting", false)
 		elseif inputState == Enum.UserInputState.End then
 			setCrouchingState(false)
 			rev_changeWalkSpeed:FireServer(humanoid, false)
+			humanoid.Parent:SetAttribute("isSprinting", false)
 		end
 	elseif actionName == ACTION_CROUCH then
 		if inputState == Enum.UserInputState.Begin then
 			setCrouchingState(true)
 			rev_changeWalkSpeed:FireServer(humanoid, true, 3)
+			humanoid.Parent:SetAttribute("isSprinting", false)
 		elseif inputState == Enum.UserInputState.End and UserInputService:IsKeyDown(SPRINT_KEY) then
 			setCrouchingState(false)
 			rev_changeWalkSpeed:FireServer(humanoid, true, 20)
+			humanoid.Parent:SetAttribute("isSprinting", true)
 		elseif inputState == Enum.UserInputState.End then
 			setCrouchingState(false)
 			rev_changeWalkSpeed:FireServer(humanoid, false)
+			humanoid.Parent:SetAttribute("isSprinting", false)
 		end
 	end
 end
