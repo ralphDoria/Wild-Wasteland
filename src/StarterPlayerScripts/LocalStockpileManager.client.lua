@@ -57,7 +57,7 @@ ContextActionService:BindAction(ACTION_STATS, function(actionName, inputState, _
             openOrCloseStatsMenu()
         end
     end
-end, false, Enum.KeyCode.M)
+end, false, Enum.KeyCode.G)
 
 storageButton.Activated:Connect(function(inputObject, clickCount)
     openOrCloseStatsMenu()

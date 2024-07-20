@@ -1,27 +1,32 @@
 local ServerStorage = game:GetService("ServerStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local ToolModels = ServerStorage:WaitForChild("ToolModels")
-local ToolScripts = ServerScriptService:WaitForChild("RojoManaged_SSS"):WaitForChild("ToolScripts")
+local ToolModels = ServerStorage:FindFirstChild("ToolModels", true)
+local ToolScripts = ServerScriptService:FindFirstChild("ToolScripts", true)
 
 local ToolCatalog = {}
 
-local function addTool(toolName : String, description : String)
-    if ToolModels:FindFirstChild(toolName) or ToolScripts:FindFirstChild(toolName) then
+local function addTool(toolName : String, toolType : String, description : String, price : number)
+    if ToolModels:FindFirstChild(toolName) and ToolScripts:FindFirstChild(toolName) then
         ToolCatalog[toolName] = {
-            Model = ToolModels:WaitForChild(toolName),
-            Scripts = ToolScripts:WaitForChild(toolName):WaitForChild("Scripts"),
-            Description = ""
+            Model = ToolModels[toolName],
+            Scripts = ToolScripts[toolName].Scripts,
+            Type = toolType,
+            Description = description,
+            Price = price
         }   
         --print(toolName .. " was successfully added to the ToolCatalog")
     else
-        warn(toolName .. " could not be added to ToolCatalog: missing a model or a script.")
+        warn(toolName .. " could not be added to ToolCatalog: missing a model or a script / tool name is invalid")
     end
 end
 
-addTool("Raider Axe", "An axe from the Joyful Viking from the land of rectangular prisms in the sky.")
-addTool("Healing Injection", "An autoinjector that fills the bloodstream with healing medication.")
-addTool("Beretta", "A semiautomatic, magazine fed, recoil operated, double action pistol, chambered for the 9mm cartridge.")
---addTool("Beretta", "Simple, but can get the job done.")
+--Initialize Tool Catalog
+print("initializing ToolCatalog")
+for _, child in ToolModels:GetChildren() do
+    if child:IsA("Tool") then
+        addTool(child.Name, child:GetAttribute("Type"), child:GetAttribute("Description"), child:GetAttribute("Price"))
+    end
+end
 
 return ToolCatalog
