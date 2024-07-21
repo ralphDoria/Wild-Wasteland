@@ -2,10 +2,25 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local rev_initializeShopGui : RemoteEvent = ReplicatedStorage:FindFirstChild("InitializeShopGui", true)
 local rfn_getToolModel : RemoteFunction = ReplicatedStorage:FindFirstChild("GetToolModel", true)
 
+local player = game:GetService("Players").LocalPlayer
+
 local RunService = game:GetService("RunService")
 local ViewportModel = require(ReplicatedStorage:FindFirstChild("ViewportModel", true)) --credit to EgoMoose
 
+local playSound = require(ReplicatedStorage:FindFirstChild("PlaySoundUtil", true))
+
+local shopGuiSFX : SoundGroup = game:GetService("SoundService").ShopGuiSFX
+local menuOpen : Sound = shopGuiSFX["Synth Sparkle Tone High Pitch Tone Burst 4 (SFX)"]
+local menuClose : Sound = shopGuiSFX["Synth Sparkle Tone High Pitch Tone Burst Din (SFX)"]
+local itemSelect : Sound = shopGuiSFX["Button Click"]
+local tabSelect : Sound = shopGuiSFX["GuiClick"]
+local hover : Sound = shopGuiSFX["UI Hover"]
+local purchaseError : Sound = shopGuiSFX.Error
+local purchaseSuccess : Sound = shopGuiSFX["purchase/cashRegister"]
+
 local shopUI : ScreenGui = game:GetService("Players").LocalPlayer.PlayerGui:WaitForChild("ShopUI")
+local purchaseButton : TextButton = shopUI:FindFirstChild("Purchase", true)
+local priceLabel : TextLabel = shopUI:FindFirstChild("Price", true)
 
 rev_initializeShopGui.OnClientEvent:Connect(function(textButton : TextButton)
 
@@ -14,10 +29,8 @@ rev_initializeShopGui.OnClientEvent:Connect(function(textButton : TextButton)
 
         local uiStroke : UIStroke = textButton:FindFirstChildOfClass("UIStroke")
         --options frame
-        local purchaseButton : TextButton = shopUI:FindFirstChild("Purchase", true)
-        local priceLabel : TextLabel = shopUI:FindFirstChild("Price", true)
 
-        textButton.Activated:Connect(function()
+        textButton.MouseButton1Down:Connect(function()
             if uiStroke.Transparency == 0 then return end --this means the item is already selected
 
             --visuals
@@ -67,11 +80,11 @@ rev_initializeShopGui.OnClientEvent:Connect(function(textButton : TextButton)
         local itemCatalog : ScrollingFrame = shopUI:FindFirstChild("Catalog", true)
         local uiGradient : UIGradient = textButton.Parent:FindFirstChildWhichIsA("UIGradient", true)
 
-        textButton.Activated:Connect(function(inputObject : InputObject)
+        textButton.MouseButton1Down:Connect(function(inputObject : InputObject)
             if textButton.BackgroundTransparency == 0.5 then return end --this means that the tab is already selected
     
             --visuals
-            uiGradient.Parent.BackgroundTransparency = 1
+            uiGradient.Parent.BackgroundTransparency = .9
             uiGradient.Parent = textButton
             textButton.BackgroundTransparency = 0.5
     
@@ -98,18 +111,51 @@ rev_initializeShopGui.OnClientEvent:Connect(function(textButton : TextButton)
     end
 end)
 
+--connecting gui sound effects
+for _, v in shopUI:GetDescendants() do
+    if v:IsA("TextButton") then
+        v.MouseEnter:Connect(function()
+            playSound(hover, nil, 0)
+        end)
+
+        if v.Parent:IsA("ScrollingFrame") then
+            v.MouseButton1Down:Connect(function()
+                playSound(itemSelect, nil, 0)
+            end)
+        elseif v.Name == "Purchase" then
+            v.MouseButton1Down:Connect(function()
+
+                local ableToBuy = false --for testing purposes
+
+                if ableToBuy then
+                    playSound(purchaseSuccess, nil, 0)
+                else
+                    playSound(purchaseError, nil, 0)
+                end
+            end)
+        else
+            v.MouseButton1Down:Connect(function()
+                playSound(tabSelect, nil, 0)
+            end)
+        end
+    end
+end
+
+shopUI.Enabled = false
 for _, v in game:GetService("CollectionService"):GetTagged("Shop") do
     assert(v:IsA("ProximityPrompt"), v.Name .. " has the Shop tag but isn't a proximity prompt")
 
     v.Triggered:Connect(function()
         if not shopUI.Enabled then
             shopUI.Enabled = true
+            menuOpen:Play()
             v.Enabled = false
 
-            shopUI:FindFirstChild("Exit", true).Activated:Once(function()
+            shopUI:FindFirstChild("Exit", true).MouseButton1Down:Once(function()
                 print("exitting")
                 if shopUI.Enabled then
                     shopUI.Enabled = false
+                    menuClose:Play()
                     v.Enabled = true
                 end
             end)

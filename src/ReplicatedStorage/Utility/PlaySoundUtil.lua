@@ -27,7 +27,7 @@ return function(soundObject : Sound, soundParent, delayCorrection : number)
             soundClone.Parent = soundParent
             soundClone:Play()
         else
-            warn("soundParent is nil")
+            warn("soundParent is not of a valid type")
         end
     else
         SoundService:PlayLocalSound(soundClone)
