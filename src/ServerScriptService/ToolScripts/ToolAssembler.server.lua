@@ -1,5 +1,6 @@
 local ToolCatalog = require(script.Parent:WaitForChild("ToolCatalog"))
 local proxProm : ProximityPrompt = game:GetService("ServerStorage").ToolModels:FindFirstChildOfClass("ProximityPrompt")
+local rev_giveItem : RemoteEvent = game:GetService("ReplicatedStorage"):FindFirstChild("GiveItem", true)
 
 local function assembleTool(toolName : String, parent)
     --Exception Handler
@@ -39,14 +40,28 @@ local function assembleTool(toolName : String, parent)
 end
 
 local Players = game:GetService("Players")
+--[[
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function(character)
-        assembleTool("Beretta", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
-        assembleTool("Raider Axe", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
-        assembleTool("Healing Injection", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
-        assembleTool("Healing Injection", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
-        assembleTool("Healing Injection", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
-        --assembleTool("Beretta", Players:GetPlayerFromCharacter(character):WaitForChild("Backpack"))
+        assembleTool("Beretta", player.Backpack)
+        assembleTool("Raider Axe", player.Backpack)
+        assembleTool("Healing Injection", player.Backpack)
+        assembleTool("Healing Injection", player.Backpack)
+        assembleTool("Healing Injection", player.Backpack)
+        --assembleTool("Beretta", player.Backpack)
     end)
 end)
+]]
 
+rev_giveItem.OnServerEvent:Connect(function(player, itemName)
+    if ToolCatalog[itemName] == nil then warn(itemName .. " is not a valid item name") return end
+    local currencyAmount = player:GetAttribute("Caps")
+    local price = ToolCatalog[itemName].Price
+    if currencyAmount >= price then
+        player:SetAttribute("Caps", currencyAmount - price)
+        assembleTool(itemName, player.Backpack)
+    else
+        --this either means the client that called this is hacking or I need to change the name of this remote function name to purchaseItem
+        print("How did you call this remote, huhhhhhh??????")
+    end
+end)

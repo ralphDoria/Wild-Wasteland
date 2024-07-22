@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local rev_initializeShopGui : RemoteEvent = ReplicatedStorage:FindFirstChild("InitializeShopGui", true)
 local rfn_getToolModel : RemoteFunction = ReplicatedStorage:FindFirstChild("GetToolModel", true)
+local rev_giveItem : RemoteEvent = ReplicatedStorage:FindFirstChild("GiveItem", true)
 
 local player = game:GetService("Players").LocalPlayer
 
@@ -24,7 +25,7 @@ local shopUI : ScreenGui = game:GetService("Players").LocalPlayer.PlayerGui:Wait
 local itemFrame : ScrollingFrame = shopUI:FindFirstChild("Catalog", true)
 local purchaseButton : TextButton = shopUI:FindFirstChild("Purchase", true)
 local priceLabel : TextLabel = shopUI:FindFirstChild("Price", true)
-local viewportFrame : ViewportFrame = shopUI:FindFirstChildOfClass("ViewportFrame")
+local viewportFrame : ViewportFrame = shopUI:FindFirstChildWhichIsA("ViewportFrame", true)
 
 local currentlySelectedItem : TextButton
 
@@ -94,6 +95,7 @@ rev_initializeShopGui.OnClientEvent:Connect(function(param1 : TextButton | strin
         if param1.Parent:IsA("ScrollingFrame") then
             --for TextButtons in the Catalog frame; items to be selected & placed in the viewport frame
             param1.MouseButton1Down:Connect(function()
+                if param1:FindFirstChildOfClass("UIStroke").Transparency == 0 then return end
                 currentlySelectedItem = param1
                 singleSelectEffect(param1)
                 local toolModel : Model = rfn_getToolModel:InvokeServer(param1.Name)
@@ -155,6 +157,7 @@ for _, v in shopUI:GetDescendants() do
 
                 if ableToBuy then
                     playSound(purchaseSuccess, nil, 0)
+                    rev_giveItem:FireServer(currentlySelectedItem.Name)
                 else
                     playSound(purchaseError, nil, 0)
                     if priceLabel.TextColor3 == Color3.new(1, 0, 0) == false then
@@ -173,6 +176,7 @@ for _, v in shopUI:GetDescendants() do
 end
 
 shopUI.Enabled = false
+local exit : TextButton = shopUI:FindFirstChild("Exit", true)
 for _, v in game:GetService("CollectionService"):GetTagged("Shop") do
     assert(v:IsA("ProximityPrompt"), v.Name .. " has the Shop tag but isn't a proximity prompt")
 
@@ -181,13 +185,15 @@ for _, v in game:GetService("CollectionService"):GetTagged("Shop") do
             shopUI.Enabled = true
             menuOpen:Play()
             v.Enabled = false
+            exit.Modal = true
 
-            shopUI:FindFirstChild("Exit", true).MouseButton1Down:Once(function()
+            exit.MouseButton1Down:Once(function()
                 print("exitting")
                 if shopUI.Enabled then
                     shopUI.Enabled = false
                     menuClose:Play()
                     v.Enabled = true
+                    exit.Modal = false
                 end
             end)
 
