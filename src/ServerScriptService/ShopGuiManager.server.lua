@@ -29,12 +29,14 @@ Players.PlayerAdded:Connect(function(player : Player)
         itemButton:SetAttribute("Price", info.Price)
         rev_initializeShopGui:FireClient(player, itemButton)
     end
-    template.Visible = false
+    template:Destroy()
 
     --for sorting items by type
     for _, tab in types do
         rev_initializeShopGui:FireClient(player, tab)
     end
+
+    rev_initializeShopGui:FireClient(player, "Completed")
 end)
 
 --for the viewport frame
