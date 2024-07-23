@@ -98,6 +98,7 @@ function GunController.new(gun : Tool)
         currentAmmo = if gun:GetAttribute("ammo_current") == 999 then 0 else gun:GetAttribute("ammo_current"),
         MAX_MAG_AMMO = 15,
         ammoType = gun:GetAttribute("AmmoType"),
+        blacklistedParts = {},
         connections = {}
     }
     self.viewModelController.adsSpeed = self.adsSpeed
@@ -336,23 +337,22 @@ end
 
 function GunController:castRay()
     local raycastParams = RaycastParams.new()
-    local blacklistedParts = {}
     for _, v in self.currentCharacter:GetDescendants() do
         if v:IsA("BasePart") then
-            table.insert(blacklistedParts, v)
+            table.insert(self.blacklistedParts, v)
         end
     end
     for _, v in self.viewModelController.viewModel:GetDescendants() do
         if v:IsA("BasePart") then
-            table.insert(blacklistedParts, v)
+            table.insert(self.blacklistedParts, v)
         end
     end
     for _, v in workspace:FindFirstChild("Zones", true):GetDescendants() do
         if v:IsA("BasePart") then
-            table.insert(blacklistedParts, v)
+            table.insert(self.blacklistedParts, v)
         end
     end
-    raycastParams.FilterDescendantsInstances = blacklistedParts
+    raycastParams.FilterDescendantsInstances = self.blacklistedParts
     raycastParams.FilterType = Enum.RaycastFilterType.Exclude
     raycastParams.IgnoreWater = true
 
@@ -365,11 +365,18 @@ function GunController:castRay()
 
     local raycastResult = workspace:Raycast(originPosition, rayDirection, raycastParams)
 
-    --adding effects to the raycast, or if that doesn't exist, the startPosition and offset from such in the case that nothing is hit
-    local hitPosition = if raycastResult then raycastResult.Position else CFrame.new(originPosition + rayDirection).Position
-    createBulletEffects(vmMuzzle, hitPosition, raycastResult)
+    if raycastResult.Instance.Parent:IsA("Accessory") then
+        table.insert(self.blacklistedParts, raycastResult.Instance)
+        raycastParams.FilterDescendantsInstances = self.blacklistedParts
+        --print("recursion 2")
+        return self:castRay()
+    else
+        --adding effects to the raycast, or if that doesn't exist, the startPosition and offset from such in the case that nothing is hit
+        local hitPosition = if raycastResult then raycastResult.Position else CFrame.new(originPosition + rayDirection).Position
+        createBulletEffects(vmMuzzle, hitPosition, raycastResult)
 
-    return raycastResult, hitPosition
+        return raycastResult, hitPosition
+    end
 end
 
 function GunController:activate()
