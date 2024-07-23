@@ -81,6 +81,6 @@ end)
 
 character:WaitForChild("Humanoid").Died:Connect(function()
     RunService:UnbindFromRenderStep("ViewModel")
-    Debris:AddItem(viewModel, Players.RespawnTime)
-    script:Destroy() --this implicitly happens since this LocalScript is located in the Character, but this line of code is here for readability
+    repeat task.wait() until character:FindFirstChildOfClass("Tool") == nil
+    viewModel:Destroy()
 end)

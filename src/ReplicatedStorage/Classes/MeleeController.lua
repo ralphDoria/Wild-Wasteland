@@ -1,4 +1,6 @@
 local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ContextActionService = game:GetService("ContextActionService")
 
@@ -94,12 +96,15 @@ function MeleeController:initialize()
             end
         end)
     )
-    self.hitboxController.OnHit:Connect(function(hit, humanoid, raycastResult : RaycastResult)
-        if humanoid.Parent.Name ~= self.currentCharacter.Name and humanoid.Parent.Name ~= "viewModel" then
-            rev_hit:FireServer(self.tool, humanoid, self.soundObjects.hit)
-            indicateDamageToDealer(humanoid, raycastResult, self.damage)
-        end
-    end)
+    table.insert(
+        self.connections,
+        self.hitboxController.OnHit:Connect(function(hit, humanoid, raycastResult : RaycastResult)
+            if humanoid.Parent.Name ~= self.currentCharacter.Name and humanoid.Parent.Name ~= "viewModel" then
+                rev_hit:FireServer(self.tool, humanoid, self.soundObjects.hit)
+                indicateDamageToDealer(humanoid, raycastResult, self.damage)
+            end
+        end)
+    )
 end
 
 function MeleeController:equip()
@@ -112,8 +117,15 @@ function MeleeController:equip()
 
     rev_playSound:FireServer(self.soundObjects.equip, 0, self.SFX_part)
     self.equipped = true
-    self.currentPlayer = Players.LocalPlayer
-    self.currentCharacter = self.currentPlayer.Character
+    self.currentPlayer = player
+    self.currentCharacter = player.Character
+    table.insert(
+        self.connections,
+        self.currentCharacter.Humanoid.Died:Connect(function()
+            print("Detected player death")
+            self:unequip()
+        end)
+    )
     if self.currentCharacter:GetAttribute(string.gsub(self.tool.Name, " ", "") .. "AnimsLoaded") == nil then
 		self.currentCharacter:SetAttribute(string.gsub(self.tool.Name, " ", "") .. "AnimsLoaded", true)
 		self.currentCharacterAnimationController = AnimationController.new(self.currentCharacter:FindFirstChild("Animator", true), self.animObjects)

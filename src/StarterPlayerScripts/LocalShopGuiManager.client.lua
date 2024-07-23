@@ -188,7 +188,6 @@ for _, v in game:GetService("CollectionService"):GetTagged("Shop") do
             exit.Modal = true
 
             exit.MouseButton1Down:Once(function()
-                print("exitting")
                 if shopUI.Enabled then
                     shopUI.Enabled = false
                     menuClose:Play()

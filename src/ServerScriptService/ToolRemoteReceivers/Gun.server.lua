@@ -35,6 +35,7 @@ rev_shoot.OnServerEvent:Connect(function(playerWithGun : Player, humanoidToDamag
             humanoidToDamage:TakeDamage(damageToDeal)   
         end
     end
+    print(humanoidToDamage.Health)
 end)
 
 rev_updateAmmoAttribute.OnServerEvent:Connect(function(player : Player, attributeParent, attributeName : string, newValue : number)

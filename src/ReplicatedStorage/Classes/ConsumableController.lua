@@ -102,6 +102,12 @@ function ConsumableController:equip()
     self.equipped = true
     self.currentPlayer = Players.LocalPlayer
     self.currentCharacter = self.currentPlayer.Character
+    table.insert(
+        self.connections,
+        self.currentCharacter.Humanoid.Died:Connect(function()
+            self:unequip()
+        end)
+    )
     if self.currentCharacter:GetAttribute(string.gsub(self.tool.Name, " ", "") .. "AnimsLoaded") == nil then
 		self.currentCharacter:SetAttribute(string.gsub(self.tool.Name, " ", "") .. "AnimsLoaded", true)
 		self.currentCharacterAnimationController = AnimationController.new(self.currentCharacter:FindFirstChild("Animator", true), self.animObjects)
