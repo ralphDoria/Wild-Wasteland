@@ -216,12 +216,17 @@ function GunController:equip()
     self.equipped = true
     self.currentPlayer = Players.LocalPlayer
     self.currentCharacter = self.currentPlayer.Character
-    table.insert(
-        self.connections,
-        self.currentCharacter.Humanoid.Died:Connect(function()
-            self:unequip()
-        end)
-    )
+    local diedConnection
+    diedConnection = self.currentCharacter.Humanoid.Died:Connect(function()
+        self:unequip()
+        rev_droppedTool:FireServer(self.tool)
+    end)
+    self.tool:GetPropertyChangedSignal("Parent"):Once(function()
+        local toolWasUnequipped = self.tool.Parent ~= self.currentCharacter
+        if toolWasUnequipped then
+            diedConnection:Disconnect()
+        end
+    end)
     if self.currentCharacter:GetAttribute(string.gsub(self.tool.Name, " ", "") .. "AnimsLoaded") == nil then
 		self.currentCharacter:SetAttribute(string.gsub(self.tool.Name, " ", "") .. "AnimsLoaded", true)
 		self.currentCharacterAnimationController = AnimationController.new(self.currentCharacter:FindFirstChild("Animator", true), self.animObjects)

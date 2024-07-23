@@ -8,8 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local detectDroppedToolHitFloor = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("DetectDroppedToolHitFloor"))
 
 humanoid.Died:Connect(function()
-    humanoid:UnequipTools()
-
+    --Drops all tools in a player's backpack. Dropping equipped tools are handled in that equipped tool's script
     for _, tool in backpack:GetChildren() do
         tool.Parent = workspace
         detectDroppedToolHitFloor(tool)
