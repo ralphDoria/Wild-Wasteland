@@ -1,6 +1,5 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
@@ -56,6 +55,7 @@ function GunController.new(gun : Tool)
         sprint = gun:WaitForChild("Anims"):WaitForChild("sprint")
     }
     --local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait() |this may not be needed
+    local character = player.Character or player.CharacterAdded:Wait()
     local hrp = character:WaitForChild("HumanoidRootPart")
 
     local aiming = false
@@ -99,6 +99,7 @@ function GunController.new(gun : Tool)
         MAX_MAG_AMMO = 15,
         ammoType = gun:GetAttribute("AmmoType"),
         blacklistedParts = {},
+        sprintConnection = {},
         connections = {}
     }
     self.viewModelController.adsSpeed = self.adsSpeed
@@ -145,36 +146,6 @@ function GunController:initialize()
         self.connections,
         toolGuiController.connectTotalAmmoUpdateEvent(self.ammoType)
     )
-    table.insert(
-        self.connections,
-        character:GetAttributeChangedSignal("isSprinting"):Connect(function()
-            local isSprinting = character:GetAttribute("isSprinting")
-            if self.equipped then
-                if isSprinting then
-                    self.canActivate = false
-                    self.canReload = false
-                    self.canAimDownSight = false
-                    self:_aimDownSight(false)
-                    self.cancelReload = true
-                    self.currentCharacterAnimationController.animationTracks.reload:Stop()
-                    self.viewModelController.animationController.animationTracks.reload:Stop()
-                    self.currentCharacterAnimationController.animationTracks.idle:Stop()
-                    self.viewModelController.animationController.animationTracks.idle:Stop()
-                    self.currentCharacterAnimationController.animationTracks.sprint:Play()
-                    self.viewModelController.animationController.animationTracks.sprint:Play()
-                else
-                    self.canActivate = true
-                    self.canReload = true
-                    self.canAimDownSight = true
-                    self.cancelReload = false
-                    self.currentCharacterAnimationController.animationTracks.idle:Play()
-                    self.viewModelController.animationController.animationTracks.idle:Play()
-                    self.currentCharacterAnimationController.animationTracks.sprint:Stop()
-                    self.viewModelController.animationController.animationTracks.sprint:Stop()
-                end
-            end
-        end)
-    )
 end
 
 function GunController:_aimDownSight(shouldAim : boolean)
@@ -220,6 +191,33 @@ function GunController:equip()
     diedConnection = self.currentCharacter.Humanoid.Died:Connect(function()
         self:unequip()
         rev_droppedTool:FireServer(self.tool)
+    end)
+    self.sprintConnection = self.currentCharacter:GetAttributeChangedSignal("isSprinting"):Connect(function()
+        local isSprinting = self.currentCharacter:GetAttribute("isSprinting")
+        if self.equipped then
+            if isSprinting then
+                self.canActivate = false
+                self.canReload = false
+                self.canAimDownSight = false
+                self:_aimDownSight(false)
+                self.cancelReload = true
+                self.currentCharacterAnimationController.animationTracks.reload:Stop()
+                self.viewModelController.animationController.animationTracks.reload:Stop()
+                self.currentCharacterAnimationController.animationTracks.idle:Stop()
+                self.viewModelController.animationController.animationTracks.idle:Stop()
+                self.currentCharacterAnimationController.animationTracks.sprint:Play()
+                self.viewModelController.animationController.animationTracks.sprint:Play()
+            else
+                self.canActivate = true
+                self.canReload = true
+                self.canAimDownSight = true
+                self.cancelReload = false
+                self.currentCharacterAnimationController.animationTracks.idle:Play()
+                self.viewModelController.animationController.animationTracks.idle:Play()
+                self.currentCharacterAnimationController.animationTracks.sprint:Stop()
+                self.viewModelController.animationController.animationTracks.sprint:Stop()
+            end
+        end
     end)
     self.tool:GetPropertyChangedSignal("Parent"):Once(function()
         local toolWasUnequipped = self.tool.Parent ~= self.currentCharacter
@@ -304,7 +302,7 @@ function GunController:equip()
 
         ContextActionService:BindAction(Constants.ACTION_RELOAD, handleAction, true, Constants.KEYBOARD_RELOAD_KEY_CODE)
         ContextActionService:BindAction(Constants.ACTION_AIM_DOWN_SIGHT, handleAction, true, Enum.UserInputType.MouseButton2)
-        if not character:GetAttribute("isSprinting") then
+        if not self.currentCharacter:GetAttribute("isSprinting") then
             self.canActivate = true
             self.canAimDownSight = true
             self.canReload = true
@@ -438,6 +436,7 @@ end
 
 function GunController:unequip()
     --print("unequipping")
+    self.sprintConnection:Disconnect()
     rev_updateAmmoAttribute:FireServer(self.tool, "ammo_current", self.currentAmmo)
     toolGuiController.setGuiEnabled(false)
     player.CameraMode = Enum.CameraMode.Classic

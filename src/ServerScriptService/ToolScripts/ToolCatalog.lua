@@ -22,7 +22,7 @@ local function addTool(toolName : String, toolType : String, description : Strin
 end
 
 --Initialize Tool Catalog
-print("initializing ToolCatalog")
+--print("initializing ToolCatalog")
 for _, child in ToolModels:GetChildren() do
     if child:IsA("Tool") then
         addTool(child.Name, child:GetAttribute("Type"), child:GetAttribute("Description"), child:GetAttribute("Price"))

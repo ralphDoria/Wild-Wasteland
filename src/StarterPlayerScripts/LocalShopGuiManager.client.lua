@@ -86,7 +86,6 @@ end
 rev_initializeShopGui.OnClientEvent:Connect(function(param1 : TextButton | string)
     if param1 == "Completed" then
         local firstItemButton : TextButton = itemFrame:FindFirstChildOfClass("TextButton")
-        print(firstItemButton.Name)
         currentlySelectedItem = firstItemButton
         singleSelectEffect(firstItemButton)
         local toolModel : Model = rfn_getToolModel:InvokeServer(firstItemButton.Name)
