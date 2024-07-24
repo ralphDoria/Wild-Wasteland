@@ -367,7 +367,7 @@ function GunController:castRay()
 
     local raycastResult = workspace:Raycast(originPosition, rayDirection, raycastParams)
 
-    if raycastResult.Instance.Parent:IsA("Accessory") then
+    if raycastResult ~= nil and raycastResult.Instance.Parent:IsA("Accessory") then
         table.insert(self.blacklistedParts, raycastResult.Instance)
         raycastParams.FilterDescendantsInstances = self.blacklistedParts
         --print("recursion 2")
@@ -375,7 +375,7 @@ function GunController:castRay()
     else
         --adding effects to the raycast, or if that doesn't exist, the startPosition and offset from such in the case that nothing is hit
         local hitPosition = if raycastResult then raycastResult.Position else CFrame.new(originPosition + rayDirection).Position
-        createBulletEffects(vmMuzzle, hitPosition, raycastResult)
+        createBulletEffects(vmMuzzle, hitPosition, if raycastResult then raycastResult.Material else nil, if raycastResult then raycastResult.Normal else nil)
 
         return raycastResult, hitPosition
     end
@@ -421,7 +421,7 @@ function GunController:activate()
                 local randomIndex = math.random(1, #impactSoundsArray)
                 local randomSound = impactSoundsArray[randomIndex]
                 rev_playSound:FireServer(randomSound, 0, hitPosition)
-                rev_shoot:FireServer(humanoidToDamage, self.damage, isHeadshot, self.tool:FindFirstChild("Muzzle"), hitPosition, raycastResult)
+                rev_shoot:FireServer(humanoidToDamage, self.damage, isHeadshot, self.tool:FindFirstChild("Muzzle"), hitPosition, if raycastResult then raycastResult.Material else nil, if raycastResult then raycastResult.Normal else nil)
             end
     
             self.currentAmmo -= 1

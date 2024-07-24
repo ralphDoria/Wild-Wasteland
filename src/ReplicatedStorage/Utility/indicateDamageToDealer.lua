@@ -2,17 +2,10 @@ local TweenService = game:GetService("TweenService")
 local Debris = game:GetService("Debris") 
 
 local sharedVFX = game:GetService("ReplicatedStorage").Tools.Shared.VFX
-local blood = sharedVFX.Blood
 local damageIndicator = sharedVFX.DamageIndicator
 
 return function(humanoid : Humanoid, raycastResult : RaycastResult, damageDealt : number, isCriticalHit : boolean)
     local character = humanoid.Parent
-
-    --blood VFX
-    local x = blood:Clone()
-    x.CFrame = CFrame.lookAlong(raycastResult.Position, raycastResult.Normal)
-    x.Parent = workspace
-    Debris:AddItem(x, 0.5)
 
     --damage indicator for dealer VFX
     local d = damageIndicator:Clone()

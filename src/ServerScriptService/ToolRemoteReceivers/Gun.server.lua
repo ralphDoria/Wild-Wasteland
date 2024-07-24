@@ -21,11 +21,11 @@ rev_playSound.OnServerEvent:Connect(function(player: Player, soundObject : Sound
     playSound(soundObject, soundParent, delayCorrection)
 end)
 
-rev_shoot.OnServerEvent:Connect(function(playerWithGun : Player, humanoidToDamage : Humanoid, damageToDeal : number, isHeadshot : boolean, muzzlePart : BasePart, bulletEndPosition : Vector3, raycastResult : RaycastResult)
+rev_shoot.OnServerEvent:Connect(function(playerWithGun : Player, humanoidToDamage : Humanoid, damageToDeal : number, isHeadshot : boolean, muzzlePart : BasePart, bulletEndPosition : Vector3, castResultMaterial : Enum.Material, castResultNormal : Vector3)
     --draw raycast for visuals, but hit detection will be done on the client
     for _, player in game:GetService("Players"):GetChildren() do
         if player ~= playerWithGun then
-            rev_replicateBulletEffects:FireClient(player, muzzlePart, bulletEndPosition, raycastResult)
+            rev_replicateBulletEffects:FireClient(player, muzzlePart, bulletEndPosition, castResultMaterial, castResultNormal)
         end
     end
     if humanoidToDamage then

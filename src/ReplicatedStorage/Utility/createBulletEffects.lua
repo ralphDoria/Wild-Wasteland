@@ -1,12 +1,13 @@
+--For guns
+
 local TweenService = game:GetService("TweenService")
-local Debris = game:GetService("Debris")
 
-local effects : Folder = game:GetService("ReplicatedStorage").Tools.Gun.Effects
-local bulletTracer : Beam = effects.tracer
-local sparkParticles : ParticleEmitter = effects.sparks
-local smokeParticles : ParticleEmitter = effects.smoke
+local createImpactEffects = game:GetService("ReplicatedStorage"):FindFirstChild("createImpactEffects", true)
 
-return function(muzzlePart : BasePart, bulletEndPosition : Vector3, raycastResult : RaycastResult)
+local gunEffects : Folder = game:GetService("ReplicatedStorage").Tools.Gun.Effects
+local bulletTracer : Beam = gunEffects.tracer
+
+return function(muzzlePart : BasePart, bulletEndPosition : Vector3, castResultMaterial : Enum.Material, castResultNormal : Vector3)
     local vfx_container = Instance.new("Part") --cling the muzzlepart that is welded to the gun won't clone the weld, which is what I want
     vfx_container.Transparency = 1
     vfx_container.Size = Vector3.new(0.1, 0.1, 0.1)
@@ -36,26 +37,15 @@ return function(muzzlePart : BasePart, bulletEndPosition : Vector3, raycastResul
         end
     end
     tracer.Parent = vfx_container
-    local impactParticles : ParticleEmitter
-    if raycastResult then
-        if raycastResult.Material == Enum.Material.Metal or raycastResult.Material == Enum.Material.CorrodedMetal or raycastResult.Material == Enum.Material.DiamondPlate then
-            impactParticles = sparkParticles:Clone()
-        else
-            impactParticles = smokeParticles:Clone()
-        end
-        endBeam.CFrame = CFrame.lookAlong(endBeam.CFrame.Position, raycastResult.Normal)
-        impactParticles.Parent = endBeam
-    end
+    
+    local hitHumanoid = if raycastResult.Instance.Parent:FindFirstChild("Humanoid") then true else false
+    createImpactEffects(bulletEndPosition, hitHumanoid, castResultMaterial, castResultNormal)
 
     local bulletTravelTime = 0.1
     TweenService:Create(startBeam, TweenInfo.new(bulletTravelTime, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {CFrame = endBeam.CFrame}):Play()
     task.spawn(function()
         task.wait(bulletTravelTime)
         tracer.Enabled = false
-        task.wait(0.2)
-        if impactParticles then
-            impactParticles.Enabled = false
-        end
-        Debris:AddItem(vfx_container, 1)
+        vfx_container:Destroy()
     end)
 end
