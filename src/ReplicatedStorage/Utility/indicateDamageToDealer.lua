@@ -13,18 +13,14 @@ return function(humanoid : Humanoid, raycastResult : RaycastResult, damageDealt 
     if isCriticalHit then
         d.BillboardGui.TextLabel.TextColor3 = Color3.new(1, 0, 0)
     end
-    d.Parent = character
-    d.Anchored = false
-    local weld = Instance.new("Weld")
-    weld.Part0 = character.Head
-    weld.Part1 = d
-    weld.Name = d.Name
-    weld.Parent = character
+    d.Anchored = true
+    d.Position = raycastResult.Position
+    d.Parent = workspace
     local tweenTime = 1
     local slideUp = TweenService:Create(
-        weld, 
+        d, 
         TweenInfo.new(tweenTime, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), 
-        {C0 = CFrame.new(0, 2, 0)}
+        {Position = d.Position + Vector3.new(0, 2, 0)}
     )
     local fadeOut = TweenService:Create(
         d.BillboardGui.TextLabel, 
