@@ -9,6 +9,7 @@ local rev_playSound : RemoteEvent = remotes:WaitForChild("PlaySound")
 local rev_droppedTool : RemoteEvent = remotes:WaitForChild("DroppedTool")
 local rev_hit : RemoteEvent = remotes:WaitForChild("Hit")
 local rev_activate : RemoteEvent = remotes:WaitForChild("Activate")
+local rev_replicateMeleeImpactEffects : RemoteEvent = remotes.ReplicateMeleeImpactEffects
 
 local function modifyBloodDecalTransparency(tool : Tool, newTransparency : number)
 	local toolModel = tool.ToolModel
@@ -22,7 +23,7 @@ local function modifyBloodDecalTransparency(tool : Tool, newTransparency : numbe
 	end
 end
 
-rev_playSound.OnServerEvent:Connect(function(player: Player, soundObject : Sound, delayCorrection : number, soundParent : BasePart)
+rev_playSound.OnServerEvent:Connect(function(player: Player, soundObject : Sound, soundParent : BasePart, delayCorrection : number)
     playSound(soundObject, soundParent, delayCorrection)
 end)
 
@@ -59,10 +60,8 @@ local function applyKnockback(part : BasePart, forceDirection : Vector3, forceMa
 	end)
 end
 
-rev_hit.OnServerEvent:Connect(function(player : Player, tool : Tool, humanoid : Humanoid, hitSound : Sound)
+rev_hit.OnServerEvent:Connect(function(player : Player, tool : Tool, humanoid : Humanoid, hitPosition : Vector3, castResultInfo : {[any] : any})
 	if humanoid and humanoid.Health > 0 then
-		playSound(hitSound, hitSound.Parent, 0.2)
-
 		--[[ I'm going to comment out the knockback code for know until I find a way to make the knockback feature not so laggy (network ownership maybe is the answer))
 		--knockback
 		local kbForce = 1_000
@@ -77,7 +76,12 @@ rev_hit.OnServerEvent:Connect(function(player : Player, tool : Tool, humanoid : 
 			enemyHrp:ApplyImpulse(playerHrp.CFrame.LookVector * (kbForce * 0.5))
 		end
 		]]
-
+		for _, playerX in game:GetService("Players"):GetChildren() do
+			if playerX ~= player then
+				rev_replicateMeleeImpactEffects:FireClient(playerX, hitPosition, castResultInfo)
+			end
+		end
+		
 		humanoid:TakeDamage(tool:GetAttribute("Damage"))
 		--[[modifyBloodDecalTransparency(tool, 0)
 		The line above works but there are inconsistencies with the view model that I don't feel like doing right now, so I'm 

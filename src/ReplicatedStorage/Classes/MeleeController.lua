@@ -14,6 +14,7 @@ local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_
 local ViewModelController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("ViewModelController"))
 
 local indicateDamageToDealer = require(ReplicatedStorage.RojoManaged_RS.Utility.indicateDamageToDealer)
+local createImpactEffects = require(ReplicatedStorage:FindFirstChild("createImpactEffects", true))
 
 local remotes : Folder = ReplicatedStorage:WaitForChild("Tools"):WaitForChild("Melee"):WaitForChild("Remotes")
 local rev_playSound : RemoteEvent = remotes:WaitForChild("PlaySound")
@@ -37,7 +38,7 @@ function MeleeController.new(melee : Tool)
     local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
     local hrp = character:WaitForChild("HumanoidRootPart")
     local newHitbox = RaycastHitbox.new(melee:WaitForChild("Hitbox"))
-    newHitbox.DetectionMode = RaycastHitbox.DetectionMode.Default
+    newHitbox.DetectionMode = RaycastHitbox.DetectionMode.PartMode
 
     local self = {
         tool = melee,
@@ -50,7 +51,7 @@ function MeleeController.new(melee : Tool)
         soundObjects = {
             equip = melee:WaitForChild("SFX_part"):WaitForChild("Shing Ringy 2 (SFX)"),
 	        activate = melee:WaitForChild("SFX_part"):WaitForChild("Sword Swing Metal Heavy"),
-            hit = melee:WaitForChild("SFX_part"):WaitForChild("Sword Hit (Impact)")
+            impactSounds = melee:WaitForChild("SFX_part").impactSounds
         },
         viewModelController = ViewModelController.new(workspace.CurrentCamera:WaitForChild("viewModel"), melee, animObjects, hrp),
         canActivate = false,
@@ -98,10 +99,34 @@ function MeleeController:initialize()
     )
     table.insert(
         self.connections,
-        self.hitboxController.OnHit:Connect(function(hit, humanoid, raycastResult : RaycastResult)
-            if humanoid.Parent.Name ~= self.currentCharacter.Name and humanoid.Parent.Name ~= "viewModel" then
-                rev_hit:FireServer(self.tool, humanoid, self.soundObjects.hit)
-                indicateDamageToDealer(humanoid, raycastResult, self.damage)
+        self.hitboxController.OnHit:Connect(function(hit, humVarNilDueToDetectionMode, raycastResult : RaycastResult)
+            local isToolPart = hit:FindFirstAncestorOfClass("Tool") ~= nil
+            local isOwnLimb = hit.Parent.Name == player.Name
+            if not isToolPart and not isOwnLimb then
+                if raycastResult then
+                    local humanoid = raycastResult.Instance.Parent:FindFirstChild("Humanoid")
+                    if humanoid then
+                        rev_playSound:FireServer(self.soundObjects.impactSounds:WaitForChild("flesh"), raycastResult.Position, 0.2)
+                        indicateDamageToDealer(humanoid, raycastResult, self.damage)
+                    else
+                        if raycastResult.Material == Enum.Material.Ground 
+                        or raycastResult.Material == Enum.Material.Grass
+                        or raycastResult.Material == Enum.Material.Sand
+                        or raycastResult.Material == Enum.Material.Snow then
+                            rev_playSound:FireServer(self.soundObjects.impactSounds:WaitForChild("dirt"), raycastResult.Position, 0)
+                        else
+                            rev_playSound:FireServer(self.soundObjects.impactSounds:WaitForChild("Axe Impact Giant Thuddy Hits On Wood Floor 1 (SFX)"), raycastResult.Position, 0)
+                        end
+                    end
+                    
+                    local castResultInfo = {
+                        Normal = raycastResult.Normal,
+                        hitHumanoid = if humanoid then true else false,
+                        Material = raycastResult.Material 
+                    }
+                    rev_hit:FireServer(self.tool, humanoid, raycastResult.Position, castResultInfo)
+                    createImpactEffects(raycastResult.Position, castResultInfo)
+                end
             end
         end)
     )
@@ -115,7 +140,7 @@ function MeleeController:equip()
     end
     self.viewModelController:equipTool()
 
-    rev_playSound:FireServer(self.soundObjects.equip, 0, self.SFX_part)
+    rev_playSound:FireServer(self.soundObjects.equip, self.SFX_part, 0)
     self.equipped = true
     self.currentPlayer = player
     self.currentCharacter = player.Character

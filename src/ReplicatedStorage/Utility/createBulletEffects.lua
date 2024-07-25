@@ -2,12 +2,12 @@
 
 local TweenService = game:GetService("TweenService")
 
-local createImpactEffects = game:GetService("ReplicatedStorage"):FindFirstChild("createImpactEffects", true)
+local createImpactEffects = require(game:GetService("ReplicatedStorage"):FindFirstChild("createImpactEffects", true))
 
 local gunEffects : Folder = game:GetService("ReplicatedStorage").Tools.Gun.Effects
 local bulletTracer : Beam = gunEffects.tracer
 
-return function(muzzlePart : BasePart, bulletEndPosition : Vector3, castResultMaterial : Enum.Material, castResultNormal : Vector3)
+return function(muzzlePart : BasePart, bulletEndPosition : Vector3, castResultInfo : {[any] : any})
     local vfx_container = Instance.new("Part") --cling the muzzlepart that is welded to the gun won't clone the weld, which is what I want
     vfx_container.Transparency = 1
     vfx_container.Size = Vector3.new(0.1, 0.1, 0.1)
@@ -37,9 +37,10 @@ return function(muzzlePart : BasePart, bulletEndPosition : Vector3, castResultMa
         end
     end
     tracer.Parent = vfx_container
-    
-    local hitHumanoid = if raycastResult.Instance.Parent:FindFirstChild("Humanoid") then true else false
-    createImpactEffects(bulletEndPosition, hitHumanoid, castResultMaterial, castResultNormal)
+
+    if castResultInfo ~= nil then
+        createImpactEffects(bulletEndPosition, castResultInfo)
+    end
 
     local bulletTravelTime = 0.1
     TweenService:Create(startBeam, TweenInfo.new(bulletTravelTime, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {CFrame = endBeam.CFrame}):Play()

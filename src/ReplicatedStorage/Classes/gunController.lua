@@ -375,9 +375,18 @@ function GunController:castRay()
     else
         --adding effects to the raycast, or if that doesn't exist, the startPosition and offset from such in the case that nothing is hit
         local hitPosition = if raycastResult then raycastResult.Position else CFrame.new(originPosition + rayDirection).Position
-        createBulletEffects(vmMuzzle, hitPosition, if raycastResult then raycastResult.Material else nil, if raycastResult then raycastResult.Normal else nil)
+        
+        local castResultInfo = nil
+        if raycastResult then
+            castResultInfo = {
+                Normal = raycastResult.Normal,
+                hitHumanoid = if raycastResult.Instance.Parent:FindFirstChild("Humanoid") then true else false,
+                Material = raycastResult.Material 
+            }
+        end
+        createBulletEffects(vmMuzzle, hitPosition, castResultInfo)
 
-        return raycastResult, hitPosition
+        return raycastResult, hitPosition, castResultInfo
     end
 end
 
@@ -400,7 +409,7 @@ function GunController:activate()
     
             rev_playSound:FireServer(self.soundObjects.fire, 0, self.SFX_part)
     
-            local raycastResult, hitPosition = self:castRay()
+            local raycastResult, hitPosition, castResultInfo = self:castRay()
             local humanoidToDamage
             local impactSoundsArray
             local isHeadshot
@@ -421,7 +430,7 @@ function GunController:activate()
                 local randomIndex = math.random(1, #impactSoundsArray)
                 local randomSound = impactSoundsArray[randomIndex]
                 rev_playSound:FireServer(randomSound, 0, hitPosition)
-                rev_shoot:FireServer(humanoidToDamage, self.damage, isHeadshot, self.tool:FindFirstChild("Muzzle"), hitPosition, if raycastResult then raycastResult.Material else nil, if raycastResult then raycastResult.Normal else nil)
+                rev_shoot:FireServer(humanoidToDamage, self.damage, isHeadshot, self.tool:FindFirstChild("Muzzle"), hitPosition, castResultInfo)
             end
     
             self.currentAmmo -= 1
