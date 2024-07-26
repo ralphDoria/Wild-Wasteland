@@ -8,6 +8,19 @@ local dialogSound : Sound = dialogGui:FindFirstChild("bong", true)
 
 local playSound = require(game:GetService("ReplicatedStorage"):FindFirstChild("PlaySoundUtil", true))
 
+--[[
+	The reason I made this function is because #table in lua doesn't return the actual lenth of an array if the indexes aren't consecutive.
+	For example, (the specific problem I was having) if you have an array with the first index being 3 & try to get the length of the array
+	w/ #table, 0 will be returned because the array doesn't start with index 1 and go up to 3.
+]]
+local function getArrayLength(tbl : {[any] : any})
+	local length = 0
+	for _, _ in tbl do
+		length +=1
+	end
+	return length
+end
+
 local function switchToChoices(yes : boolean)
     if yes then
         subtitle.Visible = false
@@ -34,12 +47,13 @@ local function emptyChoicesFrame()
 end
 
 local function typeWrite(text : string, label : TextLabel)
-	
+	label.Text = ""
+	switchToChoices(false)
 	local breakLoop = false
 	local skipEvent
 	
 	skipEvent = subtitle.InputBegan:Connect(function(inputObject)
-		if inputObject == Enum.UserInputType.MouseButton1 then
+		if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
 			breakLoop = true
 			skipEvent:Disconnect()
 			skipEvent = nil
@@ -51,9 +65,9 @@ local function typeWrite(text : string, label : TextLabel)
 			task.wait(0.05)
 			--task.wait(1) this is for testing the skip feature
 			playSound(dialogSound, nil, 0)
-			subtitle.Text = string.sub(text, 1, i)
+			label.Text = string.sub(text, 1, i)
 		else
-			subtitle.Text = text
+			label.Text = text
 			break
 		end
 	end
@@ -62,6 +76,7 @@ local function typeWrite(text : string, label : TextLabel)
 		skipEvent:Disconnect()
 		skipEvent = nil
 	end
+	task.wait(0.5)
 end
 
 --[[
@@ -75,10 +90,11 @@ end
 	5. makes the current NPC nil ***(might have to change this because the lua garabge collector deletes variables that store nothing)
 	6. Fires the TalkEvent server-side, which will allow the player to control their character again.
 ]]
-local function endDialog(info)
+local function endDialog(info, prompt : ProximityPrompt)
 	emptyChoicesFrame()
 
-	typeWrite(info.LeaveMessage, subtitle)
+	print(info.angered)
+	typeWrite(info.getLeaveMessage(), subtitle)
 
 	dialogGui.Enabled = false
 	name.Text = ""
@@ -94,6 +110,16 @@ local function endDialog(info)
 	]]
 
 	currentNpc = nil
+	prompt.Enabled = true
+end
+
+local function createChoice(text : string)
+	local clone = choiceTemplate:Clone()
+	clone.Visible = true
+	clone.Name = text
+	clone.Text = text
+	clone.Parent = choices
+	return clone
 end
 
 --[[
@@ -114,7 +140,22 @@ end
 	6.
 	7.
 ]]
-local function nextDialog(info, lastChoice)
+local function nextDialog(info, lastChoice, prompt : ProximityPrompt)
+	local cancelDialogConnection : RBXScriptConnection
+	cancelDialogConnection = player:GetAttributeChangedSignal("CancelDialog"):Connect(function()
+		if player:GetAttribute("CancelDialog") == true then
+			cancelDialogConnection:Disconnect()
+			cancelDialogConnection = nil
+			player:SetAttribute("CancelDialog", false)
+			dialogGui.Enabled = false
+			subtitle.Text = ""
+			emptyChoicesFrame()
+			prompt.Enabled = true
+			return
+		end
+	end)
+
+	subtitle.Text = ""
 	emptyChoicesFrame()
 
 	local dialog
@@ -122,64 +163,65 @@ local function nextDialog(info, lastChoice)
 		if lastChoice.Next then
 			dialog = info.Dialog[lastChoice.Next]
 		else
-			endDialog(info)
+			endDialog(info, prompt)
 		end
 	else
+		--opening dialog
+		player:SetAttribute("CancelDialog", false)
+		prompt.Enabled = false
+		dialogGui.Enabled = true
 		dialog = info.Dialog[1]
 	end
 
 	if not dialog then return end
 
-	switchToChoices(false)
 	typeWrite(dialog.Text, subtitle)
 
 	switchToChoices(true)
-	if dialog.Choices and (#dialog.Choices > 0 or #storedChoices > 0) then
+
+	if dialog.Choices and (#dialog.Choices > 0 or getArrayLength(storedChoices) > 0) then
 		for i, choice in pairs(storedChoices) do
-			local clone = choiceTemplate:Clone()
-			clone.Parent = choices
-			clone.Name = choice.Text
-			clone.Text = choice.Text
+			local clone = createChoice(choice.Text)
 
 			clone.MouseButton1Click:Connect(function()
+				if choice.Callback then
+					choice.Callback()
+				end
 				storedChoices[i] = nil
-				nextDialog(info, choice)
+				nextDialog(info, choice, prompt)
 			end)
 		end
 
 		for i, choice in dialog.Choices do
-			local clone = choiceTemplate:Clone()
-			clone.Visible = true
-			clone.Parent = choices
-			clone.Name = choice.Text
-			clone.Text = choice.Text
+			local clone = createChoice(choice.Text)
 
 			if choice.Follow == true then
 				storedChoices[i] = choice
 			end
 
 			clone.MouseButton1Click:Connect(function()
+				if choice.Callback then
+					choice.Callback()
+				end
 				storedChoices[i] = nil
-				nextDialog(info, choice)
+				nextDialog(info, choice, prompt)
 			end)
 		end
 
-		local leave = choiceTemplate:Clone()
-		leave.Parent = choices
-		leave.Name = "Leave"
-		leave.BackgroundColor3 = Color3.fromRGB(77, 35, 36)
-		leave.Text = "I have to go"
+		local leave = createChoice("<Leave Dialog>")
 
 		leave.MouseButton1Click:Once(function()
-			endDialog(info)
+			endDialog(info, prompt)
+			prompt.Enabled = true
 		end)
 	else
 		task.wait(1)
 
 		if dialog.Next then
-			nextDialog(info, dialog)
+			nextDialog(info, dialog, prompt)
 		else
-			endDialog(info)
+			endDialog(info, prompt)
+			prompt.Enabled = true
 		end
 	end
 end
