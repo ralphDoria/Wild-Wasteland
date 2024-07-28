@@ -117,24 +117,8 @@ soundSettingButtons.leftArrow.MouseButton1Click:Connect(function()
 	currentBackgroundSong:Play()
 end))
 
---------------------------Satchel
---[[
-	Name: Satchel
-	Description: Loads the Satchel backpack system.
-	DevForum: https://devforum.roblox.com/t/2451549
-]]
-
---[[
-	This Source Code Form is subject to the terms of the Mozilla Public
-	License, v. 2.0. If a copy of the MPL was not distributed with this
-	file, You can obtain one at Mozilla Public License Version 2.0.
-]]
-
 game:GetService('StarterGui'):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
-StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
-local satchel = require(game:GetService("ReplicatedFirst"):WaitForChild("Satchel")) -- Initialize Satchel
-satchel:SetBackpackEnabled(false)
 --------------------------
 
 local spawnPoints = game.Workspace:FindFirstChild("spawnPoints", true)
@@ -249,7 +233,6 @@ end
 fadeAudio(currentBackgroundSong, 0, 2)
 currentBackgroundSong:Stop()
 currentFinishedLoadingCue:Play()
-satchel:SetBackpackEnabled(true)
 local tweenInfo = TweenInfo.new(currentFinishedLoadingCue.TimeLength, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
 fadeOutGuis(
 	{soundSettingButtons.soundIcon, loadingUI:FindFirstChild("Wallpaper", true)},
