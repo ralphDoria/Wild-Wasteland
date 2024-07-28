@@ -67,7 +67,7 @@ backpack.ChildRemoved:Connect(function(child)
 	if not child:IsA("Tool") then return end
 
 	if child.Parent == character then
-		print(child.Name .. " equipped")
+		print(child.Name .. " equipped")	
 		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), true)
 	elseif child.Parent == workspace then
 		print(child.Name .. " dropped from gui")
@@ -82,9 +82,8 @@ character.ChildRemoved:Connect(function(child)
 	if child.Parent == workspace then
 		print(child.Name .. " dropped from equip")
 		updateCachedItems()
-		inventoryAndHotbarManager.setHotbarSlot(nil, hotbar:FindFirstChild(child:GetAttribute("HotbarSlot")))
 		inventoryAndHotbarManager.toggleSlotEquippedEffect(hotbar:FindFirstChild(child:GetAttribute("HotbarSlot")), false)
-		child:SetAttribute("HotbarSlot", nil)
+		inventoryAndHotbarManager.setHotbarSlot(nil, hotbar:FindFirstChild(child:GetAttribute("HotbarSlot")))
 	end
 end)
 
@@ -93,6 +92,6 @@ repeat
 	print("Waiting for hotbar to initialize")
 until hotbar:GetAttribute("Initialized")
 inventoryAndHotbarManager.toggleInventory(false)
-
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) --disables Roblox's default backpack
+inventoryAndHotbarManager.initializeKeybindToHotbarSlot()
 

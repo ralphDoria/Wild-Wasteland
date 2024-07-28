@@ -66,31 +66,39 @@ local function initializeSlotIcon(tool : Tool, slot)
         --toggle equip/unequip & drag events
         local dragToggleTime : number = 0.1
         button.MouseButton1Down:Connect(function()
+            local associatedTool : Tool = slot:FindFirstChildOfClass("ObjectValue").Value
             local dragSlot
             local currentTime = tick()
             button.MouseButton1Up:Once(function() --USE UIS:INPUTENDED BECAUSE THIS DOESN'T WORK WELL FOR DRAG
                 if tick() - currentTime <= dragToggleTime then
                     --toggle equip/unequip
-                    print("Toggle equip/unequip")
-                else
-                    print("drag = false")
-                    --[[
-                    RunService:UnbindFromRenderStep("DraggingSlot")
-                    if dragSlot then dragSlot:Destroy() end
-                    ]]
+                    print("Toggle equip/unequip") 
+                    inventoryAndHotbarManager.toggleSlotEquipped(slot)
                 end
             end)
             task.spawn(function()
                 task.wait(dragToggleTime)
                 if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
                     print("drag = true")
-                    --[[
+                    dragSlot = slot:Clone()
+                    dragSlot.Parent = gui
+                    dragSlot.AnchorPoint = Vector2.new(0.5, 0.5)
+                    dragSlot.GroupTransparency = 0.5
                     RunService:BindToRenderStep("DraggingSlot", 200, function()
-                        dragSlot = slot:Clone()
-                        dragSlot.Parent = gui
-                        dragSlot.Position = UserInputService:GetMouseLocation()
+                        local mousePosInVector2 : Vector2 = UserInputService:GetMouseLocation()
+                        dragSlot.Position = UDim2.new(0, mousePosInVector2.X, 0, mousePosInVector2.Y)
+
                     end)
-                    ]]
+                    local dragEndedConnection
+                    dragEndedConnection = UserInputService.InputEnded:Connect(function(inputObject, gameProcessed)
+                        if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
+                            print("drag = false")
+                            dragEndedConnection:Disconnect()
+                            dragEndedConnection = nil
+                            RunService:UnbindFromRenderStep("DraggingSlot")
+                            if dragSlot then dragSlot:Destroy() end
+                        end
+                    end)
                 end
             end)
         end)
@@ -191,14 +199,18 @@ function inventoryAndHotbarManager.intitializeHotbar()
     hotbar:SetAttribute("Initialized", true)
 end
 
-function inventoryAndHotbarManager.setHotbarSlot(tool : Tool, slot)
-    initializeSlotIcon(tool, slot)
-    slot:FindFirstChildOfClass("ObjectValue").Value = tool --remember that tool can be nil for hotbar slots
-    if tool then
-        tool:SetAttribute("HotbarSlot", slot.Name)
+function inventoryAndHotbarManager.setHotbarSlot(passedTool : Tool, slot)
+    initializeSlotIcon(passedTool, slot)
+    local objectValue : ObjectValue = slot:FindFirstChildOfClass("ObjectValue")
+    if passedTool then
+        passedTool:SetAttribute("HotbarSlot", slot.Name)
     else
-        tool:SetAttribute("HotbarSlot", nil)
+        local associatedTool = objectValue.Value
+        if associatedTool then
+            associatedTool:SetAttribute("HotbarSlot", nil)
+        end
     end
+    objectValue.Value = passedTool --remember that tool can be nil for hotbar slots
 end
 
 function inventoryAndHotbarManager.toggleSlotEquippedEffect(slot, toggle : boolean)
@@ -216,9 +228,45 @@ function inventoryAndHotbarManager.getSlotFromTool(tool : Tool)
     local source = if tool:GetAttribute("HotbarSlot") then hotbar else inventory
         print(source.Name)
     for _, slot in ipairs(source:GetChildren()) do
-        if slot:FindFirstChildOfClass("ObjectValue").Value == tool then
-            return slot
+        if slot:IsA(slotTemplate.ClassName) and slot ~= slotTemplate then
+            if slot:FindFirstChildOfClass("ObjectValue").Value == tool then
+                return slot
+            end
         end
+    end
+end
+
+function inventoryAndHotbarManager.initializeKeybindToHotbarSlot()
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        local slotIndex = table.find(slotNameToKeybind, input.KeyCode)
+        if slotIndex then
+            local slotName = tostring(slotIndex)
+            local associatedHotbarSlot = hotbar:FindFirstChild(slotName)
+            local slotNotEmpty = associatedHotbarSlot:FindFirstChildOfClass("ObjectValue").Value ~= nil
+            if slotNotEmpty then
+                inventoryAndHotbarManager.toggleSlotEquipped(associatedHotbarSlot)
+            end
+        end
+    end)
+end
+
+function inventoryAndHotbarManager.toggleSlotEquipped(slot)
+    local tool = slot:FindFirstChildOfClass("ObjectValue").Value
+    assert(tool ~= nil, "Cannot equip slot because it does not have an associated tool.")
+    
+    --!!! Maybe have the backpack/character removed events handle toggleSlotEquippedEffect
+
+    local isEquipped = tool:FindFirstAncestor(character.Name):FindFirstChild("Humanoid")
+    if isEquipped then
+        humanoid:UnequipTools()
+        inventoryAndHotbarManager.toggleSlotEquippedEffect(slot , false)
+    else
+        local otherToolEquippped : Tool = character:FindFirstChildOfClass("Tool")
+        if otherToolEquippped then
+            inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(otherToolEquippped), false)
+        end
+        humanoid:EquipTool(tool) --"When this function is called, the humanoid will automatically unequip any Tools that it currently has equipped"
+        inventoryAndHotbarManager.toggleSlotEquippedEffect(slot , true)
     end
 end
 
