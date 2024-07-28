@@ -60,12 +60,25 @@ local function typeWrite(text : string, label : TextLabel)
 		end
 	end)
 
+	local longPause = {".", "!", "?"}
+	local basePauseTime : number = 0.05
+
 	for i = 1, #text, 1 do
 		if not breakLoop then
-			task.wait(0.05)
 			--task.wait(1) this is for testing the skip feature
 			playSound(dialogSound, nil, 0)
 			label.Text = string.sub(text, 1, i)
+			local currentCharacter = string.sub(text, i, i)
+			task.wait(
+				if #text == i then
+					0
+				elseif table.find(longPause, currentCharacter) then
+					basePauseTime * 8
+				elseif currentCharacter == "," then
+					basePauseTime * 4
+				else
+					basePauseTime
+			)
 		else
 			label.Text = text
 			break
@@ -93,7 +106,6 @@ end
 local function endDialog(info, prompt : ProximityPrompt)
 	emptyChoicesFrame()
 
-	print(info.angered)
 	typeWrite(info.getLeaveMessage(), subtitle)
 
 	dialogGui.Enabled = false
@@ -120,6 +132,24 @@ local function createChoice(text : string)
 	clone.Text = text
 	clone.Parent = choices
 	return clone
+end
+
+local function getNPCText(dialogPath)
+	if typeof(dialogPath.Text) == "function" then
+		local variableText = dialogPath.Text()
+		return variableText
+	else
+		return dialogPath.Text
+	end
+end
+
+local function getChoiceValue(choiceOption)
+	if typeof(choiceOption) == "function" then
+		local variableChoiceOption = choiceOption()
+		return variableChoiceOption
+	else
+		return choiceOption
+	end
 end
 
 --[[
@@ -160,6 +190,7 @@ local function nextDialog(info, lastChoice, prompt : ProximityPrompt)
 
 	local dialog
 	if lastChoice then
+		lastChoice = getChoiceValue(lastChoice)
 		if lastChoice.Next then
 			dialog = info.Dialog[lastChoice.Next]
 		else
@@ -167,6 +198,7 @@ local function nextDialog(info, lastChoice, prompt : ProximityPrompt)
 		end
 	else
 		--opening dialog
+		print("Know npc's name" .. tostring(info.known))
 		player:SetAttribute("CancelDialog", false)
 		prompt.Enabled = false
 		dialogGui.Enabled = true
@@ -175,37 +207,39 @@ local function nextDialog(info, lastChoice, prompt : ProximityPrompt)
 
 	if not dialog then return end
 
-	typeWrite(dialog.Text, subtitle)
-
-	switchToChoices(true)
+	typeWrite(getNPCText(dialog), subtitle)
 
 	if dialog.Choices and (#dialog.Choices > 0 or getArrayLength(storedChoices) > 0) then
+		switchToChoices(true)
 		for i, choice in pairs(storedChoices) do
 			local clone = createChoice(choice.Text)
 
 			clone.MouseButton1Click:Connect(function()
-				if choice.Callback then
-					choice.Callback()
+				if choice.Consequence then
+					choice.Consequence()
 				end
 				storedChoices[i] = nil
 				nextDialog(info, choice, prompt)
 			end)
 		end
 
-		for i, choice in dialog.Choices do
-			local clone = createChoice(choice.Text)
+		for i, value in dialog.Choices do
+			local choice = getChoiceValue(value)
+			if choice ~= nil then
+				local clone = createChoice(choice.Text)
 
-			if choice.Follow == true then
-				storedChoices[i] = choice
-			end
-
-			clone.MouseButton1Click:Connect(function()
-				if choice.Callback then
-					choice.Callback()
+				if choice.Follow == true then
+					storedChoices[i] = choice
 				end
-				storedChoices[i] = nil
-				nextDialog(info, choice, prompt)
-			end)
+
+				clone.MouseButton1Click:Connect(function()
+					if choice.Consequence then
+						choice.Consequence()
+					end
+					storedChoices[i] = nil
+					nextDialog(info, choice, prompt)
+				end)
+			end
 		end
 
 		local leave = createChoice("<Leave Dialog>")

@@ -4,7 +4,7 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character.Humanoid
 
 local effectsOverlay : ScreenGui = player.PlayerGui:WaitForChild("EffectsOverlay")
-
+effectsOverlay.Enabled = true
 local cachedHealth : number = humanoid.Health
 
 local function fadeInFadeOutTween(object)

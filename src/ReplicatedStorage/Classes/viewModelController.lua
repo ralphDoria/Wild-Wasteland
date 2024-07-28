@@ -64,6 +64,10 @@ end
 function ViewModelController:enable()
 	self._enabled = true
 
+    if self.vmTool:FindFirstChildOfClass("Highlight") then
+        print("destroying highlight")
+        self.vmTool:FindFirstChildOfClass("Highlight"):Destroy()
+    end
     self:showViewModelTool()
 
     local equipTimeAccumulated = 0
