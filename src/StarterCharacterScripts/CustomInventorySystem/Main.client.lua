@@ -48,13 +48,13 @@ backpack.ChildAdded:Connect(function(child)
 	--create a slot in the hotbar if the hotbar's not full, or else, create a slot in the inventory
 	if table.find(cachedItems, child) then
 		print(child.Name .. " unequipped")
-		inventoryAndHotbarManager.toggleSlotEquippedEffect(hotbar:FindFirstChild(child:GetAttribute("HotbarSlot")), false)
+		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), false)
 	else
 		print(child.Name .. " was added to inventory")
 		local emptyHotbarSlot = inventoryAndHotbarManager.findMinimumEmptyHotbarSlot()
 		if emptyHotbarSlot then
 			--adding item to hotbar
-			inventoryAndHotbarManager.setHotbarSlot(child, emptyHotbarSlot)
+			inventoryAndHotbarManager.setSlot(child, emptyHotbarSlot)
 		else
 			--adding item to inventory
 			inventoryAndHotbarManager.createSlot(child, "Inventory")
@@ -72,7 +72,7 @@ backpack.ChildRemoved:Connect(function(child)
 	elseif child.Parent == workspace then
 		print(child.Name .. " dropped from gui")
 		updateCachedItems()
-		inventoryAndHotbarManager.toggleSlotEquippedEffect(hotbar:FindFirstChild(child:GetAttribute("HotbarSlot")), false)
+		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), false)
 	end
 end)
 
@@ -82,8 +82,8 @@ character.ChildRemoved:Connect(function(child)
 	if child.Parent == workspace then
 		print(child.Name .. " dropped from equip")
 		updateCachedItems()
-		inventoryAndHotbarManager.toggleSlotEquippedEffect(hotbar:FindFirstChild(child:GetAttribute("HotbarSlot")), false)
-		inventoryAndHotbarManager.setHotbarSlot(nil, hotbar:FindFirstChild(child:GetAttribute("HotbarSlot")))
+		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), false)
+		inventoryAndHotbarManager.setSlot(nil, inventoryAndHotbarManager.getSlotFromTool(child))
 	end
 end)
 
