@@ -47,10 +47,10 @@ backpack.ChildAdded:Connect(function(child)
 
 	--create a slot in the hotbar if the hotbar's not full, or else, create a slot in the inventory
 	if table.find(cachedItems, child) then
-		print(child.Name .. " unequipped")
+		--print(child.Name .. " unequipped")
 		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), false)
 	else
-		print(child.Name .. " was added to inventory")
+		--print(child.Name .. " was added to inventory")
 		local emptyHotbarSlot = inventoryAndHotbarManager.findMinimumEmptyHotbarSlot()
 		if emptyHotbarSlot then
 			--adding item to hotbar
@@ -67,10 +67,10 @@ backpack.ChildRemoved:Connect(function(child)
 	if not child:IsA("Tool") then return end
 
 	if child.Parent == character then
-		print(child.Name .. " equipped")	
+		--print(child.Name .. " equipped")	
 		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), true)
 	elseif child.Parent == workspace then
-		print(child.Name .. " dropped from gui")
+		--print(child.Name .. " dropped from gui")
 		updateCachedItems()
 		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), false)
 	end
@@ -80,7 +80,7 @@ character.ChildRemoved:Connect(function(child)
 	if not child:IsA("Tool") then return end
 
 	if child.Parent == workspace then
-		print(child.Name .. " dropped from equip")
+		--print(child.Name .. " dropped from equip")
 		updateCachedItems()
 		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), false)
 		inventoryAndHotbarManager.setSlot(nil, inventoryAndHotbarManager.getSlotFromTool(child))
@@ -89,7 +89,7 @@ end)
 
 repeat
 	task.wait()
-	print("Waiting for hotbar to initialize")
+	--print("Waiting for hotbar to initialize")
 until hotbar:GetAttribute("Initialized")
 inventoryAndHotbarManager.toggleInventory(false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) --disables Roblox's default backpack

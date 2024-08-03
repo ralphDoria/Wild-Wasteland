@@ -12,6 +12,8 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character.Humanoid
 local backpack = player.Backpack -- the player's backpack (used to store all tools by default)
 
+local mouseTrailEffect = require(script.Parent.mouseTrailEffect)
+
 ----[[ GUI VARIABLES ]]----
 local gui : ScreenGui = player.PlayerGui:WaitForChild("InventoryAndHotbar")
 local forModal : Textbutton = gui:FindFirstChild("ForModal")
@@ -61,6 +63,8 @@ local function initializeSlotIcon(tool : Tool, slot)
     local imageButton : ImageButton = slot:FindFirstChildWhichIsA("ImageButton", true)
     local textButton : TextButton = slot:FindFirstChildWhichIsA("TextButton", true)
     local button
+    local hoverDetection
+
     if tool == nil then
         imageButton.Visible = false
         textButton.Visible = false
@@ -93,7 +97,7 @@ local function initializeSlotIcon(tool : Tool, slot)
                     --print("Toggle equip/unequip") 
                     local slotNotEmpty = slot:FindFirstChildOfClass("ObjectValue").Value ~= nil
                     if slotNotEmpty then
-                        print(slot.Name)
+                        --print(slot.Name)
                         --can't used the passed parameter named slot because the button may be reparented to a different slot when slots are swapped
                         inventoryAndHotbarManager.equipSlotToggle(button:FindFirstAncestorWhichIsA("CanvasGroup")) --remember that slots are of the CanvasGroup type
                     end
@@ -110,19 +114,25 @@ local function initializeSlotIcon(tool : Tool, slot)
                     dragSlot = slot:Clone()
                     dragSlot.Parent = gui
                     dragSlot.AnchorPoint = Vector2.new(0.5, 0.5)
-                    dragSlot.GroupTransparency = 0.5
+                    --dragSlot.GroupTransparency = 0.5
+                    dragSlot:FindFirstChildWhichIsA("UIStroke", true).Color = Color3.fromRGB(0, 181, 217)   
+                    dragSlot:FindFirstChild("Number", true).TextColor3 = Color3.fromRGB(0, 181, 217)  
+                    dragSlot.Position = UDim2.fromOffset(slot.AbsolutePosition.X, slot.AbsolutePosition.Y + if gui.IgnoreGuiInset then game:GetService("GuiService"):GetGuiInset().Y else 0)
+                    mouseTrailEffect.toggleEnabled(true)
                     RunService:BindToRenderStep("DraggingSlot", 200, function()
-                        print("currently dragging: " .. if currentSlotBeingDragged then currentSlotBeingDragged.Name else "nothing")
-                        print("currently hovering: " .. if currentSlotBeingHovered then currentSlotBeingHovered.Name else "nothing")
-                        print("-------------")
+                        --print("currently dragging: " .. if currentSlotBeingDragged then currentSlotBeingDragged.Name else "nothing")
+                        --print("currently hovering: " .. if currentSlotBeingHovered then currentSlotBeingHovered.Name else "nothing")
+                        --print("-------------")
                         local mousePosInVector2 : Vector2 = UserInputService:GetMouseLocation()
-                        dragSlot.Position = UDim2.new(0, mousePosInVector2.X, 0, mousePosInVector2.Y)
+                        --dragSlot.Position = UDim2.new(0, mousePosInVector2.X, 0, mousePosInVector2.Y)
+                        dragSlot.Position = dragSlot.Position:Lerp(UDim2.fromOffset(mousePosInVector2.X, mousePosInVector2.Y), 0.3)
 
                     end)
                     local dragEndedConnection
                     dragEndedConnection = UserInputService.InputEnded:Connect(function(inputObject, gameProcessed)
                         if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
                             --print("drag = false")
+                            mouseTrailEffect.toggleEnabled(false)
                             dragEndedConnection:Disconnect()
                             dragEndedConnection = nil
                             RunService:UnbindFromRenderStep("DraggingSlot")
@@ -143,7 +153,7 @@ local function initializeSlotIcon(tool : Tool, slot)
         local detectSlotEmpty  
         detectSlotEmpty = objectValue:GetPropertyChangedSignal("Value"):Connect(function()
             if objectValue.Value == nil then -- and currentButton == button --meaning a swap didn't occur
-                print("Associated tool changed to  nil, disconnecting associated tool's events")
+                --print("Associated tool changed to  nil, disconnecting associated tool's events")
                 connection:Disconnect()
                 connection = nil
                 detectSlotEmpty:Disconnect()
@@ -152,10 +162,8 @@ local function initializeSlotIcon(tool : Tool, slot)
                 hoverDetection = nil
             end
         end)
-
     end
 
-    local hoverDetection
     hoverDetection = slot.MouseEnter:Connect(function()
         currentSlotBeingHovered = slot
     end)
@@ -293,7 +301,6 @@ end
 
 function inventoryAndHotbarManager.getSlotFromTool(tool : Tool)
     local source = if tool:GetAttribute("HotbarSlot") then hotbar else inventory
-    print(source.Name)
     for _, slot in ipairs(source:GetChildren()) do
         if slot:IsA(slotTemplate.ClassName) and slot ~= slotTemplate then
             if slot:FindFirstChildOfClass("ObjectValue").Value == tool then
@@ -310,7 +317,6 @@ function inventoryAndHotbarManager.initializeKeybindToHotbarSlot()
         if slotIndex then
             local slotName = tostring(slotIndex)
             local associatedHotbarSlot = hotbar:FindFirstChild(slotName)
-            print("Slot Name: " .. slotName)
             local slotNotEmpty = associatedHotbarSlot:FindFirstChildOfClass("ObjectValue").Value ~= nil
             if slotNotEmpty then
                 inventoryAndHotbarManager.equipSlotToggle(associatedHotbarSlot)
@@ -335,6 +341,24 @@ function inventoryAndHotbarManager.equipSlotToggle(slot)
     end
 end
 
+local function setSlotParentAndUpdateNameAndToolAttribute(slot : typeof(slotTemplate), newParent : Instance, potentialHotbarName : string)
+    local hotbarName = potentialHotbarName
+    local xTool = slot:FindFirstChild("ObjectValue", true).Value
+
+    slot.Parent = newParent
+
+    if newParent == inventory and xTool == nil then
+        slot:Destroy() --destroys slot because empty slots cannot exist in inventory
+        return
+    end
+
+    slot.Name = if newParent == hotbar then hotbarName elseif newParent == inventory and xTool ~= nil then xTool.Name else slot:Destroy()
+
+    if xTool then
+        xTool:SetAttribute("HotbarSlot", if newParent == hotbar then tostring(hotbarName) else nil)
+    end
+end
+
 --[[
     Swaps each tool's "HotbarSlot" attribute values and each slot's ObjectValue.Value and ImageButton/TextButton (depending on which is active)
 
@@ -343,11 +367,12 @@ end
     1) swap both buttons & see if that fixes it & then fix the logic on disconnecting the button's events when the slot's object value changes.
     2) delete & reconstruct the slots (this one might be easier, but may be more work on the client [by very slightly])
 ]]
-function inventoryAndHotbarManager.swapSlots(firstSlot, secondSlot)
+function inventoryAndHotbarManager.swapSlots(firstSlot, secondSlot) 
     if firstSlot == secondSlot then
         warn("no swap occurred")
         return
     end
+
     local cachedFirstSlotParent = firstSlot.Parent
     local cachedFirstSlotLayoutOrder = firstSlot.LayoutOrder
     local cachedFirstSlotName = firstSlot.Name
@@ -356,56 +381,29 @@ function inventoryAndHotbarManager.swapSlots(firstSlot, secondSlot)
     --swapping slots' layout orders
     firstSlot.LayoutOrder = secondSlot.LayoutOrder
     secondSlot.LayoutOrder = cachedFirstSlotLayoutOrder
-    --swapping slots' parents
-    firstSlot.Parent = secondSlot.Parent
-    local firstTool = firstSlot:FindFirstChild("ObjectValue", true).Value
-    if firstSlot.Parent == hotbar then
-        firstSlot.Name = secondSlot.Name --have to set slot's name to it's layout order if its in hotbar because that's how equipping slot from keybind works
-        if firstTool then
-            firstTool:SetAttribute("HotbarSlot", tostring(firstSlot.Name))
-        end
-    else
-        firstSlot.Name = firstTool.Name
-        firstTool:SetAttribute("HotbarSlot", nil)
-    end
-    secondSlot.Parent = cachedFirstSlotParent
-    local secondTool = secondSlot:FindFirstChild("ObjectValue", true).Value
-    if secondSlot.Parent == hotbar then
-        secondSlot.Name = cachedFirstSlotName
-        if secondTool then
-            secondTool:SetAttribute("HotbarSlot", tostring(secondSlot.Name))
-        end
-    else
-        if secondTool then
-            secondSlot.Name = secondTool.Name
-            secondTool:SetAttribute("HotbarSlot", nil)
-        else
-            --[[
-            Remember that the second slot is always the slot being hovered on. 
-            ]]
-            secondSlot:FindFirstChild("Number", true).Parent = cachedFirstSlotNumberLabelObjectReference
-            secondSlot:Destroy()
-            return
-        end
-    end
     --swapping slots' number labels
     firstSlot:FindFirstChild("Number", true).Parent = secondSlot:FindFirstChild("Number", true).Parent
     secondSlot:FindFirstChild("Number", true).Parent = cachedFirstSlotNumberLabelObjectReference
+    --swapping slots' parents, names, and then updating potentially existing tool's "HotbarSlot" attribute
+    setSlotParentAndUpdateNameAndToolAttribute(firstSlot, secondSlot.Parent, secondSlot.Name) --remember, the first parameter is written to, while the second is only read from
+    setSlotParentAndUpdateNameAndToolAttribute(secondSlot, cachedFirstSlotParent, cachedFirstSlotName)
 end
 
 function inventoryAndHotbarManager.transferSlotToInventory(slot : typeof(slotTemplate))
+    print("transferSlotToInventory()")
     if slot.Parent == hotbar then
         local emptyHotbarSlot = inventoryAndHotbarManager.createSlot(nil, "Hotbar", tonumber(slot.Name))
         emptyHotbarSlot.Parent = inventory
         inventoryAndHotbarManager.swapSlots(slot, emptyHotbarSlot) --feel like I solved a Rubik's cube with this one
-        print(emptyHotbarSlot.Name)
+        --print(emptyHotbarSlot.Name)
         local tool = slot:FindFirstChild("ObjectValue", true).Value
         tool:SetAttribute("HotbarSlot", nil)
+        slot.LayoutOrder = getNumberOfInventorySlots() + 1
         slot.Name = tool.Name
         slot:FindFirstChild("Number", true).Visible = false
-    else
+    else --slot is already in inventory
         --change the slot's layout order to be +1 the greatest layout order
-        slot.LayoutOrder = inventoryAndHotbarManager.getNumberOfInventorySlots() + 1
+        slot.LayoutOrder = getNumberOfInventorySlots() + 1
     end
 end
 
