@@ -18,12 +18,14 @@ local inventory : ScrollingFrame = gui:FindFirstChild("Inventory", true) -- the 
 local main : Frame = inventory.Parent
 local hotbar : CanvasGroup = gui:FindFirstChild("Hotbar", true) -- the hotbar frame
 
+local toggle = false
 
 ContextActionService:BindAction(
 	"Inventory", 
 	function(actionName, inputState, _inputObject)
 		if actionName == "Inventory" and inputState == Enum.UserInputState.Begin then
-			inventoryAndHotbarManager.toggleInventory(not main.Visible)
+			toggle = not toggle
+			inventoryAndHotbarManager.toggleInventory(toggle)
 		end
 	end,
 	true,
@@ -42,6 +44,18 @@ local function updateCachedItems()
 	end
 end
 
+local function flashHotbar()
+	print(hotbar.GroupTransparency)
+	inventoryAndHotbarManager.toggleHotbar(true)
+	task.spawn(function()
+		task.wait(1)
+		print(hotbar.GroupTransparency)
+		if hotbar.GroupTransparency == 0 and not main.Visible then
+			inventoryAndHotbarManager.toggleHotbar(false)
+		end
+	end)
+end
+
 backpack.ChildAdded:Connect(function(child)
 	if not child:IsA("Tool") then return end
 
@@ -55,6 +69,7 @@ backpack.ChildAdded:Connect(function(child)
 		if emptyHotbarSlot then
 			--adding item to hotbar
 			inventoryAndHotbarManager.setSlot(child, emptyHotbarSlot)
+			flashHotbar()
 		else
 			--adding item to inventory
 			inventoryAndHotbarManager.createSlot(child, "Inventory")
@@ -91,7 +106,10 @@ repeat
 	task.wait()
 	--print("Waiting for hotbar to initialize")
 until hotbar:GetAttribute("Initialized")
+
+gui.Enabled = true
 inventoryAndHotbarManager.toggleInventory(false)
+inventoryAndHotbarManager.toggleHotbar(false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) --disables Roblox's default backpack
 inventoryAndHotbarManager.initializeKeybindToHotbarSlot()
-
+inventoryAndHotbarManager.initializeWearablesGui()

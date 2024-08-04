@@ -5,6 +5,8 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 ----[[ STANDARD PLAYER SPECIFIC VARIABLES ]]----
 local player = Players.LocalPlayer 
@@ -12,7 +14,17 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character.Humanoid
 local backpack = player.Backpack -- the player's backpack (used to store all tools by default)
 
+local viewportCharacter = ReplicatedStorage:FindFirstChild("WearablesViewportCharacter")
+
+local UserInputService = game:GetService("UserInputService")
+local SoundService = game:GetService("SoundService")
+local dragSound : Sound = SoundService:FindFirstChild("dragSound", true)
+local swapSound : Sound = SoundService:FindFirstChild("swapSound", true)
+local playSound = require(game:GetService("ReplicatedStorage"):FindFirstChild("PlaySoundUtil", true))
+local lerp =  require(game:GetService("ReplicatedStorage"):FindFirstChild("lerp", true))
+
 local mouseTrailEffect = require(script.Parent.mouseTrailEffect)
+local ViewportModel = require(ReplicatedStorage:FindFirstChild("ViewportModel", true)) --credit to EgoMoose
 
 ----[[ GUI VARIABLES ]]----
 local gui : ScreenGui = player.PlayerGui:WaitForChild("InventoryAndHotbar")
@@ -20,6 +32,7 @@ local forModal : Textbutton = gui:FindFirstChild("ForModal")
 local inventory : ScrollingFrame = gui:FindFirstChild("Inventory", true) -- the bag/inventory frame
 local main : Frame = inventory.Parent
 local wearables : Frame = gui:FindFirstChild("Wearables", true)
+local viewportFrame : ViewportFrame = wearables:FindFirstChildOfClass("ViewportFrame")
 local hotbar : CanvasGroup = gui:FindFirstChild("Hotbar", true) -- the hotbar frame
 local slotTemplate : CanvasGroup = gui:FindFirstChild("slotTemplate", true)
 local inventoryBlur = game:GetService("Lighting"):FindFirstChild("inventoryBlur")
@@ -44,9 +57,6 @@ local currentSlotBeingHovered : typeof(slotTemplate)
 local currentSlotBeingDragged : typeof(slotTemplate)
 local hoveringInInventory : boolean
 
-hotbar.MouseLeave:Connect(function()
-    currentSlotBeingHovered = nil
-end)
 inventory.MouseEnter:Connect(function()
     hoveringInInventory = true
     inventory.MouseLeave:Once(function()
@@ -55,6 +65,41 @@ inventory.MouseEnter:Connect(function()
 end)
 
 local inventoryAndHotbarManager = {}
+
+local hotbarFadeTime = 0.5
+function inventoryAndHotbarManager.toggleHotbar(toggle : boolean)
+    local easingStyle = Enum.EasingStyle.Linear
+    local newlyCalculatedToggleTime
+    if toggle then
+        TweenService:Create(hotbar, TweenInfo.new(0), {GroupTransparency = 0}):Play()
+    else
+        newlyCalculatedToggleTime = hotbarFadeTime * (1 - hotbar.GroupTransparency)
+        TweenService:Create(hotbar, TweenInfo.new(newlyCalculatedToggleTime, easingStyle), {GroupTransparency = 1}):Play()
+    end
+end
+hotbar.MouseEnter:Connect(function()
+    inventoryAndHotbarManager.toggleHotbar(true)
+end)
+hotbar.MouseLeave:Connect(function()
+    currentSlotBeingHovered = nil
+    if main.Visible == false then
+        inventoryAndHotbarManager.toggleHotbar(false)
+    end
+end)
+
+local oldMousePosition = UserInputService:GetMouseLocation()
+local function getMouseDelta()
+	-- Measure mouse position & delta since last measurement
+	local mousePosition = UserInputService:GetMouseLocation()
+	local delta = mousePosition - oldMousePosition
+
+	-- Update the old mouse position & return the delta
+	oldMousePosition = mousePosition
+	return delta
+end
+
+function inventoryAndHotbarManager.initializeWearablesGui()
+end
 
 --[[
     Has slot use TextButton or ImageButton based on whether the tool has a TextureId property that isn't nil.
@@ -118,7 +163,12 @@ local function initializeSlotIcon(tool : Tool, slot)
                     dragSlot:FindFirstChildWhichIsA("UIStroke", true).Color = Color3.fromRGB(0, 181, 217)   
                     dragSlot:FindFirstChild("Number", true).TextColor3 = Color3.fromRGB(0, 181, 217)  
                     dragSlot.Position = UDim2.fromOffset(slot.AbsolutePosition.X, slot.AbsolutePosition.Y + if gui.IgnoreGuiInset then game:GetService("GuiService"):GetGuiInset().Y else 0)
-                    mouseTrailEffect.toggleEnabled(true)
+                    --mouseTrailEffect.toggleEnabled(true)
+                    --[[ for drag sounds
+                    dragSound.Volume = 0.1 --clamp from 0.1 - 0.7
+                    dragSound:Play()
+                    oldMousePosition = UserInputService:GetMouseLocation()
+                    ]]
                     RunService:BindToRenderStep("DraggingSlot", 200, function()
                         --print("currently dragging: " .. if currentSlotBeingDragged then currentSlotBeingDragged.Name else "nothing")
                         --print("currently hovering: " .. if currentSlotBeingHovered then currentSlotBeingHovered.Name else "nothing")
@@ -126,20 +176,27 @@ local function initializeSlotIcon(tool : Tool, slot)
                         local mousePosInVector2 : Vector2 = UserInputService:GetMouseLocation()
                         --dragSlot.Position = UDim2.new(0, mousePosInVector2.X, 0, mousePosInVector2.Y)
                         dragSlot.Position = dragSlot.Position:Lerp(UDim2.fromOffset(mousePosInVector2.X, mousePosInVector2.Y), 0.3)
-
+                        --[[ for drag sounds
+                        local calculatedVolume = math.sqrt(getMouseDelta().Magnitude) * 0.1
+                        print(calculatedVolume)
+                        dragSound.Volume = lerp(dragSound.Volume, math.clamp(calculatedVolume, 0.1, 0.3), 0.1)
+                        ]]
                     end)
                     local dragEndedConnection
                     dragEndedConnection = UserInputService.InputEnded:Connect(function(inputObject, gameProcessed)
                         if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
                             --print("drag = false")
-                            mouseTrailEffect.toggleEnabled(false)
+                            --mouseTrailEffect.toggleEnabled(false)
+                            --dragSound:Stop()
                             dragEndedConnection:Disconnect()
                             dragEndedConnection = nil
                             RunService:UnbindFromRenderStep("DraggingSlot")
                             if dragSlot then dragSlot:Destroy() end
                             if currentSlotBeingDragged and currentSlotBeingHovered then
+                                --playSound(swapSound, nil, 0)
                                 inventoryAndHotbarManager.swapSlots(currentSlotBeingDragged, currentSlotBeingHovered)
                             elseif currentSlotBeingDragged and hoveringInInventory then
+                                --playSound(swapSound, nil, 0)
                                 inventoryAndHotbarManager.transferSlotToInventory(currentSlotBeingDragged)
                             end
                             currentSlotBeingDragged = nil
@@ -222,15 +279,41 @@ function inventoryAndHotbarManager.findMinimumEmptyHotbarSlot()
     return nil --the hotbar is full (no slot is empty)
 end
 
+
+inventoryBlur.Enabled = true
+main.Visible = true
+local toggleTime = 0.2
+local easingStyle = Enum.EasingStyle.Linear
 function inventoryAndHotbarManager.toggleInventory(toggle : boolean)
-    forModal.Modal = toggle
-    main.Visible = toggle
-    --[[ Supposed to make empty hotbar slots invisible when inventory is hidden, but doesn't account for when tools are dropped from hotbar & hotbar slot becomes empty
-    ]]
-    for _, hotbarSlot in ipairs(getEmptyHotbarSlots()) do
-        hotbarSlot.Visible = toggle
+    for _, v in inventory:GetChildren() do
+        if v:IsA("CanvasGroup") then
+            v.Visible = toggle
+        end
     end
-    inventoryBlur.Enabled = toggle
+    for _, v in wearables:GetDescendants() do
+        if v:IsA("CanvasGroup") then
+            v.Visible = toggle
+        end
+    end
+    forModal.Modal = toggle --unlocks mouse in first person
+    inventoryAndHotbarManager.toggleHotbar(toggle)
+    local newlyCalculatedToggleTime
+    if toggle then
+        main.Visible = true
+        newlyCalculatedToggleTime = toggleTime * (0.5 - main.Size.Y.Scale)
+        TweenService:Create(main, TweenInfo.new(newlyCalculatedToggleTime, easingStyle), {Size = UDim2.new(0.5, 0, 0.5, 0)}):Play()
+        TweenService:Create(inventoryBlur, TweenInfo.new(newlyCalculatedToggleTime, easingStyle), {Size = 24}):Play()
+    else
+        newlyCalculatedToggleTime = toggleTime * ( main.Size.Y.Scale - 0)
+        TweenService:Create(main, TweenInfo.new(newlyCalculatedToggleTime, easingStyle), {Size = UDim2.new(0.5, 0, 0, 0)}):Play()
+        TweenService:Create(inventoryBlur, TweenInfo.new(newlyCalculatedToggleTime, easingStyle), {Size = 0}):Play()
+        task.spawn(function()
+            task.wait(newlyCalculatedToggleTime)
+            if main.Size.Y.Offset == 0 then
+                main.Visible = false
+            end
+        end)
+    end
 end
 
 function inventoryAndHotbarManager.createSlot(tool : Tool, hotbarOrInventory : string, hotbarSlotNumber : number)
