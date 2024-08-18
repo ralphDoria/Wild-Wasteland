@@ -1,9 +1,12 @@
+local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
 local SoundService = game:GetService("SoundService")
+
+local pistolShell = ReplicatedStorage.Tools.Gun:FindFirstChild("PistolCasingUsed", true)
 
 local Constants = {
     KEYBOARD_DROP_TOOL_KEY_CODE = Enum.KeyCode.X,
@@ -408,7 +411,18 @@ function GunController:activate()
             end
     
             rev_playSound:FireServer(self.soundObjects.fire, 0, self.SFX_part)
-    
+            
+            --shell ejection
+            local shell = pistolShell:Clone()
+            shell.Anchored = false --temporary to check if the shell is being positioned properly
+            shell.CFrame = self.tool:FindFirstChild("shellSpawnPart").CFrame * CFrame.Angles(math.rad(90), 0, 0)
+            shell.Parent = workspace
+            --later, incorporate character velocity to adjust force
+            local finalPosition = (shell.CFrame * CFrame.new(Vector3.new(-10, 0, 10))).Position --seems to behave like this: Vector3.new(x, z, y)
+            local direction : Vector3 = shell.CFrame.Position - finalPosition
+            shell:ApplyImpulse(direction * shell.AssemblyMass)
+            Debris:AddItem(shell, 2)
+
             local raycastResult, hitPosition, castResultInfo = self:castRay()
             local humanoidToDamage
             local impactSoundsArray
