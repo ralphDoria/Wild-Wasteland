@@ -1,11 +1,13 @@
 --For guns
 
+local Debris = game:GetService("Debris")
 local TweenService = game:GetService("TweenService")
 
 local createImpactEffects = require(game:GetService("ReplicatedStorage"):FindFirstChild("createImpactEffects", true))
 
 local gunEffects : Folder = game:GetService("ReplicatedStorage").Tools.Gun.Effects
 local bulletTracer : Beam = gunEffects.tracer
+local bulletHole : Part = gunEffects.bulletHole
 
 return function(muzzlePart : BasePart, bulletEndPosition : Vector3, castResultInfo : {[any] : any})
     local vfx_container = Instance.new("Part") --cling the muzzlepart that is welded to the gun won't clone the weld, which is what I want
@@ -40,6 +42,13 @@ return function(muzzlePart : BasePart, bulletEndPosition : Vector3, castResultIn
 
     if castResultInfo ~= nil then
         createImpactEffects(bulletEndPosition, castResultInfo)
+        if castResultInfo.hitHumanoid == false then
+            local hole = bulletHole:Clone()
+            hole.Anchored = true
+            hole.CFrame = CFrame.lookAlong(bulletEndPosition, castResultInfo.Normal)
+            hole.Parent = workspace
+            Debris:AddItem(hole, 60)
+        end
     end
 
     local bulletTravelTime = 0.1
