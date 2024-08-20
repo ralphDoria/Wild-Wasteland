@@ -412,10 +412,10 @@ function GunController:activate()
     
             rev_playSound:FireServer(self.soundObjects.fire, 0, self.SFX_part)
             
-            --shell ejection
+            --shell ejection (all client side)
             local shell = pistolShell:Clone()
             shell.Anchored = false --temporary to check if the shell is being positioned properly
-            shell.CFrame = self.tool:FindFirstChild("shellSpawnPart").CFrame * CFrame.Angles(math.rad(90), 0, 0)
+            shell.CFrame = self.viewModelController:getShellSpawnPart().CFrame * CFrame.Angles(math.rad(90), 0, 0)
             shell.Parent = workspace
             --later, incorporate character velocity to adjust force
             local finalPosition = (shell.CFrame * CFrame.new(Vector3.new(-10, 0, 10))).Position --seems to behave like this: Vector3.new(x, z, y)

@@ -228,6 +228,11 @@ function ViewModelController:getMuzzle()
     return self.vmTool:FindFirstChild("Muzzle")
 end
 
+function ViewModelController:getShellSpawnPart()
+    assert(self.vmTool:HasTag("Gun"), self.vmTool.Name .. " doesn't have the \"Gun\" collection tag")
+    return self.vmTool:FindFirstChild("shellSpawnPart")
+end
+
 function ViewModelController:destroy()
     table.clear(self)
     self = nil
