@@ -81,7 +81,6 @@ hotbar.MouseEnter:Connect(function()
     inventoryAndHotbarManager.toggleHotbar(true)
 end)
 hotbar.MouseLeave:Connect(function()
-    currentSlotBeingHovered = nil
     if main.Visible == false then
         inventoryAndHotbarManager.toggleHotbar(false)
     end
@@ -108,7 +107,8 @@ local function initializeSlotIcon(tool : Tool, slot)
     local imageButton : ImageButton = slot:FindFirstChildWhichIsA("ImageButton", true)
     local textButton : TextButton = slot:FindFirstChildWhichIsA("TextButton", true)
     local button
-    local hoverDetection
+    local hoverStartDetection
+    local hoverEndDetection
 
     if tool == nil then
         imageButton.Visible = false
@@ -215,15 +215,27 @@ local function initializeSlotIcon(tool : Tool, slot)
                 connection = nil
                 detectSlotEmpty:Disconnect()
                 detectSlotEmpty = nil
-                hoverDetection:Disconnect()
-                hoverDetection = nil
+                hoverStartDetection:Disconnect()
+                hoverStartDetection = nil
+                hoverEndDetection:Disconnect()
+                hoverEndDetection = nil
             end
         end)
     end
 
-    hoverDetection = slot.MouseEnter:Connect(function()
+    print("connecting hover event for " .. slot.Name)
+    hoverStartDetection = slot.MouseEnter:Connect(function()
         currentSlotBeingHovered = slot
+        print("currentSlotBeingHovered: " .. currentSlotBeingHovered.Name .. " | " .. slot.Name)
     end)
+    hoverEndDetection = slot.MouseLeave:Connect(function()
+        local noQuickHoverChange = currentSlotBeingHovered == slot
+        if noQuickHoverChange then
+            currentSlotBeingHovered = nil
+            print("currentSlotBeingHovered: nil")
+        end
+    end)
+
 
     return slot
 end
@@ -299,11 +311,19 @@ function inventoryAndHotbarManager.toggleInventory(toggle : boolean)
     inventoryAndHotbarManager.toggleHotbar(toggle)
     local newlyCalculatedToggleTime
     if toggle then
+        --[[
+            TODO: inventory quick drop/swap
+            
+            Bind w/ ContextActionService here.
+
+            if input.KeyCode == Enum.KeyCode.X then
+        ]]
         main.Visible = true
         newlyCalculatedToggleTime = toggleTime * (0.5 - main.Size.Y.Scale)
         TweenService:Create(main, TweenInfo.new(newlyCalculatedToggleTime, easingStyle), {Size = UDim2.new(0.5, 0, 0.5, 0)}):Play()
         TweenService:Create(inventoryBlur, TweenInfo.new(newlyCalculatedToggleTime, easingStyle), {Size = 24}):Play()
     else
+        --unbind w/ ContextActionService here.
         newlyCalculatedToggleTime = toggleTime * ( main.Size.Y.Scale - 0)
         TweenService:Create(main, TweenInfo.new(newlyCalculatedToggleTime, easingStyle), {Size = UDim2.new(0.5, 0, 0, 0)}):Play()
         TweenService:Create(inventoryBlur, TweenInfo.new(newlyCalculatedToggleTime, easingStyle), {Size = 0}):Play()

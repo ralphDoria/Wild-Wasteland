@@ -45,11 +45,11 @@ local function updateCachedItems()
 end
 
 local function flashHotbar()
-	print(hotbar.GroupTransparency)
+	--print(hotbar.GroupTransparency)
 	inventoryAndHotbarManager.toggleHotbar(true)
 	task.spawn(function()
 		task.wait(1)
-		print(hotbar.GroupTransparency)
+		--print(hotbar.GroupTransparency)
 		if hotbar.GroupTransparency == 0 and not main.Visible then
 			inventoryAndHotbarManager.toggleHotbar(false)
 		end
