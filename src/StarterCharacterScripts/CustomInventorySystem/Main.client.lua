@@ -78,6 +78,12 @@ backpack.ChildAdded:Connect(function(child)
 	updateCachedItems()
 end)
 
+local function updateGuiAfterDroppedTool(droppedTool : Tool)
+	updateCachedItems()
+	inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(droppedTool), false)
+	inventoryAndHotbarManager.setSlot(nil, inventoryAndHotbarManager.getSlotFromTool(droppedTool))
+end
+
 backpack.ChildRemoved:Connect(function(child)
 	if not child:IsA("Tool") then return end
 
@@ -86,8 +92,7 @@ backpack.ChildRemoved:Connect(function(child)
 		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), true)
 	elseif child.Parent == workspace then
 		--print(child.Name .. " dropped from gui")
-		updateCachedItems()
-		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), false)
+		updateGuiAfterDroppedTool(child)
 	end
 end)
 
@@ -96,9 +101,7 @@ character.ChildRemoved:Connect(function(child)
 
 	if child.Parent == workspace then
 		--print(child.Name .. " dropped from equip")
-		updateCachedItems()
-		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), false)
-		inventoryAndHotbarManager.setSlot(nil, inventoryAndHotbarManager.getSlotFromTool(child))
+		updateGuiAfterDroppedTool(child)
 	end
 end)
 

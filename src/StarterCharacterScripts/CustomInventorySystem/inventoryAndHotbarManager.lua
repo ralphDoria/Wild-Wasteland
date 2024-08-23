@@ -26,6 +26,8 @@ local lerp =  require(game:GetService("ReplicatedStorage"):FindFirstChild("lerp"
 local mouseTrailEffect = require(script.Parent.mouseTrailEffect)
 local ViewportModel = require(ReplicatedStorage:FindFirstChild("ViewportModel", true)) --credit to EgoMoose
 
+local rev_generalToolDrop = ReplicatedStorage.Tools:FindFirstChild("GeneralToolDrop", true)
+
 ----[[ GUI VARIABLES ]]----
 local gui : ScreenGui = player.PlayerGui:WaitForChild("InventoryAndHotbar")
 local forModal : Textbutton = gui:FindFirstChild("ForModal")
@@ -55,7 +57,7 @@ local slotNameToKeybind = {
 
 local currentSlotBeingHovered : typeof(slotTemplate)
 local currentSlotBeingDragged : typeof(slotTemplate)
-local hoveringInInventory : boolean
+local hoveringInInventory : boolean = false
 
 inventory.MouseEnter:Connect(function()
     hoveringInInventory = true
@@ -198,6 +200,9 @@ local function initializeSlotIcon(tool : Tool, slot)
                             elseif currentSlotBeingDragged and hoveringInInventory then
                                 --playSound(swapSound, nil, 0)
                                 inventoryAndHotbarManager.transferSlotToInventory(currentSlotBeingDragged)
+                            elseif currentSlotBeingDragged and hoveringInInventory == false then
+                                print("dropping tool")
+                                rev_generalToolDrop:FireServer(tool)
                             end
                             currentSlotBeingDragged = nil
                         end
