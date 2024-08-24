@@ -59,6 +59,10 @@ local currentSlotBeingHovered : typeof(slotTemplate)
 local currentSlotBeingDragged : typeof(slotTemplate)
 local hoveringInInventory : boolean = false
 
+local hoverColor : Color3 = Color3.fromRGB(123, 0, 255)
+local dragColor : Color3 = Color3.fromRGB(0, 181, 217)   
+local defaultColor : Color3 = Color3.fromRGB(217, 145, 0)
+
 inventory.MouseEnter:Connect(function()
     hoveringInInventory = true
     inventory.MouseLeave:Once(function()
@@ -159,11 +163,12 @@ local function initializeSlotIcon(tool : Tool, slot)
                     --print("drag = true")
                     currentSlotBeingDragged = inventoryAndHotbarManager.getSlotFromTool(tool)
                     dragSlot = slot:Clone()
+                    slot.GroupTransparency = 0.7
                     dragSlot.Parent = gui
                     dragSlot.AnchorPoint = Vector2.new(0.5, 0.5)
                     --dragSlot.GroupTransparency = 0.5
-                    dragSlot:FindFirstChildWhichIsA("UIStroke", true).Color = Color3.fromRGB(0, 181, 217)   
-                    dragSlot:FindFirstChild("Number", true).TextColor3 = Color3.fromRGB(0, 181, 217)  
+                    dragSlot:FindFirstChildWhichIsA("UIStroke", true).Color = dragColor
+                    dragSlot:FindFirstChild("Number", true).TextColor3 = dragColor
                     dragSlot.Position = UDim2.fromOffset(slot.AbsolutePosition.X, slot.AbsolutePosition.Y + if gui.IgnoreGuiInset then game:GetService("GuiService"):GetGuiInset().Y else 0)
                     --mouseTrailEffect.toggleEnabled(true)
                     --[[ for drag sounds
@@ -194,8 +199,10 @@ local function initializeSlotIcon(tool : Tool, slot)
                             dragEndedConnection = nil
                             RunService:UnbindFromRenderStep("DraggingSlot")
                             if dragSlot then dragSlot:Destroy() end
+                            currentSlotBeingDragged.GroupTransparency = 0
                             if currentSlotBeingDragged and currentSlotBeingHovered then
                                 --playSound(swapSound, nil, 0)
+                                print(currentSlotBeingDragged.Name .. " <-->" .. currentSlotBeingHovered.Name)
                                 inventoryAndHotbarManager.swapSlots(currentSlotBeingDragged, currentSlotBeingHovered)
                             elseif currentSlotBeingDragged and hoveringInInventory then
                                 --playSound(swapSound, nil, 0)
@@ -230,12 +237,27 @@ local function initializeSlotIcon(tool : Tool, slot)
 
     --print("connecting hover event for " .. slot.Name)
     hoverStartDetection = slot.MouseEnter:Connect(function()
+        if currentSlotBeingHovered ~= nil then
+            --print("former: " .. currentSlotBeingHovered.Name)
+            local uiStroke = currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true)
+            if uiStroke then
+                --[[
+                When a filled slot is swapped to an empty slot in the hotbar, the two slots actually swap places (parents) and the filled slot is made to look like the hotbar
+                slot, meanwhile the empty hotbar slot is destroyed. For some reason, this "destroyed" slot gets past the "does it exist" check, but the uiStroke "does exist"
+                check catches it. My theory is that when an object is destroyed, it's children are destroyed first before its parents. Wow. that sounds really dark. But it's
+                only a theory.
+                ]]
+                uiStroke.Color = defaultColor
+            end
+        end
         currentSlotBeingHovered = slot
+        slot:FindFirstChildWhichIsA("UIStroke", true).Color = hoverColor
         --print("currentSlotBeingHovered: " .. currentSlotBeingHovered.Name .. " | " .. slot.Name)
     end)
     hoverEndDetection = slot.MouseLeave:Connect(function()
         local noQuickHoverChange = currentSlotBeingHovered == slot
         if noQuickHoverChange then
+            currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true).Color = defaultColor
             currentSlotBeingHovered = nil
             --print("currentSlotBeingHovered: nil")
         end
@@ -369,6 +391,9 @@ end
 function inventoryAndHotbarManager.intitializeHotbar()
     for i = 1, 10, 1 do
         if hotbar:FindFirstChild(i) == nil then
+            inventoryAndHotbarManager.createSlot(nil, "Hotbar", i)
+        else
+            hotbar:FindFirstChild(i):Destroy()
             inventoryAndHotbarManager.createSlot(nil, "Hotbar", i)
         end
     end

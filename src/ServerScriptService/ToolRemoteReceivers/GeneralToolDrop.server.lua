@@ -24,7 +24,13 @@ rev_generalToolDrop.OnServerEvent:Connect(function(player : Player, tool : Tool)
     local toolIsEquipped = tool.Parent == character
     if toolIsEquipped then
         character.Humanoid:UnequipTools()
-        task.wait(0.1) --this is here to ensure that the tool's drop protocol is ran before the tool's scripts get disabled (it's lowkey a workaround, idk if it'll work with lag)
+
+        --[[
+        (The wait line below may just be a workaround & not a permanent solution in all cases)
+        It's here to ensure that the tool's drop protocol is ran before the tool's scripts get disabled
+        ]]
+        task.wait(0.1)
+
     end
     tool.Parent = game.Workspace
     bodyAttach.CFrame = character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
