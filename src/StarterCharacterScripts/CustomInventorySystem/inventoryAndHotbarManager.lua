@@ -58,6 +58,7 @@ local slotNameToKeybind = {
 local currentSlotBeingHovered : typeof(slotTemplate)
 local currentSlotBeingDragged : typeof(slotTemplate)
 local hoveringInInventory : boolean = false
+local hoveringInHotbar : boolean = false
 
 local hoverColor : Color3 = Color3.fromRGB(123, 0, 255)
 local dragColor : Color3 = Color3.fromRGB(0, 181, 217)   
@@ -84,9 +85,11 @@ function inventoryAndHotbarManager.toggleHotbar(toggle : boolean)
     end
 end
 hotbar.MouseEnter:Connect(function()
+    hoveringInHotbar = true
     inventoryAndHotbarManager.toggleHotbar(true)
 end)
 hotbar.MouseLeave:Connect(function()
+    hoveringInHotbar = false
     if main.Visible == false then
         inventoryAndHotbarManager.toggleHotbar(false)
     end
@@ -188,6 +191,18 @@ local function initializeSlotIcon(tool : Tool, slot)
                         print(calculatedVolume)
                         dragSound.Volume = lerp(dragSound.Volume, math.clamp(calculatedVolume, 0.1, 0.3), 0.1)
                         ]]
+                        local dropLabel = dragSlot:FindFirstChild("DropLabel", true)
+                        if not (hoveringInHotbar or hoveringInInventory) then --this means cursor is hovering outside of inventory system
+                            if  not dropLabel.Visible then
+                                dropLabel.Visible = true
+                                --print("making drop arrow visible")
+                            end
+                        else
+                            if dropLabel.Visible then
+                                dropLabel.Visible = false
+                                --print("making drop arrow invisible")
+                            end
+                        end
                     end)
                     local dragEndedConnection
                     dragEndedConnection = UserInputService.InputEnded:Connect(function(inputObject, gameProcessed)
@@ -199,7 +214,6 @@ local function initializeSlotIcon(tool : Tool, slot)
                             dragEndedConnection = nil
                             RunService:UnbindFromRenderStep("DraggingSlot")
                             if dragSlot then dragSlot:Destroy() end
-                            currentSlotBeingDragged.GroupTransparency = 0
                             if currentSlotBeingDragged and currentSlotBeingHovered then
                                 --playSound(swapSound, nil, 0)
                                 print(currentSlotBeingDragged.Name .. " <-->" .. currentSlotBeingHovered.Name)
@@ -211,6 +225,7 @@ local function initializeSlotIcon(tool : Tool, slot)
                                 print("dropping tool")
                                 rev_generalToolDrop:FireServer(tool)
                             end
+                            currentSlotBeingDragged.GroupTransparency = 0
                             currentSlotBeingDragged = nil
                         end
                     end)
