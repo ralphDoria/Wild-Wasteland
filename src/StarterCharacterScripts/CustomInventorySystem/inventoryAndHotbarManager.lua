@@ -228,16 +228,16 @@ local function initializeSlotIcon(tool : Tool, slot)
         end)
     end
 
-    print("connecting hover event for " .. slot.Name)
+    --print("connecting hover event for " .. slot.Name)
     hoverStartDetection = slot.MouseEnter:Connect(function()
         currentSlotBeingHovered = slot
-        print("currentSlotBeingHovered: " .. currentSlotBeingHovered.Name .. " | " .. slot.Name)
+        --print("currentSlotBeingHovered: " .. currentSlotBeingHovered.Name .. " | " .. slot.Name)
     end)
     hoverEndDetection = slot.MouseLeave:Connect(function()
         local noQuickHoverChange = currentSlotBeingHovered == slot
         if noQuickHoverChange then
             currentSlotBeingHovered = nil
-            print("currentSlotBeingHovered: nil")
+            --print("currentSlotBeingHovered: nil")
         end
     end)
 
