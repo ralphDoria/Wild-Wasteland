@@ -116,3 +116,4 @@ inventoryAndHotbarManager.toggleHotbar(false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) --disables Roblox's default backpack
 inventoryAndHotbarManager.initializeKeybindToHotbarSlot()
 inventoryAndHotbarManager.initializeWearablesGui()
+inventoryAndHotbarManager.initializeMisc()

@@ -1,5 +1,9 @@
 local KEY_BIND_INVENTORY = Enum.KeyCode.Tab
 
+----[[ Modules ]]----
+
+local miscManager = require(script.Parent.miscStatsManager)
+
 ----[[ SERVICES ]]----
 local Players = game:GetService("Players") 
 local UserInputService = game:GetService("UserInputService")
@@ -553,6 +557,10 @@ function inventoryAndHotbarManager.transferSlotToInventory(slot : typeof(slotTem
         --change the slot's layout order to be +1 the greatest layout order
         slot.LayoutOrder = getNumberOfInventorySlots() + 1
     end
+end
+
+function inventoryAndHotbarManager.initializeMisc()
+    miscManager.initDisplayAndEvents()
 end
 
 return inventoryAndHotbarManager

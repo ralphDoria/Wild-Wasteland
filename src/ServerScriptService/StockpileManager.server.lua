@@ -72,7 +72,7 @@ end)
 
 
 
-----------------------------------------------------------------
+---------------------------------------------------------------- Code below is for picking up caps/ammo cans & only setting attribute values
 local CollectionService = game:GetService("CollectionService")
 
 local TAG_CURRENCY = "DroppedCurrency"
