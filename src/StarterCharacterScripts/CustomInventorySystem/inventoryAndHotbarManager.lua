@@ -514,10 +514,6 @@ end
 --[[
     Swaps each tool's "HotbarSlot" attribute values and each slot's ObjectValue.Value and ImageButton/TextButton (depending on which is active)
 
-    !!!This function is bugged & what I'm stuck on is how to swap the guiButtons without messing up the event connections. I see 2 potential
-    solutions:
-    1) swap both buttons & see if that fixes it & then fix the logic on disconnecting the button's events when the slot's object value changes.
-    2) delete & reconstruct the slots (this one might be easier, but may be more work on the client [by very slightly])
 ]]
 function inventoryAndHotbarManager.swapSlots(firstSlot, secondSlot) 
     if firstSlot == secondSlot then
@@ -560,7 +556,7 @@ function inventoryAndHotbarManager.transferSlotToInventory(slot : typeof(slotTem
 end
 
 function inventoryAndHotbarManager.initializeMisc()
-    miscManager.initDisplayAndEvents()
+    miscManager.init()
 end
 
 return inventoryAndHotbarManager
