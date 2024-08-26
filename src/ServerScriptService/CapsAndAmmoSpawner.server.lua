@@ -1,6 +1,8 @@
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local rev_singleSpawn = ReplicatedStorage:FindFirstChild("SingleSpawn", true)
+
 local TAG_CURRENCY = "DroppedCurrency"
 local TAG_AMMO = "DroppedAmmo"
 
@@ -93,3 +95,24 @@ for count = 0, 500, 1 do
     model:PivotTo(spawnLocation + (spawnLocation.UpVector * (model.PrimaryPart.Size.Y/2)))
     model.Parent = spawnArea.Parent
 end
+
+local function visualizeCFrame(cframe : CFrame)
+    local part = Instance.new("Part")
+    part.Anchored = true
+    part.Color = Color3.new(1, 0.231372, 0.231372)
+    part.Size = Vector3.new(0.5, 0.5, 0.5)
+    part.CFrame = cframe
+    part.Parent = workspace
+end
+
+rev_singleSpawn.OnServerEvent:Connect(function(player, position : Vector3, normal : Vector3, tagName : string, amount : number)
+    print("received request to spawn " .. amount .. " " .. tagName)
+    player:SetAttribute(tagName, player:GetAttribute(tagName) - amount)
+    local spawnLocation : CFrame = CFrame.lookAlong(position, normal) * CFrame.Angles(math.rad(-   90), 0, 0)
+    --visualizeCFrame(spawnLocation)
+    local model : Model = if tagName == "Caps" then lootCatalog.bottleCapPile.model:Clone() else lootCatalog.ammoCan.model:Clone()
+    model:SetAttribute("Amount", amount)
+    CollectionService:AddTag(model, tagName)
+    model:PivotTo(spawnLocation + (spawnLocation.UpVector * (model.PrimaryPart.Size.Y/2)))
+    model.Parent = workspace
+end)

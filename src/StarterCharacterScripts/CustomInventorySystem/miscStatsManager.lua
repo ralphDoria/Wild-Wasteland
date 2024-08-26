@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local playerStatsInfo = require(ReplicatedStorage:FindFirstChild("PlayerStatsInfo", true))
 
 local rev_statChangeSound = game:GetService("ReplicatedStorage"):FindFirstChild("StatChangeSound", true)
+local rev_singleSpawn = ReplicatedStorage:FindFirstChild("SingleSpawn", true)
 
 local tweenTime = 2
 local ti = TweenInfo.new(tweenTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
@@ -91,6 +92,27 @@ local function stripNonNumbers(textBox : TextBox)
 	textBox.Text = textBox.Text:gsub("%D","")
 end
 
+local blacklistedParts = {}
+local function castRay(originPosition : Vector3, targetPosition : Vector3)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.IgnoreWater = true
+
+    local rayMaxDistance : number = 250
+    local rayDirection : Vector3 = (targetPosition - originPosition).Unit * rayMaxDistance
+
+    local raycastResult : RaycastResult = workspace:Raycast(originPosition, rayDirection, raycastParams)
+
+    if raycastResult ~= nil and raycastResult.Instance.Parent:FindFirstChild("Humanoid") then
+        table.insert(blacklistedParts, raycastResult.Instance.Parent)
+        raycastParams.FilterDescendantsInstances = blacklistedParts
+        --print("recursion 2")
+        return castRay()
+    else
+        return raycastResult
+    end
+end
+
 function misc.initButtons()
     for _, v in amountDisplayLabels do
         local statName = v.Parent.Name
@@ -141,11 +163,14 @@ function misc.initButtons()
                     closeDelay = 0
                 else
                     closeDelay = 0.5
-                    if player:GetAttribute(statName) >= numberInput then
+                    local originPosition : Vector3 = (player.character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)).Position
+                    local raycastResult = castRay(originPosition, originPosition + Vector3.new(0, -500, 0))
+                    if player:GetAttribute(statName) >= numberInput and raycastResult then
                         --fire remote event to change attribute
                         inputBox.Text = "Success"
                         inputBox.TextColor3 = Color3.fromRGB(0, 255, 13)
                         cooldown = 5
+                        rev_singleSpawn:FireServer(raycastResult.Position, raycastResult.Normal, statName, numberInput)
                     else
                         inputBox.Text = "Error"
                         inputBox.TextColor3 = Color3.fromRGB(255, 0, 0)
