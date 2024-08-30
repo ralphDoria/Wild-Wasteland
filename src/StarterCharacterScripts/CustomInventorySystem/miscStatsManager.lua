@@ -30,6 +30,61 @@ function misc.init()
     misc.initButtons()
 end
 
+local function truncate(num, decimalPlaces : number)
+    if num%1 == 0 then return num end
+    local decimalPosition = string.find(tostring(num), ".")
+    return tonumber(string.sub(tostring(num), 1, decimalPosition + 1 + decimalPlaces))
+end
+
+--[[
+abbreviates numbers
+]]
+local function numberAbbreviator(num : number)
+    warn("number abbreviator is bugged for now (at least when number is below a certain value")
+    --[[
+    1,000,000 - 1B
+    ]]
+    local K = 1_000
+    local M = 1_000_000
+    local B = 1_000_000_000
+
+    local abbreviatorsGreatestToLeast = {
+        [1] = {B, "B"},
+        [2] = {M, "M"},
+        [3] = {K, "K"}
+    }
+
+    for _, v in abbreviatorsGreatestToLeast do
+        local shortened : number = truncate(num/v[1], 1)
+        print(shortened)
+        print("---")
+        local abbreviator : string = v[2]
+        if shortened >= 1 then
+            if shortened < 10 then
+                return tostring(shortened) .. abbreviator
+            else
+                return tostring(math.round(shortened - 0.5)) .. abbreviator --round down 
+            end
+        end
+    end
+
+    return nil
+end
+
+--[[
+Puts commas in large numbers, for when hovering to reveal what's behind the abbreviated number
+]]
+function comma_value(amount)
+    local formatted = amount
+    while true do  
+      formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
+      if (k==0) then
+        break
+      end
+    end
+    return formatted
+  end
+
 function misc.initDisplayAndUpdateEvents()
     --[[
         TODO: Make a "item added to inventory" indicator on the middle left of the player's screen that stacks labels & quickly fades them out
@@ -51,7 +106,8 @@ function misc.initDisplayAndUpdateEvents()
     ]]
 
     local function updateBillboardGui(stat, amountGained : number, newAmount : number)
-        amountDisplayLabels[stat.name].Text = newAmount
+        local abbreviated = numberAbbreviator(newAmount)
+        amountDisplayLabels[stat.name].Text = if abbreviated then abbreviated else newAmount
         --[[
         if amountGained > 0 then
             gainedResourceEffect(stat, amountGained)
