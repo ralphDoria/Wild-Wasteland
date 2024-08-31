@@ -1,5 +1,6 @@
 local player = game:GetService("Players").LocalPlayer
 
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -37,13 +38,9 @@ local function truncate(num, decimalPlaces : number)
 end
 
 --[[
-abbreviates numbers
+    Abbreviates numbers, only handles numbers below 1 Trillion
 ]]
 local function numberAbbreviator(num : number)
-    warn("number abbreviator is bugged for now (at least when number is below a certain value")
-    --[[
-    1,000,000 - 1B
-    ]]
     local K = 1_000
     local M = 1_000_000
     local B = 1_000_000_000
@@ -55,9 +52,9 @@ local function numberAbbreviator(num : number)
     }
 
     for _, v in abbreviatorsGreatestToLeast do
-        local shortened : number = truncate(num/v[1], 1)
-        print(shortened)
-        print("---")
+        local preTruncate : number = tonumber(string.format("%f", num/v[1]))
+        local shortened : number = truncate(preTruncate, 1)
+        --print(preTruncate .. " --> " .. shortened)
         local abbreviator : string = v[2]
         if shortened >= 1 then
             if shortened < 10 then
@@ -74,16 +71,18 @@ end
 --[[
 Puts commas in large numbers, for when hovering to reveal what's behind the abbreviated number
 ]]
-function comma_value(amount)
+local function comma_value(amount)
     local formatted = amount
+    local k
     while true do  
-      formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
-      if (k==0) then
-        break
-      end
+        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
+        if k==0 then
+            break
+        end
     end
+
     return formatted
-  end
+end
 
 function misc.initDisplayAndUpdateEvents()
     --[[
@@ -133,12 +132,31 @@ function misc.initDisplayAndUpdateEvents()
         [playerStatsInfo.ATTRIBUTE_ENERGY_AMMO.name] = player:GetAttribute(playerStatsInfo.ATTRIBUTE_ENERGY_AMMO.name)
     }
 
-    for _, stat in playerStatsInfo.getAll() do
+    for _, stat in playerStatsInfo.getAll() do        
         player:GetAttributeChangedSignal(stat.name):Connect(function()
             local newAmount : number = player:GetAttribute(stat.name)
             local amountGained : number = player:GetAttribute(stat.name) - lastCachedAmounts[stat.name]
             updateBillboardGui(stat, amountGained, newAmount)
             lastCachedAmounts[stat.name] = newAmount
+        end)
+
+        --when hovering over an ammount label, these events below display the actual ammount (not abbreviated)
+        amountDisplayLabels[stat.name].MouseEnter:Connect(function()
+            local mouse : Mouse= player:GetMouse()
+            local hoverFrame : Frame = gui:FindFirstChild("statsHoevrInfo", true):Clone()
+            local label : TextLabel = hoverFrame:FindFirstChildOfClass("TextLabel")
+            label.Text = comma_value(player:GetAttribute(stat.name))
+            hoverFrame.Parent = gui
+            local hover = RunService.RenderStepped:Connect(function()
+                hoverFrame.Position = UDim2.fromOffset(mouse.X, mouse.Y - hoverFrame.AbsoluteSize.Y + if gui.IgnoreGuiInset then game:GetService("GuiService"):GetGuiInset().Y else 0)
+            end)
+            amountDisplayLabels[stat.name].MouseLeave:Once(function()
+                if hover then
+                    hover:Disconnect()
+                    hover = nil
+                    hoverFrame:Destroy()
+                end
+            end)
         end)
     end
 end
