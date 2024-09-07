@@ -113,6 +113,17 @@ end
 function inventoryAndHotbarManager.initializeWearablesGui()
 end
 
+local function createHoverInfoDisplay(tool : Tool)
+    local hoverInfoDisplay = gui:FindFirstChild("itemInfoDisplayTemplate", true):Clone()
+    hoverInfoDisplay.Name = tool.Name    
+    hoverInfoDisplay:FindFirstChildOfClass("TextLabel").Text = tool.Name
+    hoverInfoDisplay:FindFirstChildWhichIsA("TextBox", true).Text = "This is a test description. a tool typically used for chopping wood, usually a steel blade attached at a right angle to a wooden handle."
+    hoverInfoDisplay.Visible = false
+    hoverInfoDisplay.Parent = gui
+
+    return hoverInfoDisplay
+end
+
 --[[
     Has slot use TextButton or ImageButton based on whether the tool has a TextureId property that isn't nil.
 ]]
@@ -121,7 +132,8 @@ local function initializeSlotIcon(tool : Tool, slot)
     local textButton : TextButton = slot:FindFirstChildWhichIsA("TextButton", true)
     local button
     local hoverStartDetection
-    local hoverInfo
+    local hoverEndDetection
+    local hoverInfoRunService
 
     if tool == nil then
         imageButton.Visible = false
@@ -248,22 +260,19 @@ local function initializeSlotIcon(tool : Tool, slot)
                 detectSlotEmpty = nil
                 hoverStartDetection:Disconnect()
                 hoverStartDetection = nil
+                hoverEndDetection:Disconnect()
+                hoverEndDetection = nil
             end
         end)
     end
 
+    --[[
     --print("connecting hover event for " .. slot.Name)
     hoverStartDetection = slot.MouseEnter:Connect(function()
         if currentSlotBeingHovered ~= nil then
             --print("former: " .. currentSlotBeingHovered.Name)
             local uiStroke = currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true)
             if uiStroke then
-                --[[
-                When a filled slot is swapped to an empty slot in the hotbar, the two slots actually swap places (parents) and the filled slot is made to look like the hotbar
-                slot, meanwhile the empty hotbar slot is destroyed. For some reason, this "destroyed" slot gets past the "does it exist" check, but the uiStroke "does exist"
-                check catches it. My theory is that when an object is destroyed, it's children are destroyed first before its parents. Wow. that sounds really dark. But it's
-                only a theory.
-                ]]
                 uiStroke.Color = defaultColor
             end
 
@@ -273,6 +282,7 @@ local function initializeSlotIcon(tool : Tool, slot)
                 itemInfoDisplay.Name = tool.Name    
                 itemInfoDisplay:FindFirstChildOfClass("TextLabel").Text = tool.Name
                 itemInfoDisplay:FindFirstChildWhichIsA("TextBox", true).Text = "This is a test description. a tool typically used for chopping wood, usually a steel blade attached at a right angle to a wooden handle."
+                itemInfoDisplay.Visible = true
                 itemInfoDisplay.Parent = gui
                 local mouse = player:GetMouse()
                 hoverInfo = RunService.RenderStepped:Connect(function()
@@ -301,7 +311,58 @@ local function initializeSlotIcon(tool : Tool, slot)
         slot:FindFirstChildWhichIsA("UIStroke", true).Color = hoverColor
         --print("currentSlotBeingHovered: " .. currentSlotBeingHovered.Name .. " | " .. slot.Name)
     end)
+    ]]
 
+    local hoverInfoDisplay
+    --print("connecting hover event for " .. slot.Name)
+    hoverStartDetection = slot.MouseEnter:Connect(function()
+        if currentSlotBeingHovered ~= nil then
+            --print("former: " .. currentSlotBeingHovered.Name)
+            local uiStroke = currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true)
+            if uiStroke then
+                --[[
+                When a filled slot is swapped to an empty slot in the hotbar, the two slots actually swap places (parents) and the filled slot is made to look like the hotbar
+                slot, meanwhile the empty hotbar slot is destroyed. For some reason, this "destroyed" slot gets past the "does it exist" check, but the uiStroke "does exist"
+                check catches it. My theory is that when an object is destroyed, it's children are destroyed first before its parents. Wow. that sounds really dark. But it's
+                only a theory.
+                ]]
+                uiStroke.Color = defaultColor
+            end
+        end
+        currentSlotBeingHovered = slot
+        slot:FindFirstChildWhichIsA("UIStroke", true).Color = hoverColor
+        --print("currentSlotBeingHovered: " .. currentSlotBeingHovered.Name .. " | " .. slot.Name)
+
+        if currentSlotBeingHovered:FindFirstChildOfClass("ObjectValue").Value ~= nil then
+            print("creating hover info")
+            hoverInfoDisplay = createHoverInfoDisplay(currentSlotBeingHovered:FindFirstChildOfClass("ObjectValue").Value)
+            hoverInfoDisplay.Parent = nil
+            hoverInfoDisplay.Visible = true
+            local mouse = player:GetMouse()
+            hoverInfoRunService = RunService.RenderStepped:Connect(function()
+                hoverInfoDisplay.Position = UDim2.fromOffset(mouse.X, mouse.Y - hoverInfoDisplay.AbsoluteSize.Y + if gui.IgnoreGuiInset then game:GetService("GuiService"):GetGuiInset().Y else 0)
+                if hoverInfoDisplay.Parent == nil then
+                    hoverInfoDisplay.Parent = gui
+                end        
+            end)
+        end
+    end)
+    hoverEndDetection = slot.MouseLeave:Connect(function()
+        local noQuickHoverChange = currentSlotBeingHovered == slot
+        if noQuickHoverChange then
+            currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true).Color = defaultColor
+            currentSlotBeingHovered = nil
+            --print("currentSlotBeingHovered: nil")
+        end
+
+        if hoverInfoDisplay ~= nil then
+            print("destroying hover info")
+            hoverInfoDisplay:Destroy()
+            hoverInfoDisplay = nil
+            hoverInfoRunService:Disconnect()
+            hoverInfoRunService = nil
+        end
+    end)
 
     return slot
 end

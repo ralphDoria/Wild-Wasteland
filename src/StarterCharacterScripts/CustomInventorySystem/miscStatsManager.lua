@@ -146,6 +146,7 @@ function misc.initDisplayAndUpdateEvents()
             local hoverFrame : Frame = gui:FindFirstChild("statsHoevrInfo", true):Clone()
             local label : TextLabel = hoverFrame:FindFirstChildOfClass("TextLabel")
             label.Text = comma_value(player:GetAttribute(stat.name))
+            hoverFrame.Visible = true
             hoverFrame.Parent = gui
             local hover = RunService.RenderStepped:Connect(function()
                 hoverFrame.Position = UDim2.fromOffset(mouse.X, mouse.Y - hoverFrame.AbsoluteSize.Y + if gui.IgnoreGuiInset then game:GetService("GuiService"):GetGuiInset().Y else 0)
