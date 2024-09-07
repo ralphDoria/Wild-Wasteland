@@ -22,6 +22,7 @@ local viewportCharacter = ReplicatedStorage:FindFirstChild("WearablesViewportCha
 
 local UserInputService = game:GetService("UserInputService")
 local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
 local dragSound : Sound = SoundService:FindFirstChild("dragSound", true)
 local swapSound : Sound = SoundService:FindFirstChild("swapSound", true)
 local playSound = require(game:GetService("ReplicatedStorage"):FindFirstChild("PlaySoundUtil", true))
@@ -42,6 +43,8 @@ local viewportFrame : ViewportFrame = wearables:FindFirstChildOfClass("ViewportF
 local hotbar : CanvasGroup = gui:FindFirstChild("Hotbar", true) -- the hotbar frame
 local slotTemplate : CanvasGroup = gui:FindFirstChild("slotTemplate", true)
 local inventoryBlur = game:GetService("Lighting"):FindFirstChild("inventoryBlur")
+local updateLog : CanvasGroup = gui:FindFirstChild("updateLog")
+local updateLogTemplate : TextLabel = updateLog:FindFirstChild("Template")
 
 --[[ Array
 ]]
@@ -269,7 +272,6 @@ local function initializeSlotIcon(tool : Tool, slot)
     local hoverInfoDisplay
     --print("connecting hover event for " .. slot.Name)
     hoverStartDetection = slot.MouseEnter:Connect(function()
-        print("Mouse entered slot " .. slot.Name)
         if currentSlotBeingHovered ~= nil then
             --print("former: " .. currentSlotBeingHovered.Name)
             local uiStroke = currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true)
@@ -299,7 +301,6 @@ local function initializeSlotIcon(tool : Tool, slot)
         end
     end)
     hoverEndDetection = slot.MouseLeave:Connect(function()
-        print("Mouse exitted slot " .. slot.Name)
         local noQuickHoverChange = currentSlotBeingHovered == slot
         if noQuickHoverChange then
             currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true).Color = defaultColor
@@ -598,6 +599,55 @@ end
 
 function inventoryAndHotbarManager.initializeMisc()
     miscManager.init()
+end
+
+local numberOfEntries : number = 0
+function inventoryAndHotbarManager.addToUpdateLog(addedToInventory : boolean, item)
+    local tweenTime = 0.2
+    local logEntry : TextLabel = updateLogTemplate:Clone()
+    numberOfEntries += 1
+    local itemName
+    if item:IsA("Tool") then
+        itemName = item.Name
+    elseif type(item) == "string" then --for untangibles, such as bullets or caps
+        itemName = item
+    end
+    if addedToInventory then
+        logEntry.Text = " + " .. itemName --experiment w/ Rich Text Later
+    else
+        logEntry.Text = " - " .. itemName
+    end
+    logEntry.Visible = true
+    logEntry.Parent = updateLog
+    logEntry.Name = tostring(numberOfEntries)
+    for _, entry in updateLog:GetChildren() do
+        if entry ~= logEntry and entry ~= updateLogTemplate and entry:IsA("UIGradient") == false then
+            local layoutOrder = numberOfEntries - tonumber(entry.Name)
+            --[[
+            if layoutOrder > 3 then
+                task.defer(function()
+                    entry:Destroy()
+                end)
+            else
+                local targetPosition = UDim2.fromOffset(0, updateLogTemplate.AbsoluteSize.Y * layoutOrder)
+                TweenService:Create(entry, TweenInfo.new(tweenTime), {Position = targetPosition}):Play()
+            end
+            ]]
+            local targetPosition = UDim2.fromOffset(0, updateLogTemplate.AbsoluteSize.Y * layoutOrder)
+            if targetPosition.Y.Offset > 120 then
+                entry:Destroy()
+            else
+                TweenService:Create(entry, TweenInfo.new(tweenTime), {Position = targetPosition}):Play()
+            end
+        end
+    end
+    logEntry.Position = UDim2.fromScale(-1, 0)
+    TweenService:Create(logEntry, TweenInfo.new(tweenTime), {Position = UDim2.new(0, 0, 0, 0)}):Play()
+    task.spawn(function()
+        task.wait(1)
+        --fade out tween
+        --destroy entry
+    end)
 end
 
 return inventoryAndHotbarManager

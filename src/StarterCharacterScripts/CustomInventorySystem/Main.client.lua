@@ -65,6 +65,7 @@ backpack.ChildAdded:Connect(function(child)
 		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), false)
 	else
 		--print(child.Name .. " was added to inventory")
+		inventoryAndHotbarManager.addToUpdateLog(true, child)
 		local emptyHotbarSlot = inventoryAndHotbarManager.findMinimumEmptyHotbarSlot()
 		if emptyHotbarSlot then
 			--adding item to hotbar
@@ -93,6 +94,7 @@ backpack.ChildRemoved:Connect(function(child)
 		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), true)
 	elseif child.Parent == workspace then
 		--print(child.Name .. " dropped from gui")
+		inventoryAndHotbarManager.addToUpdateLog(false, child)
 		updateGuiAfterDroppedTool(child)
 	end
 end)
@@ -102,6 +104,7 @@ character.ChildRemoved:Connect(function(child)
 
 	if child.Parent == workspace then
 		--print(child.Name .. " dropped from equip")
+		inventoryAndHotbarManager.addToUpdateLog(false, child)
 		updateGuiAfterDroppedTool(child)
 	end
 end)
