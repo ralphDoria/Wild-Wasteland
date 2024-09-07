@@ -121,7 +121,7 @@ local function initializeSlotIcon(tool : Tool, slot)
     local textButton : TextButton = slot:FindFirstChildWhichIsA("TextButton", true)
     local button
     local hoverStartDetection
-    local hoverEndDetection
+    local hoverInfo
 
     if tool == nil then
         imageButton.Visible = false
@@ -248,8 +248,6 @@ local function initializeSlotIcon(tool : Tool, slot)
                 detectSlotEmpty = nil
                 hoverStartDetection:Disconnect()
                 hoverStartDetection = nil
-                hoverEndDetection:Disconnect()
-                hoverEndDetection = nil
             end
         end)
     end
@@ -268,18 +266,40 @@ local function initializeSlotIcon(tool : Tool, slot)
                 ]]
                 uiStroke.Color = defaultColor
             end
+
+            local itemInfoDisplay : Frame
+            if tool then
+                itemInfoDisplay = gui:FindFirstChild("itemInfoDisplayTemplate", true):Clone()
+                itemInfoDisplay.Name = tool.Name    
+                itemInfoDisplay:FindFirstChildOfClass("TextLabel").Text = tool.Name
+                itemInfoDisplay:FindFirstChildWhichIsA("TextBox", true).Text = "This is a test description. a tool typically used for chopping wood, usually a steel blade attached at a right angle to a wooden handle."
+                itemInfoDisplay.Parent = gui
+                local mouse = player:GetMouse()
+                hoverInfo = RunService.RenderStepped:Connect(function()
+                    itemInfoDisplay.Position = UDim2.fromOffset(mouse.X, mouse.Y - itemInfoDisplay.AbsoluteSize.Y + if gui.IgnoreGuiInset then game:GetService("GuiService"):GetGuiInset().Y else 0)
+                end)
+            end
+            slot.MouseLeave:Once(function()
+                local noQuickHoverChange = currentSlotBeingHovered == slot
+                if noQuickHoverChange then
+                    print("test change")
+                    currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true).Color = defaultColor
+                    currentSlotBeingHovered = nil
+                    --print("currentSlotBeingHovered: nil")
+                end
+
+                if tool then
+                    if hoverInfo then
+                        hoverInfo:Disconnect()
+                        hoverInfo = nil
+                        itemInfoDisplay:Destroy()
+                    end 
+                end
+            end)
         end
         currentSlotBeingHovered = slot
         slot:FindFirstChildWhichIsA("UIStroke", true).Color = hoverColor
         --print("currentSlotBeingHovered: " .. currentSlotBeingHovered.Name .. " | " .. slot.Name)
-    end)
-    hoverEndDetection = slot.MouseLeave:Connect(function()
-        local noQuickHoverChange = currentSlotBeingHovered == slot
-        if noQuickHoverChange then
-            currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true).Color = defaultColor
-            currentSlotBeingHovered = nil
-            --print("currentSlotBeingHovered: nil")
-        end
     end)
 
 
