@@ -117,9 +117,9 @@ local function createHoverInfoDisplay(tool : Tool)
     local hoverInfoDisplay = gui:FindFirstChild("itemInfoDisplayTemplate", true):Clone()
     hoverInfoDisplay.Name = tool.Name    
     hoverInfoDisplay:FindFirstChildOfClass("TextLabel").Text = tool.Name
-    hoverInfoDisplay:FindFirstChildWhichIsA("TextBox", true).Text = "This is a test description. a tool typically used for chopping wood, usually a steel blade attached at a right angle to a wooden handle."
-    hoverInfoDisplay.Visible = false
-    hoverInfoDisplay.Parent = gui
+    hoverInfoDisplay:FindFirstChildWhichIsA("TextBox", true).Text = "This is a test description. Stats may be contained here, lore info about the weapon, or maybe a combination of both."
+    hoverInfoDisplay:FindFirstChildWhichIsA("TextBox", true).TextWrapped = true
+    hoverInfoDisplay.Visible = true
 
     return hoverInfoDisplay
 end
@@ -266,56 +266,10 @@ local function initializeSlotIcon(tool : Tool, slot)
         end)
     end
 
-    --[[
-    --print("connecting hover event for " .. slot.Name)
-    hoverStartDetection = slot.MouseEnter:Connect(function()
-        if currentSlotBeingHovered ~= nil then
-            --print("former: " .. currentSlotBeingHovered.Name)
-            local uiStroke = currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true)
-            if uiStroke then
-                uiStroke.Color = defaultColor
-            end
-
-            local itemInfoDisplay : Frame
-            if tool then
-                itemInfoDisplay = gui:FindFirstChild("itemInfoDisplayTemplate", true):Clone()
-                itemInfoDisplay.Name = tool.Name    
-                itemInfoDisplay:FindFirstChildOfClass("TextLabel").Text = tool.Name
-                itemInfoDisplay:FindFirstChildWhichIsA("TextBox", true).Text = "This is a test description. a tool typically used for chopping wood, usually a steel blade attached at a right angle to a wooden handle."
-                itemInfoDisplay.Visible = true
-                itemInfoDisplay.Parent = gui
-                local mouse = player:GetMouse()
-                hoverInfo = RunService.RenderStepped:Connect(function()
-                    itemInfoDisplay.Position = UDim2.fromOffset(mouse.X, mouse.Y - itemInfoDisplay.AbsoluteSize.Y + if gui.IgnoreGuiInset then game:GetService("GuiService"):GetGuiInset().Y else 0)
-                end)
-            end
-            slot.MouseLeave:Once(function()
-                local noQuickHoverChange = currentSlotBeingHovered == slot
-                if noQuickHoverChange then
-                    print("test change")
-                    currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true).Color = defaultColor
-                    currentSlotBeingHovered = nil
-                    --print("currentSlotBeingHovered: nil")
-                end
-
-                if tool then
-                    if hoverInfo then
-                        hoverInfo:Disconnect()
-                        hoverInfo = nil
-                        itemInfoDisplay:Destroy()
-                    end 
-                end
-            end)
-        end
-        currentSlotBeingHovered = slot
-        slot:FindFirstChildWhichIsA("UIStroke", true).Color = hoverColor
-        --print("currentSlotBeingHovered: " .. currentSlotBeingHovered.Name .. " | " .. slot.Name)
-    end)
-    ]]
-
     local hoverInfoDisplay
     --print("connecting hover event for " .. slot.Name)
     hoverStartDetection = slot.MouseEnter:Connect(function()
+        print("Mouse entered slot " .. slot.Name)
         if currentSlotBeingHovered ~= nil then
             --print("former: " .. currentSlotBeingHovered.Name)
             local uiStroke = currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true)
@@ -332,12 +286,9 @@ local function initializeSlotIcon(tool : Tool, slot)
         currentSlotBeingHovered = slot
         slot:FindFirstChildWhichIsA("UIStroke", true).Color = hoverColor
         --print("currentSlotBeingHovered: " .. currentSlotBeingHovered.Name .. " | " .. slot.Name)
-
         if currentSlotBeingHovered:FindFirstChildOfClass("ObjectValue").Value ~= nil then
-            print("creating hover info")
+            --print("creating hover info")
             hoverInfoDisplay = createHoverInfoDisplay(currentSlotBeingHovered:FindFirstChildOfClass("ObjectValue").Value)
-            hoverInfoDisplay.Parent = nil
-            hoverInfoDisplay.Visible = true
             local mouse = player:GetMouse()
             hoverInfoRunService = RunService.RenderStepped:Connect(function()
                 hoverInfoDisplay.Position = UDim2.fromOffset(mouse.X, mouse.Y - hoverInfoDisplay.AbsoluteSize.Y + if gui.IgnoreGuiInset then game:GetService("GuiService"):GetGuiInset().Y else 0)
@@ -348,6 +299,7 @@ local function initializeSlotIcon(tool : Tool, slot)
         end
     end)
     hoverEndDetection = slot.MouseLeave:Connect(function()
+        print("Mouse exitted slot " .. slot.Name)
         local noQuickHoverChange = currentSlotBeingHovered == slot
         if noQuickHoverChange then
             currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true).Color = defaultColor
@@ -356,7 +308,7 @@ local function initializeSlotIcon(tool : Tool, slot)
         end
 
         if hoverInfoDisplay ~= nil then
-            print("destroying hover info")
+            --print("destroying hover info")
             hoverInfoDisplay:Destroy()
             hoverInfoDisplay = nil
             hoverInfoRunService:Disconnect()
@@ -501,6 +453,14 @@ function inventoryAndHotbarManager.intitializeHotbar()
 end
 
 function inventoryAndHotbarManager.setSlot(passedTool : Tool, slot)
+    print(slot.Name)
+
+    --this disconnects all events associated with a potentially empty hotbar slot
+    local slotWithoutConnections = slot:Clone()
+    slotWithoutConnections.Parent = slot.Parent
+    slot:Destroy()
+    slot = slotWithoutConnections
+
     initializeSlotIcon(passedTool, slot)
     local isHotbarSlot = slot:FindFirstChild("Number", true).Visible
     local objectValue : ObjectValue = slot:FindFirstChildOfClass("ObjectValue")

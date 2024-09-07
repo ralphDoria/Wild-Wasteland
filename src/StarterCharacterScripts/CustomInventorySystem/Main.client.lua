@@ -68,6 +68,7 @@ backpack.ChildAdded:Connect(function(child)
 		local emptyHotbarSlot = inventoryAndHotbarManager.findMinimumEmptyHotbarSlot()
 		if emptyHotbarSlot then
 			--adding item to hotbar
+			print("empty hotbar slot: " .. emptyHotbarSlot.Name)
 			inventoryAndHotbarManager.setSlot(child, emptyHotbarSlot)
 			flashHotbar()
 		else
