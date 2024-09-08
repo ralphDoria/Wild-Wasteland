@@ -14,6 +14,7 @@ local ti = TweenInfo.new(tweenTime, Enum.EasingStyle.Quad, Enum.EasingDirection.
 
 --gui instance references
 local gui : ScreenGui = player.PlayerGui:WaitForChild("InventoryAndHotbar")  
+local updateMisc : BindableEvent = gui:FindFirstChildWhichIsA("BindableEvent", true)
 local miscFrame : Frame = gui:FindFirstChild("misc", true)
 local amountDisplayLabels = {
     [playerStatsInfo.ATTRIBUTE_CAPS.name] = miscFrame.Caps.Amount,
@@ -85,24 +86,6 @@ local function comma_value(amount)
 end
 
 function misc.initDisplayAndUpdateEvents()
-    --[[
-        TODO: Make a "item added to inventory" indicator on the middle left of the player's screen that stacks labels & quickly fades them out
-        if there are multiple. Have it react to any item added to inventory, not just caps & ammo.
-    ]]
-    --local gainedResourceIndicator : CanvasGroup = gui.StorageButton:FindFirstChild("Gain", true)
-
-    --functions for updating gui
-    --[[
-    local function gainedResourceEffect(stat, amountGained : number)
-        local x : Frame = gainedResourceIndicator:Clone()
-        x.Visible = true
-        x.Icon.Image = stat.icon
-        x.Amount.Text = "+" .. tostring(amountGained)
-        x.Parent = gainedResourceIndicator.Parent
-        TweenService:Create(x, ti, {GroupTransparency = 1}):Play()
-        Debris:AddItem(x, tweenTime)
-    end
-    ]]
 
     local function updateBillboardGui(stat, amountGained : number, newAmount : number)
         local abbreviated = numberAbbreviator(newAmount)
@@ -136,6 +119,7 @@ function misc.initDisplayAndUpdateEvents()
         player:GetAttributeChangedSignal(stat.name):Connect(function()
             local newAmount : number = player:GetAttribute(stat.name)
             local amountGained : number = player:GetAttribute(stat.name) - lastCachedAmounts[stat.name]
+            updateMisc:Fire(stat.name, amountGained)
             updateBillboardGui(stat, amountGained, newAmount)
             lastCachedAmounts[stat.name] = newAmount
         end)

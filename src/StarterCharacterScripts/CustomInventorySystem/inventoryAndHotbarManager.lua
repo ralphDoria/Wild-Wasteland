@@ -454,8 +454,6 @@ function inventoryAndHotbarManager.intitializeHotbar()
 end
 
 function inventoryAndHotbarManager.setSlot(passedTool : Tool, slot)
-    print(slot.Name)
-
     --this disconnects all events associated with a potentially empty hotbar slot
     local slotWithoutConnections = slot:Clone()
     slotWithoutConnections.Parent = slot.Parent
@@ -606,16 +604,14 @@ function inventoryAndHotbarManager.addToUpdateLog(addedToInventory : boolean, it
     local tweenTime = 0.2
     local logEntry : TextLabel = updateLogTemplate:Clone()
     numberOfEntries += 1
-    local itemName
-    if item:IsA("Tool") then
-        itemName = item.Name
-    elseif type(item) == "string" then --for untangibles, such as bullets or caps
-        itemName = item
-    end
-    if addedToInventory then
-        logEntry.Text = " + " .. itemName --experiment w/ Rich Text Later
+    if type(item) == "string" then
+        logEntry.Text = item
     else
-        logEntry.Text = " - " .. itemName
+        if addedToInventory then
+            logEntry.Text = " + " .. item.Name --experiment w/ Rich Text Later
+        else
+            logEntry.Text = " - " .. item.Name
+        end
     end
     logEntry.Visible = true
     logEntry.Parent = updateLog
@@ -645,8 +641,7 @@ function inventoryAndHotbarManager.addToUpdateLog(addedToInventory : boolean, it
     TweenService:Create(logEntry, TweenInfo.new(tweenTime), {Position = UDim2.new(0, 0, 0, 0)}):Play()
     task.spawn(function()
         task.wait(1)
-        --fade out tween
-        --destroy entry
+        TweenService:Create(logEntry, TweenInfo.new(1), {TextTransparency = 1}):Play()
     end)
 end
 

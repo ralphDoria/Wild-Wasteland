@@ -2,9 +2,16 @@ local KEY_BIND_INVENTORY = Enum.KeyCode.Tab
 
 ----[[VARIABLES]]----
 local Players = game:GetService("Players") 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local StarterGui = game:GetService("StarterGui")
+
+local rev_statChangeSound = ReplicatedStorage:FindFirstChild("StatChangeSound", true)
+local playSound = require(ReplicatedStorage:FindFirstChild("PlaySoundUtil", true))
+local SoundService = game:GetService("SoundService")
+local coinCollectSound : Sound = SoundService.CurrencySystem["Coins ka-ching"]
+local ammoCollectSound : Sound = SoundService:FindFirstChild("Ammo pickup", true)
 
 local inventoryAndHotbarManager = require(script.Parent:FindFirstChild("inventoryAndHotbarManager"))
 
@@ -14,6 +21,7 @@ local humanoid = character.Humanoid
 local backpack = player.Backpack -- the player's backpack (used to store all tools by default)
 
 local gui : ScreenGui = player.PlayerGui:WaitForChild("InventoryAndHotbar")
+local updateMisc : BindableEvent = gui:FindFirstChildWhichIsA("BindableEvent", true)
 local inventory : ScrollingFrame = gui:FindFirstChild("Inventory", true) -- the bag/inventory frame
 local main : Frame = inventory.Parent
 local hotbar : CanvasGroup = gui:FindFirstChild("Hotbar", true) -- the hotbar frame
@@ -69,7 +77,6 @@ backpack.ChildAdded:Connect(function(child)
 		local emptyHotbarSlot = inventoryAndHotbarManager.findMinimumEmptyHotbarSlot()
 		if emptyHotbarSlot then
 			--adding item to hotbar
-			print("empty hotbar slot: " .. emptyHotbarSlot.Name)
 			inventoryAndHotbarManager.setSlot(child, emptyHotbarSlot)
 			flashHotbar()
 		else
@@ -107,6 +114,26 @@ character.ChildRemoved:Connect(function(child)
 		inventoryAndHotbarManager.addToUpdateLog(false, child)
 		updateGuiAfterDroppedTool(child)
 	end
+end)
+
+updateMisc.Event:Connect(function(statName : string, amountGained : number)
+	local sign
+	if amountGained > 0 then 
+		sign = " + " 
+	else 
+		sign = ""
+	end
+	inventoryAndHotbarManager.addToUpdateLog(nil,  sign .. tostring(amountGained) .. " " .. statName)
+end)
+
+rev_statChangeSound.OnClientEvent:Connect(function(tagName : string)
+    if tagName == "DroppedCurrency" then
+        playSound(coinCollectSound, nil, 0)
+    elseif tagName == "DroppedAmmo" then
+        playSound(ammoCollectSound, nil, 0)
+    else
+        warn("parameter passed does not match any existing stat name")
+    end
 end)
 
 repeat

@@ -3,6 +3,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local rev_singleSpawn = ReplicatedStorage:FindFirstChild("SingleSpawn", true)
 
+local playSound = require(ReplicatedStorage:FindFirstChild("PlaySoundUtil", true))
+local SoundService = game:GetService("SoundService")
+local droppedAmmoBoxSound : Sound = SoundService:FindFirstChild("droppedAmmoBox", true)
+local droppedCoinsSound : Sound = SoundService:FindFirstChild("droppedCoins", true)
+
 local TAG_CURRENCY = "DroppedCurrency"
 local TAG_AMMO = "DroppedAmmo"
 
@@ -115,4 +120,12 @@ rev_singleSpawn.OnServerEvent:Connect(function(player, position : Vector3, norma
     CollectionService:AddTag(model, tagName)
     model:PivotTo(spawnLocation + (spawnLocation.UpVector * (model.PrimaryPart.Size.Y/2)))
     model.Parent = workspace
+
+    local partInModel = model:FindFirstChildWhichIsA("BasePart") or model:FindFirstChildOfClass("MeshPart")
+    print(partInModel.Name)
+    if tagName == "Caps" then
+        playSound(droppedCoinsSound, partInModel, 0.1)
+    else
+        playSound(droppedAmmoBoxSound, partInModel, 0.3)
+    end
 end)

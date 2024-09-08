@@ -1,76 +1,7 @@
-local TweenService = game:GetService("TweenService")
-local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local playerStatsInfo = require(ReplicatedStorage:FindFirstChild("PlayerStatsInfo", true))
 
 local rev_statChangeSound = game:GetService("ReplicatedStorage"):FindFirstChild("StatChangeSound", true)
-
-local tweenTime = 2
-local ti = TweenInfo.new(tweenTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-
-local Players = game:GetService("Players")
-
-Players.PlayerAdded:Connect(function(player)
-    --gui instance references
-    local StatsGui : ScreenGui = player.PlayerGui:WaitForChild("StatsGui")  
-    local billboardAmmo : Frame = StatsGui.Billboard.Ammo
-    local billboardAmountLabels = {
-        [playerStatsInfo.ATTRIBUTE_CAPS.name] = StatsGui.Billboard.Caps.BloxyCola.Amount,
-        [playerStatsInfo.ATTRIBUTE_LIGHT_BULLETS.name] = billboardAmmo.LightBullets.Amount,
-        [playerStatsInfo.ATTRIBUTE_MEDIUM_BULLETS.name] = billboardAmmo.MediumBullets.Amount,
-        [playerStatsInfo.ATTRIBUTE_HEAVY_BULLETS.name] = billboardAmmo.HeavyBullets.Amount,
-        [playerStatsInfo.ATTRIBUTE_SHELLS.name] = billboardAmmo.Shells.Amount,
-        [playerStatsInfo.ATTRIBUTE_ENERGY_AMMO.name] = billboardAmmo.EnergyAmmo.Amount,
-    }
-    local gainedResourceIndicator : CanvasGroup = StatsGui.StorageButton:FindFirstChild("Gain", true)
-
-    --functions for updating gui
-    local function gainedResourceEffect(stat, amountGained : number)
-        local x : Frame = gainedResourceIndicator:Clone()
-        x.Visible = true
-        x.Icon.Image = stat.icon
-        x.Amount.Text = "+" .. tostring(amountGained)
-        x.Parent = gainedResourceIndicator.Parent
-        TweenService:Create(x, ti, {GroupTransparency = 1}):Play()
-        Debris:AddItem(x, tweenTime)
-    end
-
-    local function updateBillboardGui(stat, amountGained : number, newAmount : number)
-        billboardAmountLabels[stat.name].Text = newAmount
-        if amountGained > 0 then
-            gainedResourceEffect(stat, amountGained)
-        end
-    end
-
-    while not player:GetAttribute("StatsLoaded") do
-        task.wait()
-        --print("loading stats")
-    end
-    for _, stat in playerStatsInfo.getAll() do
-        updateBillboardGui(stat, 0, player:GetAttribute(stat.name))
-    end
-
-    --detecting changes to attributes & updating gui as needed
-    local lastCachedAmounts = {
-        [playerStatsInfo.ATTRIBUTE_CAPS.name] = player:GetAttribute(playerStatsInfo.ATTRIBUTE_CAPS.name),
-        [playerStatsInfo.ATTRIBUTE_LIGHT_BULLETS.name] = player:GetAttribute(playerStatsInfo.ATTRIBUTE_LIGHT_BULLETS.name), 
-        [playerStatsInfo.ATTRIBUTE_MEDIUM_BULLETS.name] = player:GetAttribute(playerStatsInfo.ATTRIBUTE_MEDIUM_BULLETS.name), 
-        [playerStatsInfo.ATTRIBUTE_HEAVY_BULLETS.name] = player:GetAttribute(playerStatsInfo.ATTRIBUTE_HEAVY_BULLETS.name),
-        [playerStatsInfo.ATTRIBUTE_SHELLS.name] = player:GetAttribute(playerStatsInfo.ATTRIBUTE_SHELLS.name), 
-        [playerStatsInfo.ATTRIBUTE_ENERGY_AMMO.name] = player:GetAttribute(playerStatsInfo.ATTRIBUTE_ENERGY_AMMO.name)
-    }
-
-    for _, stat in playerStatsInfo.getAll() do
-        player:GetAttributeChangedSignal(stat.name):Connect(function()
-            local newAmount : number = player:GetAttribute(stat.name)
-            local amountGained : number = player:GetAttribute(stat.name) - lastCachedAmounts[stat.name]
-            updateBillboardGui(stat, amountGained, newAmount)
-            lastCachedAmounts[stat.name] = newAmount
-        end)
-    end
-end)
-
-
 
 ---------------------------------------------------------------- Code below is for picking up caps/ammo cans & only setting attribute values
 local CollectionService = game:GetService("CollectionService")
@@ -81,6 +12,11 @@ local specificTagNames = {}
 for _, v in playerStatsInfo.getAll() do
     table.insert(specificTagNames, v.name)
 end
+
+local playSound = game:GetService("ReplicatedStorage"):FindFirstChild("PlayerSoundUtil", true)
+local SoundService = game:GetService("SoundService")
+local coinCollectSound : Sound = SoundService.CurrencySystem["Coins ka-ching"]
+local ammoCollectSound : Sound = SoundService:FindFirstChild("Ammo pickup", true)
 
 local currencyProxProm : ProximityPrompt = ReplicatedStorage:FindFirstChild("BottleCaps", true).ProximityPrompt
 local ammoProxProm : ProximityPrompt = ReplicatedStorage:FindFirstChild("AmmoCans", true).ProximityPrompt
@@ -146,4 +82,3 @@ for _, v in playerStatsInfo.getAll() do
         handleTaggedInstance(tagName, taggedInstance)
     end)
 end
-
