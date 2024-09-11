@@ -10,7 +10,7 @@ local function assembleTool(toolName : String, parent)
     end
 
     --assmebling the tool
-    local tool : Tool = ToolCatalog[toolName].Model:Clone()
+    local tool : Tool = ToolCatalog[toolName].ToolObject:Clone()
     local scripts = ToolCatalog[toolName].Scripts:Clone()
     scripts.Parent = tool
 
@@ -62,6 +62,6 @@ rev_giveItem.OnServerEvent:Connect(function(player, itemName)
         assembleTool(itemName, player.Backpack)
     else
         --this either means the client that called this is hacking or I need to change the name of this remote function name to purchaseItem
-        print("How did you call this remote, huhhhhhh??????")
+        warn("How did you call this remote, huhhhhhh??????")
     end
 end)

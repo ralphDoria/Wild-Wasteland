@@ -9,7 +9,7 @@ local ToolCatalog = {}
 local function addTool(toolName : String, toolType : String, description : String, price : number)
     if ToolModels:FindFirstChild(toolName) and ToolScripts:FindFirstChild(toolName) then
         ToolCatalog[toolName] = {
-            Model = ToolModels[toolName],
+            ToolObject = ToolModels[toolName],
             Scripts = ToolScripts[toolName].Scripts,
             Type = toolType,
             Description = description,

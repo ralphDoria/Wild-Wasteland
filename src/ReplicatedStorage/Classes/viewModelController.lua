@@ -26,7 +26,12 @@ ViewModelController.__index = ViewModelController
 function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hrp)
     local vmTool = tool:Clone()
     vmTool.Scripts:Destroy()
-    vmTool.SFX_part:Destroy()
+    if vmTool:FindFirstChild("SFX_part") then
+        vmTool.SFX_part:Destroy()
+    else
+        vmTool:FindFirstChild("Sounds", true):Destroy()
+    end
+    
     local toolInstances = {}
     for _, v in tool:GetDescendants() do
         if v:IsA("BasePart") then

@@ -41,7 +41,7 @@ end)
 
 --for the viewport frame
 rfn_getToolModel.OnServerInvoke = function(player : Player, toolName : string)
-    local toolModel : Model = ToolCatalog[toolName].Model:Clone()
+    local toolModel : Model = ToolCatalog[toolName].ToolObject:Clone()
     toolModel.Parent = ReplicatedStorage
     return toolModel
 end

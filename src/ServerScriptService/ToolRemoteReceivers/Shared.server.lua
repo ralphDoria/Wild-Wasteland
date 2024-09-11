@@ -1,13 +1,28 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local rev_generalToolDrop = ReplicatedStorage.Tools:FindFirstChild("GeneralToolDrop", true)
+local rev_playSound = ReplicatedStorage.Tools.Shared:FindFirstChild("PlaySound", true)
+local rev_dropTool = ReplicatedStorage.Tools.Shared:FindFirstChild("DropTool", true)
+
+local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
 local detectDroppedToolHitFloor = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("DetectDroppedToolHitFloor"))
+
+rev_playSound.OnServerEvent:Connect(function(player: Player, soundObject : Sound, soundParent : BasePart, delayCorrection : number)
+    if typeof(soundParent) == "Number" then
+        print(soundParent)
+    end
+    playSound(soundObject, soundParent, delayCorrection)
+end)
+
+rev_dropTool.OnServerEvent:Connect(function(player: Player, tool : Tool)
+    tool.Parent = game.Workspace
+    detectDroppedToolHitFloor(tool)
+end)
 
 --[[
     A general tool drop occurrs when you drop any tool from the inventory gui (which means it doesn't neccessarily have to equipped, 
     so it's case is slightly different from an equipped tool drop)
 ]]
-
 rev_generalToolDrop.OnServerEvent:Connect(function(player : Player, tool : Tool)
     local character = player.Character
     if character == nil then return end

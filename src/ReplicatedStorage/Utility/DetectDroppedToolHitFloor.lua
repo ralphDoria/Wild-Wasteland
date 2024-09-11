@@ -5,6 +5,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
 
 ------------------------------------------------------------------------<<<SFX>>>
+local sharedToolSounds = ReplicatedStorage.Tools.Shared.BasicSounds
+local hardDropSound = sharedToolSounds.hardDrop
+local softDropSound = sharedToolSounds.softDrop
 local softMaterials = {
     Enum.Material.Sand,
     Enum.Material.Fabric,
@@ -17,9 +20,7 @@ return function(tool : Tool)
     --<<<Specific Parts>>>--
     local droppedDetector = tool:FindFirstChild("DropDetector")
     --<<<SFX>>>--
-    local SFX_part = tool:WaitForChild("SFX_part")
-    local softDropSound = SFX_part:WaitForChild("softDrop")
-    local hardDropSound = SFX_part:WaitForChild("hardDrop")
+    local SFX_part = if tool:FindFirstChild("SFX_part") then tool:FindFirstChild("SFX_part") else tool.BodyAttach
     --<<<Even Connection>>>--
     local touchedEvent
     touchedEvent = droppedDetector.Touched:Connect(function(partThatTouched)

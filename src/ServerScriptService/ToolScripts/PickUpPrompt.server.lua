@@ -18,7 +18,7 @@ local function handleTaggedInstance(taggedObject)
     assert(taggedObject:IsA("Tool"), "Instance with PickUpPrompt Collection Tag is not a tool that contains a PickUpPrompt inside of a BodyAttach")
     local tool = taggedObject
     local toolModel = tool:FindFirstChild("ToolModel")
-    local SFX_part = tool:WaitForChild("SFX_part")
+    local SFX_part = if tool:FindFirstChild("SFX_part") then tool:FindFirstChild("SFX_part") else tool.BodyAttach
     local ProximityPrompt = tool:FindFirstChildWhichIsA("ProximityPrompt", true)
 
     if tool.Parent:IsA("Backpack") then
@@ -39,6 +39,7 @@ local function handleTaggedInstance(taggedObject)
         if humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
             local backpack = playerWhoTriggered:WaitForChild("Backpack")
             if backpack then
+                print("playing pickup sound")
                 playSound(pickUpSound, SFX_part, 0)
                 tool.Parent = backpack
             end 
@@ -51,14 +52,14 @@ local function handleTaggedInstance(taggedObject)
     ]]
     local function modifyToolModelCollisions(toolModel : Model, shouldEnable : boolean)
         if shouldEnable then
-            for _, v in toolModel:GetChildren() do
-                if v:IsA("BasePart") then
+            for _, v in toolModel:GetDescendants() do
+                if v:IsA("BasePart") or v:IsA("MeshPart") then
                     v.CanCollide = true
                 end
             end
         else
-            for _, v in toolModel:GetChildren() do
-                if v:IsA("BasePart") then
+            for _, v in toolModel:GetDescendants() do
+                if v:IsA("BasePart") or v:IsA("MeshPart") then
                     v.CanCollide = false
                 end
             end

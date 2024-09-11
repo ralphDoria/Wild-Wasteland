@@ -120,7 +120,7 @@ local function createHoverInfoDisplay(tool : Tool)
     local hoverInfoDisplay = gui:FindFirstChild("itemInfoDisplayTemplate", true):Clone()
     hoverInfoDisplay.Name = tool.Name    
     hoverInfoDisplay:FindFirstChildOfClass("TextLabel").Text = tool.Name
-    hoverInfoDisplay:FindFirstChildWhichIsA("TextBox", true).Text = "This is a test description. Stats may be contained here, lore info about the weapon, or maybe a combination of both."
+    hoverInfoDisplay:FindFirstChildWhichIsA("TextBox", true).Text = if tool:GetAttribute("Description") then tool:GetAttribute("Description") else "This item has no description"
     hoverInfoDisplay:FindFirstChildWhichIsA("TextBox", true).TextWrapped = true
     hoverInfoDisplay.Visible = true
 
