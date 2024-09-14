@@ -16,8 +16,8 @@ local Constants = {
     ACTION_AIM_DOWN_SIGHT = "AimDownSight"
 }
 
-local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationController"))
-local ViewModelController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("ViewModelController"))
+local AnimationController = require(ReplicatedStorage:FindFirstChild("AnimationController", true))
+local ViewModelController = require(ReplicatedStorage:FindFirstChild("ViewModelController", true))
 
 local toolGuiController = require(ReplicatedStorage:FindFirstChild("ToolGuiController", true))
 local createBulletEffects = require(ReplicatedStorage.RojoManaged_RS.Utility.createBulletEffects)

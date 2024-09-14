@@ -1,5 +1,4 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local MeleeController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("MeleeController"))
+local MeleeController = require(game:GetService("ReplicatedStorage"):FindFirstChild("MeleeController", true))
 
 local melee : Tool = script.Parent.Parent
 local controller = MeleeController.new(melee)

@@ -11,7 +11,7 @@ local player = game:GetService("Players").LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ContextActionService = game:GetService("ContextActionService")
 --EXTERNAL CONTROLLERS
-local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationController"))
+local AnimationController = require(ReplicatedStorage:FindFirstChild("AnimationController", true))
 local ViewModelController = require(ReplicatedStorage:FindFirstChild("ViewModelController", true))
 --REMOTE EVENTS
 local rev_playSound = ReplicatedStorage.Tools.Shared:FindFirstChild("PlaySound", true)

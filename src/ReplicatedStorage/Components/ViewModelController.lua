@@ -11,7 +11,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local SpringModule = require(ReplicatedStorage.RojoManaged_RS.SpringModule)
 local lerp = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("lerp"))
-local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationController"))
+local AnimationController = require(ReplicatedStorage:FindFirstChild("AnimationController", true))
 
 local originC0Holder = ReplicatedStorage:WaitForChild("originC0Holder")
 local OriginC0 : CFrame = {

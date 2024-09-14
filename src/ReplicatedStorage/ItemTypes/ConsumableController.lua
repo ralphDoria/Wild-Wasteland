@@ -7,8 +7,8 @@ local Constants = {
     ACTION_DROP_TOOL = "Dropped"
 }
 
-local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationController"))
-local ViewModelController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("ViewModelController"))
+local AnimationController = require(ReplicatedStorage:FindFirstChild("AnimationController", true))
+local ViewModelController = require(ReplicatedStorage:FindFirstChild("ViewModelController", true))
 
 local consumableRemotes : Folder = ReplicatedStorage:WaitForChild("Tools"):WaitForChild("Consumable"):WaitForChild("Remotes")
 local rev_playSound : RemoteEvent = consumableRemotes:WaitForChild("PlaySound")

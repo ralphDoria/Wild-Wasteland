@@ -8,7 +8,7 @@ return function(soundObject : Sound, soundParent, delayCorrection : number)
     if delayCorrection then
 		soundClone.TimePosition = delayCorrection
 	end
-    if soundParent then    
+    if soundParent then
         if typeof(soundParent) == "Vector3" then
             local x = Instance.new("Part")
             x.Anchored = true

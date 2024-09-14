@@ -1,5 +1,4 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local GunController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("GunController"))
+local GunController = require(game:GetService("ReplicatedStorage"):FindFirstChild("GunController", true))
 
 print("making a new gun")
 local gun : Tool = script.Parent.Parent

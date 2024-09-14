@@ -16,6 +16,7 @@ local pickUpSound = game:GetService("SoundService"):WaitForChild("Item Pick Up")
 ------------------------------------------------------------------------<<<FUNCTIONS>>>
 local function handleTaggedInstance(taggedObject)
     assert(taggedObject:IsA("Tool"), "Instance with PickUpPrompt Collection Tag is not a tool that contains a PickUpPrompt inside of a BodyAttach")
+    print(taggedObject.Name)
     local tool = taggedObject
     local toolModel = tool:FindFirstChild("ToolModel")
     local SFX_part = if tool:FindFirstChild("SFX_part") then tool:FindFirstChild("SFX_part") else tool.BodyAttach
@@ -39,7 +40,7 @@ local function handleTaggedInstance(taggedObject)
         if humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
             local backpack = playerWhoTriggered:WaitForChild("Backpack")
             if backpack then
-                print("playing pickup sound")
+                print(SFX_part.Name)
                 playSound(pickUpSound, SFX_part, 0)
                 tool.Parent = backpack
             end 

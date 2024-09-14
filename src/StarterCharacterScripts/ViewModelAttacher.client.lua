@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Debris = game:GetService("Debris")
-local vmController = ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("ViewModelController")
+local vmController = ReplicatedStorage:WaitForChild("RojoManaged_RS"):FindFirstChild("ViewModelController", true)
 local camera = workspace.CurrentCamera
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer

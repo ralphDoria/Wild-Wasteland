@@ -142,7 +142,7 @@ local function initializeSlotIcon(tool : Tool, slot)
         imageButton.Visible = false
         textButton.Visible = false
     else
-        if tool.TextureId then
+        if tool.TextureId ~= "" then
             imageButton.Image = tool.TextureId
             imageButton.Visible = true
             textButton.Visible = false

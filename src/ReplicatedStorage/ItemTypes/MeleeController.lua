@@ -10,8 +10,8 @@ local Constants = {
 }
 
 local RaycastHitbox = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("RaycastHitboxV4"))
-local AnimationController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("AnimationController"))
-local ViewModelController = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Classes"):WaitForChild("ViewModelController"))
+local AnimationController = require(ReplicatedStorage:FindFirstChild("AnimationController", true))
+local ViewModelController = require(ReplicatedStorage:FindFirstChild("ViewModelController", true))
 
 local indicateDamageToDealer = require(ReplicatedStorage.RojoManaged_RS.Utility.indicateDamageToDealer)
 local createImpactEffects = require(ReplicatedStorage:FindFirstChild("createImpactEffects", true))
