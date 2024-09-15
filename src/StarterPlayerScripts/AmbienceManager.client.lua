@@ -46,6 +46,9 @@ end)
 
 --------------------------<<< Day/Night Cycle >>>
 --local timeAccumulated = 0
+
+
+--[[
 RunService.RenderStepped:Connect(function(dt)
     --timeAccumulated += dt
     --timeAccumulated = if timeAccumulated > 23.9 then 0 else timeAccumulated
@@ -60,4 +63,5 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 end)
+]]
 

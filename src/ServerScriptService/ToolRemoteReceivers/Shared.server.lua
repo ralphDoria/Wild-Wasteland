@@ -10,7 +10,7 @@ local rev_wearAccessory : RemoteEvent = nvgogglesRS:FindFirstChild("wearAccessor
 local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
 local detectDroppedToolHitFloor = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("DetectDroppedToolHitFloor"))
 
-rev_wearAccessory.OnServerEvent:Connect(function(player, character, accessory, toolAccessory)
+rev_wearAccessory.OnServerEvent:Connect(function(player, character, accessory, toolAccessory, tool)
     local this : Accessory = accessory:Clone()
     accessory.Parent = character
     for _, v in toolAccessory:GetDescendants() do
@@ -18,6 +18,7 @@ rev_wearAccessory.OnServerEvent:Connect(function(player, character, accessory, t
             v.Transparency = 1
         end
     end
+    --tool.Parent = player.Backpack --unequips this tool specifically
 end)
 
 rev_playSound.OnServerEvent:Connect(function(player: Player, soundObject : Sound, soundParent : BasePart, delayCorrection : number)

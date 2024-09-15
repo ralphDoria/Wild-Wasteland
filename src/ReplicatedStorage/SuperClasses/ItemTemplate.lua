@@ -99,7 +99,7 @@ end
 --[[
     The equip function for every weapon is mostly the same.
 ]]
-function ItemTemplate:equip(subclassObject)
+function ItemTemplate:equip(subclassObject, tableOfFunctions)
     self.currentCharacter = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
     if subclassObject == nil then
         subclassObject = self
@@ -116,6 +116,10 @@ function ItemTemplate:equip(subclassObject)
     subclassObject.currentCharacter = player.Character
     local diedConnection
     diedConnection = subclassObject.currentCharacter.Humanoid.Died:Connect(function()
+        print("died conncetion")
+        if tableOfFunctions.deathProcedure then
+            tableOfFunctions.deathProcedure()
+        end
         subclassObject:unequip()
         rev_dropTool:FireServer(subclassObject.tool)
     end)
