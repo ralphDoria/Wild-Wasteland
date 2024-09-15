@@ -6,6 +6,7 @@ local Constants = {
     ACTION_DROP_TOOL = "Dropped"
 }
 --LOCAL VARIABLES
+local Players = game:GetService("Players")
 local player = game:GetService("Players").LocalPlayer
 --SERVICES
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,7 +29,7 @@ function ItemTemplate.new(tool : Tool)
 
     local self = {
         tool = tool,
-        character = player.Character or player.CharacterAdded:Wait(),
+        currentCharacter = nil,
         __type = "Item",
         animObjects = { --These are the fundamental animations, more can be added in whatever child class uses this parent class
             equip = toolAnimsFolder:FindFirstChild("equip", true),
@@ -99,6 +100,7 @@ end
     The equip function for every weapon is mostly the same.
 ]]
 function ItemTemplate:equip(subclassObject)
+    self.currentCharacter = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
     if subclassObject == nil then
         subclassObject = self
     end

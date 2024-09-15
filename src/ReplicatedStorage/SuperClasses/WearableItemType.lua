@@ -25,6 +25,7 @@ function Wearable.new(tool : Tool)
     self.animObjects.takeOff = 
     ]]
     self.animObjects.putOn = tool.Anims:FindFirstChild("putOn", true)
+    self.wearing = false
     setmetatable(self, Wearable)
     --The intialize method would usually be called here, but only the final child class will call initialize
     return self
@@ -33,6 +34,12 @@ end
 function Wearable:initialize(subclassObject)
     ItemTemplate:initialize(subclassObject)
     --any additional connnections can be added under here
+end
+
+function Wearable:equip()
+    if not self.wearing then
+        ItemTemplate:equip(self)
+    end
 end
 
 function Wearable:PutOn(subclassObject)

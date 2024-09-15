@@ -1,6 +1,8 @@
 --NightVisionGoggles will inherit from the Wearable class
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
 local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,6 +10,7 @@ local playSound = require(ReplicatedStorage:FindFirstChild("PlaySoundUtil", true
 
 local nvgogglesRS = ReplicatedStorage.Tools.Wearable["Night Vision Goggles"]
 local accessory : Accessory = nvgogglesRS:FindFirstChild("NightVisionGoggles", true)
+local nvColorCorrection : ColorCorrectionEffect = nvgogglesRS:FindFirstChildWhichIsA("ColorCorrectionEffect", true)
 local rev_wearAccessory : RemoteEvent = nvgogglesRS:FindFirstChild("wearAccessory", true)
 
 local NightVisionGoggles = {}
@@ -29,6 +32,7 @@ function NightVisionGoggles.new(tool : Tool)
     self.soundObjects.offSwitch = tool.BodyAttach.Sounds.OffSwitch
     self.soundObjects.nightVision = tool.BodyAttach.Sounds["Night Vision"]
     self.viewModelController = self.VMController.new(workspace.CurrentCamera:WaitForChild("viewModel"), tool, self.animObjects, hrp)
+    self.currentCharacter = nil
     setmetatable(self, NightVisionGoggles)
     self:intialize()
     return self
@@ -47,15 +51,24 @@ end
 
 function NightVisionGoggles:activate()
     if self.canActivate then
-        --self.canActivate = false
+        self.canActivate = false
+        self.wearing = true 
         playSound(self.soundObjects.onSwitch, nil, 0)
-        task.spawn(function()
-            task.wait(0.5)
-            playSound(self.soundObjects.nightVision, nil, 0)
-        end)
         self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
-            print("overlapped")
-            rev_wearAccessory:FireServer(character, self.tool:FindFirstChildWhichIsA("Accessory", true))
+            print(if self.currentCharacter then self.currentCharacter.Name else "nil")
+            local toolAccessory = self.tool:FindFirstChildWhichIsA("Accessory", true)
+            rev_wearAccessory:FireServer(self.currentCharacter, accessory, toolAccessory)
+            local cc = nvColorCorrection:Clone()
+            cc.Contrast = -1
+            cc.TintColor = Color3.fromRGB(255, 255, 255)
+            cc.Brightness = 1
+            cc.Parent = Lighting
+            local tweenTime = self.soundObjects.nightVision.TimeLength
+            playSound(self.soundObjects.nightVision, nil, 0)
+            TweenService:Create(cc, TweenInfo.new(tweenTime), {Contrast = 0.2}):Play()
+            TweenService:Create(cc, TweenInfo.new(tweenTime), {Brightness = 0.2}):Play()
+            TweenService:Create(cc, TweenInfo.new(tweenTime), {TintColor = Color3.fromRGB(22, 148, 0)}):Play()
+            TweenService:Create(Lighting, TweenInfo.new(tweenTime), {OutdoorAmbient = Color3.fromRGB(255, 255, 255)}):Play()
         end)
         NightVisionGoggles:PutOn(self)
         self.currentCharacterAnimationController.animationTracks.idle:Stop()
