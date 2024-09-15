@@ -32,6 +32,16 @@ function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hr
         vmTool:FindFirstChild("Sounds", true):Destroy()
     end
     
+    for _, v in vmTool:GetDescendants() do
+        --[[
+        Fixes a bug where when you drop a tool and pick it up, the pickup sound will play, but if you equip it for the first time 
+        since picking it up, the pickup sound will play again.
+        ]]
+        if v:IsA("Sound") then
+            v:Destroy()
+        end
+    end
+
     local toolInstances = {}
     for _, v in tool:GetDescendants() do
         if v:IsA("BasePart") then

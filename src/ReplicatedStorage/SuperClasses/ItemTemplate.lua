@@ -65,12 +65,6 @@ function ItemTemplate:initialize(subclassObject)
     )
     table.insert(
         subclassObject.connections,
-        subclassObject.tool.Activated:Connect(function()
-            subclassObject:activate()
-        end)
-    )
-    table.insert(
-        subclassObject.connections,
         subclassObject.tool.Unequipped:Connect(function()
             subclassObject:unequip()
         end)

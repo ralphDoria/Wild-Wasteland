@@ -1,7 +1,14 @@
 --NightVisionGoggles will inherit from the Wearable class
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local playSound = require(ReplicatedStorage:FindFirstChild("PlaySoundUtil", true))
+
+local nvgogglesRS = ReplicatedStorage.Tools.Wearable["Night Vision Goggles"]
+local accessory : Accessory = nvgogglesRS:FindFirstChild("NightVisionGoggles", true)
+local rev_wearAccessory : RemoteEvent = nvgogglesRS:FindFirstChild("wearAccessory", true)
 
 local NightVisionGoggles = {}
 NightVisionGoggles.__index = NightVisionGoggles
@@ -18,6 +25,9 @@ function NightVisionGoggles.new(tool : Tool)
     You need to find a way to give this class (the final child class) access to ViewModelController and AnimationController because those
     need to be created here. I feel close to getting this inheritance thing down
     ]]
+    self.soundObjects.onSwitch = tool.BodyAttach.Sounds.OnSwitch
+    self.soundObjects.offSwitch = tool.BodyAttach.Sounds.OffSwitch
+    self.soundObjects.nightVision = tool.BodyAttach.Sounds["Night Vision"]
     self.viewModelController = self.VMController.new(workspace.CurrentCamera:WaitForChild("viewModel"), tool, self.animObjects, hrp)
     setmetatable(self, NightVisionGoggles)
     self:intialize()
@@ -26,10 +36,31 @@ end
 
 function NightVisionGoggles:intialize()
     Wearable:initialize(self)
+    table.insert(
+        self.connections,
+        self.tool.Activated:Connect(function()
+            self:activate()
+        end)
+    )
     --in here will be events specific to the night vision goggles
 end
 
 function NightVisionGoggles:activate()
+    if self.canActivate then
+        --self.canActivate = false
+        playSound(self.soundObjects.onSwitch, nil, 0)
+        task.spawn(function()
+            task.wait(0.5)
+            playSound(self.soundObjects.nightVision, nil, 0)
+        end)
+        self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
+            print("overlapped")
+            rev_wearAccessory:FireServer(character, self.tool:FindFirstChildWhichIsA("Accessory", true))
+        end)
+        NightVisionGoggles:PutOn(self)
+        self.currentCharacterAnimationController.animationTracks.idle:Stop()
+        self.viewModelController.animationController.animationTracks.idle:Stop()
+    end
     --this is where the actual night vision funcationality comes in, which is unique to this class only
     --[[
         This'll make adding items of any class type sooo much easier because I don't have to write boilerplate code. This makes me love OOP.
@@ -38,4 +69,3 @@ function NightVisionGoggles:activate()
 end
 
 return NightVisionGoggles
-

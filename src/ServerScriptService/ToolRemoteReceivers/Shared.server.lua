@@ -4,8 +4,19 @@ local rev_generalToolDrop = ReplicatedStorage.Tools:FindFirstChild("GeneralToolD
 local rev_playSound = ReplicatedStorage.Tools.Shared:FindFirstChild("PlaySound", true)
 local rev_dropTool = ReplicatedStorage.Tools.Shared:FindFirstChild("DropTool", true)
 
+local nvgogglesRS = ReplicatedStorage.Tools.Wearable["Night Vision Goggles"]
+local rev_wearAccessory : RemoteEvent = nvgogglesRS:FindFirstChild("wearAccessory", true)
+
 local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
 local detectDroppedToolHitFloor = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("DetectDroppedToolHitFloor"))
+
+rev_wearAccessory.OnServerEvent:Connect(function(player, character, accessory)
+    accessory.Parent = character
+    --[[
+    local this : Accessory = accessory:Clone()
+    accessory.Parent = character
+    ]]
+end)
 
 rev_playSound.OnServerEvent:Connect(function(player: Player, soundObject : Sound, soundParent : BasePart, delayCorrection : number)
     if typeof(soundParent) == "Number" then

@@ -22,9 +22,9 @@ setmetatable(Wearable, ItemTemplate)
 function Wearable.new(tool : Tool)
     local self = ItemTemplate.new(tool)
     --[[
-    self.animObjects.putOn =
     self.animObjects.takeOff = 
     ]]
+    self.animObjects.putOn = tool.Anims:FindFirstChild("putOn", true)
     setmetatable(self, Wearable)
     --The intialize method would usually be called here, but only the final child class will call initialize
     return self
@@ -36,6 +36,8 @@ function Wearable:initialize(subclassObject)
 end
 
 function Wearable:PutOn(subclassObject)
+    subclassObject.currentCharacterAnimationController.animationTracks.putOn:Play()
+    subclassObject.viewModelController.animationController.animationTracks.putOn:Play()
 end
 
 function Wearable:TakeOff(subclassObject)
