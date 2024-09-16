@@ -141,10 +141,4 @@ repeat
 	--print("Waiting for hotbar to initialize")
 until hotbar:GetAttribute("Initialized")
 
-gui.Enabled = true
-inventoryAndHotbarManager.toggleInventory(false)
-inventoryAndHotbarManager.toggleHotbar(false)
-StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) --disables Roblox's default backpack
-inventoryAndHotbarManager.initializeKeybindToHotbarSlot()
-inventoryAndHotbarManager.initializeWearablesGui()
-inventoryAndHotbarManager.initializeMisc()
+inventoryAndHotbarManager.initializeSystem()

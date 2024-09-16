@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
@@ -39,6 +40,7 @@ function NightVisionGoggles.new(tool : Tool)
     self.soundObjects.nightVision = tool.BodyAttach.Sounds["Night Vision"]
     self.viewModelController = self.VMController.new(workspace.CurrentCamera:WaitForChild("viewModel"), tool, self.animObjects, hrp)
     self.currentCharacter = nil
+    self.clicks = 0 --for double clicking feature
     setmetatable(self, NightVisionGoggles)
     self:intialize()
     return self
@@ -73,10 +75,9 @@ local function nvEffectOn(subclassObject)
     cc.TintColor = Color3.fromRGB(255, 255, 255)
     cc.Brightness = 1
     cc.Parent = Lighting
-    cc.Saturation = 1
+    cc.Saturation = -1
     local tweenTime = subclassObject.soundObjects.nightVision.TimeLength
     Lighting.ExposureCompensation = 3
-    playSound(subclassObject.soundObjects.nightVision, nil, 0)
     TweenService:Create(cc, TweenInfo.new(tweenTime), {Contrast = 0.2}):Play()
     TweenService:Create(cc, TweenInfo.new(tweenTime), {Brightness = 0.2}):Play()
     TweenService:Create(cc, TweenInfo.new(tweenTime), {TintColor = Color3.fromRGB(22, 148, 0)}):Play()
@@ -99,27 +100,33 @@ end
 
 function NightVisionGoggles:activate()
     if self.canActivate then
-        self.canActivate = false
-        self.wearing = true 
-        playSound(self.soundObjects.onSwitch, nil, 0)
-        self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
-            local toolAccessory = self.tool:FindFirstChildWhichIsA("Accessory", true)
-            self.viewModelController:hideViewModelTool()
-            nvEffectOn(self)
-            rev_wearAccessory:FireServer(self.currentCharacter, accessory, toolAccessory, self.tool)
+        self.clicks += 1
+        print(self.clicks)
+        task.spawn(function()
+            task.wait(0.5)
+            self.clicks = 0
+            print(self.clicks)
         end)
-        self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("startBlur"):Once(function()
-            putOnBlur()
-        end)
-        NightVisionGoggles:PutOn(self)
-        self.currentCharacterAnimationController.animationTracks.idle:Stop()
-        self.viewModelController.animationController.animationTracks.idle:Stop()
+        print("checking")
+        if self.clicks >= 2 then
+            self.canActivate = false
+            self.wearing = true 
+            playSound(self.soundObjects.onSwitch, nil, 0)
+            self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
+                local toolAccessory = self.tool:FindFirstChildWhichIsA("Accessory", true)
+                self.viewModelController:hideViewModelTool()
+                playSound(self.soundObjects.nightVision, nil, 0.1)
+                nvEffectOn(self)
+                rev_wearAccessory:FireServer(self.currentCharacter, accessory, toolAccessory, self.tool)
+            end)
+            self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("startBlur"):Once(function()
+                putOnBlur()
+            end)
+            NightVisionGoggles:PutOn(self)
+            self.currentCharacterAnimationController.animationTracks.idle:Stop()
+            self.viewModelController.animationController.animationTracks.idle:Stop()
+        end
     end
-    --this is where the actual night vision funcationality comes in, which is unique to this class only
-    --[[
-        This'll make adding items of any class type sooo much easier because I don't have to write boilerplate code. This makes me love OOP.
-        Consider composition over inheritance because I heard inheritance can get messy.
-    ]]
 end
 
 function NightVisionGoggles:equip()

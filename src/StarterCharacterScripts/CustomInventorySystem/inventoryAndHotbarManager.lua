@@ -38,7 +38,16 @@ local gui : ScreenGui = player.PlayerGui:WaitForChild("InventoryAndHotbar")
 local forModal : Textbutton = gui:FindFirstChild("ForModal")
 local inventory : ScrollingFrame = gui:FindFirstChild("Inventory", true) -- the bag/inventory frame
 local main : Frame = inventory.Parent
+
 local wearables : Frame = gui:FindFirstChild("Wearables", true)
+local _wearableSlots = wearables:FindFirstChild("WearableSlots", true)
+local wearableSlots = {
+    ["Feet"] = _wearableSlots:FindFirstChild("Feet", true),
+    ["Legs"] = _wearableSlots:FindFirstChild("Legs", true),
+    ["Torso"] = _wearableSlots:FindFirstChild("Torso", true),
+    ["Head"] = _wearableSlots:FindFirstChild("Head", true)
+}
+
 local viewportFrame : ViewportFrame = wearables:FindFirstChildOfClass("ViewportFrame")
 local hotbar : CanvasGroup = gui:FindFirstChild("Hotbar", true) -- the hotbar frame
 local slotTemplate : CanvasGroup = gui:FindFirstChild("slotTemplate", true)
@@ -113,7 +122,61 @@ local function getMouseDelta()
 	return delta
 end
 
+function inventoryAndHotbarManager.initializeSystem()
+    gui.Enabled = true
+    inventoryAndHotbarManager.toggleInventory(false)
+    inventoryAndHotbarManager.toggleHotbar(false)
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) --disables Roblox's default backpack
+    inventoryAndHotbarManager.initializeKeybindToHotbarSlot()
+    inventoryAndHotbarManager.initializeMisc()
+    inventoryAndHotbarManager.initializeWearablesGui()
+end
+
 function inventoryAndHotbarManager.initializeWearablesGui()
+    for _, slot in wearableSlots do
+        slot.MouseEnter:Connect(function()
+            if currentSlotBeingHovered ~= nil then
+                local uiStroke = currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true)
+                if uiStroke then
+                    uiStroke.Color = defaultColor
+                end
+            end
+            currentSlotBeingHovered = slot
+            print(currentSlotBeingHovered.Name)
+            slot:FindFirstChildWhichIsA("UIStroke", true).Color = hoverColor
+            --[[ hover info initialization
+            if currentSlotBeingHovered:FindFirstChildOfClass("ObjectValue").Value ~= nil then
+                --print("creating hover info")
+                hoverInfoDisplay = createHoverInfoDisplay(currentSlotBeingHovered:FindFirstChildOfClass("ObjectValue").Value)
+                local mouse = player:GetMouse()
+                hoverInfoRunService = RunService.RenderStepped:Connect(function()
+                    hoverInfoDisplay.Position = UDim2.fromOffset(mouse.X, mouse.Y - hoverInfoDisplay.AbsoluteSize.Y + if gui.IgnoreGuiInset then game:GetService("GuiService"):GetGuiInset().Y else 0)
+                    if hoverInfoDisplay.Parent == nil then
+                        hoverInfoDisplay.Parent = gui
+                    end        
+                end)
+            end
+            ]]
+        end)
+        slot.MouseLeave:connect(function()
+            local noQuickHoverChange = currentSlotBeingHovered == slot
+            if noQuickHoverChange then
+                currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true).Color = defaultColor
+                currentSlotBeingHovered = nil
+                --print("currentSlotBeingHovered: nil")
+            end
+
+            --[[ hover info clean up
+            if hoverInfoDisplay ~= nil then
+                --print("destroying hover info")
+                hoverInfoDisplay:Destroy()
+                hoverInfoDisplay = nil
+                hoverInfoRunService:Disconnect()
+                hoverInfoRunService = nil
+            end
+            ]]
+        end)
+    end
 end
 
 local function createHoverInfoDisplay(tool : Tool)
@@ -127,10 +190,33 @@ local function createHoverInfoDisplay(tool : Tool)
     return hoverInfoDisplay
 end
 
+local function isWearableSlot(slot)
+    for _, v in wearableSlots do
+        if v == slot then
+            return true
+        end
+    end
+    return false
+end
+
+local function setButton(tool, imageButton : ImageButton, textButton : TextButton)
+    if tool.TextureId ~= "" then
+        imageButton.Image = tool.TextureId
+        imageButton.Visible = true
+        textButton.Visible = false
+        return imageButton
+    else
+        textButton.Text = tool.Name
+        textButton.Visible = true
+        imageButton.Visible = false
+        return textButton
+    end
+end
+
 --[[
     Has slot use TextButton or ImageButton based on whether the tool has a TextureId property that isn't nil.
 ]]
-local function initializeSlotIcon(tool : Tool, slot)
+local function initializeSlotFunctionality(tool : Tool, slot)
     local imageButton : ImageButton = slot:FindFirstChildWhichIsA("ImageButton", true)
     local textButton : TextButton = slot:FindFirstChildWhichIsA("TextButton", true)
     local button
@@ -142,17 +228,7 @@ local function initializeSlotIcon(tool : Tool, slot)
         imageButton.Visible = false
         textButton.Visible = false
     else
-        if tool.TextureId ~= "" then
-            imageButton.Image = tool.TextureId
-            imageButton.Visible = true
-            textButton.Visible = false
-            button = imageButton
-        else
-            textButton.Text = tool.Name
-            textButton.Visible = true
-            imageButton.Visible = false
-            button = textButton
-        end
+        button = setButton(tool, imageButton, textButton)
         slot.Visible = true
 
         --toggle equip/unequip & drag events
@@ -214,12 +290,10 @@ local function initializeSlotIcon(tool : Tool, slot)
                         if not (hoveringInHotbar or hoveringInInventory) then --this means cursor is hovering outside of inventory system
                             if  not dropLabel.Visible then
                                 dropLabel.Visible = true
-                                --print("making drop arrow visible")
                             end
                         else
                             if dropLabel.Visible then
                                 dropLabel.Visible = false
-                                --print("making drop arrow invisible")
                             end
                         end
                     end)
@@ -234,9 +308,14 @@ local function initializeSlotIcon(tool : Tool, slot)
                             RunService:UnbindFromRenderStep("DraggingSlot")
                             if dragSlot then dragSlot:Destroy() end
                             if currentSlotBeingDragged and currentSlotBeingHovered then
-                                --playSound(swapSound, nil, 0)
-                                print(currentSlotBeingDragged.Name .. " <-->" .. currentSlotBeingHovered.Name)
-                                inventoryAndHotbarManager.swapSlots(currentSlotBeingDragged, currentSlotBeingHovered)
+                                if isWearableSlot(currentSlotBeingHovered) then --if player is hovering on a wearableSlot
+                                    print("calling transfer to wearable slot")
+                                    inventoryAndHotbarManager.transferToWearableSlot(currentSlotBeingDragged)
+                                else
+                                    --playSound(swapSound, nil, 0)
+                                    print(currentSlotBeingDragged.Name .. " <-->" .. currentSlotBeingHovered.Name)
+                                    inventoryAndHotbarManager.swapSlots(currentSlotBeingDragged, currentSlotBeingHovered)
+                                end
                             elseif currentSlotBeingDragged and hoveringInInventory then
                                 --playSound(swapSound, nil, 0)
                                 inventoryAndHotbarManager.transferSlotToInventory(currentSlotBeingDragged)
@@ -419,7 +498,7 @@ end
 function inventoryAndHotbarManager.createSlot(tool : Tool, hotbarOrInventory : string, hotbarSlotNumber : number)
     assert(hotbarOrInventory == "Hotbar" or hotbarOrInventory == "Inventory", hotbarOrInventory .. " is an invalid argument for this function.")
 
-    local slot : CanvasGroup = initializeSlotIcon(tool, slotTemplate:Clone())
+    local slot : CanvasGroup = initializeSlotFunctionality(tool, slotTemplate:Clone())
     slot:FindFirstChildOfClass("ObjectValue").Value = tool --remember that tool can be nil for hotbar slots
     local slotNumber : TextLabel = slot:FindFirstChild("Number", true)
 
@@ -460,7 +539,7 @@ function inventoryAndHotbarManager.setSlot(passedTool : Tool, slot)
     slot:Destroy()
     slot = slotWithoutConnections
 
-    initializeSlotIcon(passedTool, slot)
+    initializeSlotFunctionality(passedTool, slot)
     local isHotbarSlot = slot:FindFirstChild("Number", true).Visible
     local objectValue : ObjectValue = slot:FindFirstChildOfClass("ObjectValue")
     if passedTool then
@@ -593,6 +672,40 @@ function inventoryAndHotbarManager.transferSlotToInventory(slot : typeof(slotTem
         --change the slot's layout order to be +1 the greatest layout order
         slot.LayoutOrder = getNumberOfInventorySlots() + 1
     end
+end
+
+local function convertToWearableSlot(slot)
+    local tool = slot:FindFirstChildWhichIsA("ObjectValue").Value
+    local wearableType = tool:GetAttribute("WearableType")
+
+    local designatedSlot = wearableSlots[wearableType]
+    designatedSlot.ObjectValue.Value = tool
+    if tool.TextureId ~= "" then
+        
+    end
+end
+
+function inventoryAndHotbarManager.transferToWearableSlot(passedSlot)
+    local tool = passedSlot:FindFirstChildWhichIsA("ObjectValue").Value
+    local wearableType = tool:GetAttribute("WearableType")
+    if wearableType == nil then
+        warn(tool.Name .. " does not have a WearableType attribute")
+        return
+    end
+
+    for type, designatedSlot in wearableSlots do
+        if wearableType == type then
+            print("is valid wearable item")
+        end
+    end
+    print("Couldn't find WearableType; potentially invalid WearableType?")
+    --[[
+        - check for the type of item to see which slot it should go into (head, torso, legs, feet)
+        - check if there is already a wearable item in that slot, notify the player with red text if there is.
+        - may need a new type of initialize icon
+        - double click slot to unequip
+        - slot is draggable
+    ]]
 end
 
 function inventoryAndHotbarManager.initializeMisc()

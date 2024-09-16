@@ -12,7 +12,7 @@ local detectDroppedToolHitFloor = require(ReplicatedStorage:WaitForChild("RojoMa
 
 rev_wearAccessory.OnServerEvent:Connect(function(player, character, accessory, toolAccessory, tool)
     local this : Accessory = accessory:Clone()
-    accessory.Parent = character
+    this.Parent = character
     for _, v in toolAccessory:GetDescendants() do
         if v:IsA("BasePart") or v:IsA("MeshPart") then
             v.Transparency = 1
