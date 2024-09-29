@@ -150,6 +150,9 @@ function ItemTemplate:equip(subclassObject, tableOfFunctions)
         subclassObject.currentCharacterAnimationController.animationTracks.idle:Play()
         subclassObject.viewModelController.animationController.animationTracks.idle:Play()
         subclassObject.canActivate = true
+        if tableOfFunctions.forceWear then
+            tableOfFunctions.forceWear(subclassObject)
+        end
     end
 end
 

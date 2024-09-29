@@ -11,6 +11,11 @@ local function assembleTool(toolName : String, parent)
 
     --assmebling the tool
     local tool : Tool = ToolCatalog[toolName].ToolObject:Clone()
+    
+    if toolName == "Night Vision Goggles" then
+        tool:AddTag(toolName)
+    end
+
     local scripts = ToolCatalog[toolName].Scripts:Clone()
     scripts.Parent = tool
 

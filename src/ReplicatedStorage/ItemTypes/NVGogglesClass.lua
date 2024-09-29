@@ -62,6 +62,12 @@ local tableOfFunctions = {
     deathProcedure = function()
         nvEffectOff()
         print("cleaning up nv effects")
+    end,
+    forceWear = function(subclassObject)
+        print("forceWear = " .. tostring(subclassObject.tool:GetAttribute("forceWear")))
+        if subclassObject.tool:GetAttribute("forceWear") == true then
+            NightVisionGoggles:wearGoggles(subclassObject)
+        end
     end
 }
 
@@ -98,39 +104,49 @@ local function putOnBlur()
     blurFade:Play()
 end
 
+function NightVisionGoggles:wearGoggles(subclassObject)
+    if subclassObject ~= nil then
+        self = subclassObject
+    end
+    self.canActivate = false
+    self.wearing = true 
+    print(self.soundObjects)
+    playSound(self.soundObjects.onSwitch, nil, 0)
+    self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
+        local toolAccessory = self.tool:FindFirstChildWhichIsA("Accessory", true)
+        self.viewModelController:hideViewModelTool()
+        playSound(self.soundObjects.nightVision, nil, 0.1)
+        nvEffectOn(self)
+        rev_wearAccessory:FireServer(self.currentCharacter, accessory, toolAccessory, self.tool)
+    end)
+    self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("startBlur"):Once(function()
+        putOnBlur()
+    end)
+    NightVisionGoggles:PutOn(self)
+    self.currentCharacterAnimationController.animationTracks.idle:Stop()
+    self.viewModelController.animationController.animationTracks.idle:Stop()
+end
+
 function NightVisionGoggles:activate()
     if self.canActivate then
         self.clicks += 1
-        print(self.clicks)
         task.spawn(function()
             task.wait(0.5)
             self.clicks = 0
-            print(self.clicks)
         end)
-        print("checking")
         if self.clicks >= 2 then
-            self.canActivate = false
-            self.wearing = true 
-            playSound(self.soundObjects.onSwitch, nil, 0)
-            self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
-                local toolAccessory = self.tool:FindFirstChildWhichIsA("Accessory", true)
-                self.viewModelController:hideViewModelTool()
-                playSound(self.soundObjects.nightVision, nil, 0.1)
-                nvEffectOn(self)
-                rev_wearAccessory:FireServer(self.currentCharacter, accessory, toolAccessory, self.tool)
-            end)
-            self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("startBlur"):Once(function()
-                putOnBlur()
-            end)
-            NightVisionGoggles:PutOn(self)
-            self.currentCharacterAnimationController.animationTracks.idle:Stop()
-            self.viewModelController.animationController.animationTracks.idle:Stop()
+            print(self.soundObjects)  
+            self:wearGoggles()
         end
     end
 end
 
 function NightVisionGoggles:equip()
     Wearable:equip(self, tableOfFunctions)
+    while true do
+        print("local script for Night Vision Goggles is still running")
+        task.wait(1)
+    end
 end
 
 function NightVisionGoggles:intialize()
