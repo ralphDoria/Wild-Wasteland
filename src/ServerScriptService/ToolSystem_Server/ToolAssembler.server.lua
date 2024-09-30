@@ -12,12 +12,7 @@ local function assembleTool(toolName : String, parent)
     --assmebling the tool
     local tool : Tool = ToolCatalog[toolName].ToolObject:Clone()
     
-    if toolName == "Night Vision Goggles" then
-        tool:AddTag(toolName)
-    end
-
-    local scripts = ToolCatalog[toolName].Scripts:Clone()
-    scripts.Parent = tool
+    tool:AddTag(ToolCatalog[toolName].Tag) -- ToolCatalog[toolName].Tag == toolName
 
     local bodyAttach = tool:FindFirstChild("BodyAttach")
     if bodyAttach then
@@ -27,13 +22,6 @@ local function assembleTool(toolName : String, parent)
         x.Parent = bodyAttach
     else
         print("tool is missing body attach")
-    end
-
-    --enabling the scripts
-    for _, file : Script in scripts:GetChildren() do
-        if not file:IsA("ModuleScript") and not file.Enabled then
-            file.Enabled = true
-        end
     end
 
     --puts tool in specified parent

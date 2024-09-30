@@ -25,7 +25,7 @@ ViewModelController.__index = ViewModelController
 
 function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hrp)
     local vmTool = tool:Clone()
-    vmTool.Scripts:Destroy()
+    vmTool:AddTag("vmTool")
     if vmTool:FindFirstChild("SFX_part") then
         vmTool.SFX_part:Destroy()
     else

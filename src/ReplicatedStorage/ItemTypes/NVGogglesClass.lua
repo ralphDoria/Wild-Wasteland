@@ -61,10 +61,10 @@ end
 local tableOfFunctions = {
     deathProcedure = function()
         nvEffectOff()
-        print("cleaning up nv effects")
+        --print("cleaning up nv effects")
     end,
     forceWear = function(subclassObject)
-        print("forceWear = " .. tostring(subclassObject.tool:GetAttribute("forceWear")))
+        --print("forceWear = " .. tostring(subclassObject.tool:GetAttribute("forceWear")))
         if subclassObject.tool:GetAttribute("forceWear") == true then
             NightVisionGoggles:wearGoggles(subclassObject)
         end
@@ -110,7 +110,6 @@ function NightVisionGoggles:wearGoggles(subclassObject)
     end
     self.canActivate = false
     self.wearing = true 
-    print(self.soundObjects)
     playSound(self.soundObjects.onSwitch, nil, 0)
     self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
         local toolAccessory = self.tool:FindFirstChildWhichIsA("Accessory", true)
@@ -135,7 +134,6 @@ function NightVisionGoggles:activate()
             self.clicks = 0
         end)
         if self.clicks >= 2 then
-            print(self.soundObjects)  
             self:wearGoggles()
         end
     end
@@ -143,10 +141,6 @@ end
 
 function NightVisionGoggles:equip()
     Wearable:equip(self, tableOfFunctions)
-    while true do
-        print("local script for Night Vision Goggles is still running")
-        task.wait(1)
-    end
 end
 
 function NightVisionGoggles:intialize()
