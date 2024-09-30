@@ -116,7 +116,7 @@ function ItemTemplate:equip(subclassObject, tableOfFunctions)
     subclassObject.currentCharacter = player.Character
     local diedConnection
     diedConnection = subclassObject.currentCharacter.Humanoid.Died:Connect(function()
-        --print("died connection")
+        print("died connection")
         if tableOfFunctions.deathProcedure then
             tableOfFunctions.deathProcedure()
         end

@@ -177,10 +177,6 @@ function MeleeController:equip()
         self.viewModelController.animationController.animationTracks.idle:Play()
         self.canActivate = true
     end
-    while true do
-        print("local script for Raider Axe is still running")
-        task.wait(1)
-    end
 end
 
 function MeleeController:activate()

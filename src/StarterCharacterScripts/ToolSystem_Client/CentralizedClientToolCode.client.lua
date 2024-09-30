@@ -9,7 +9,6 @@ local toolTags = {
 }
 
 local function handleTaggedInstances(instance, class)
-    print("From CCTC - handling tagged instance")
     if not instance:IsA("Tool") then
         warn("tagged instance is not a tool")
     end

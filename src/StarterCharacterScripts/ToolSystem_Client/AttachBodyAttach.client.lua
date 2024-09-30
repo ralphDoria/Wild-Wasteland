@@ -1,6 +1,7 @@
 --[[
     !!!
     Let me not speak too soon, but this should fix the teleporting tool bug.
+    This happens on the server to, this is just necessary for visual effects to prevent what's states above.
 ]]
 
 local player = game:GetService("Players").LocalPlayer

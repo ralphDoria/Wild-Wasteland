@@ -24,8 +24,15 @@ local ViewModelController = {}
 ViewModelController.__index = ViewModelController
 
 function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hrp)
+    --warn("creating new vmTool for " .. tool.Name)
     local vmTool = tool:Clone()
-    vmTool:AddTag("vmTool")
+    vmTool:AddTag("vmTool") --This tag negates the vmTool's CCTC (Centralized Client Tool Code) tag, which is handled in SCS.
+
+    local vmProxProm = vmTool:FindFirstChildWhichIsA("ProximityPrompt", true)
+    if vmProxProm then
+        vmProxProm:Destroy()
+    end
+
     if vmTool:FindFirstChild("SFX_part") then
         vmTool.SFX_part:Destroy()
     else
@@ -45,7 +52,8 @@ function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hr
     local toolInstances = {}
     for _, v in tool:GetDescendants() do
         if v:IsA("BasePart") then
-            table.insert(toolInstances, v)
+            table.insert(toolInstances, v) --for hiding the vmTool
+            v.CollisionGroup = "Tool"
         end
     end
 
