@@ -26,7 +26,6 @@ function Wearable.new(tool : Tool)
     ]]
     self.animObjects.putOn = tool.Anims:FindFirstChild("putOn", true)
     self.wearing = false
-    setmetatable(self, Wearable)
     --The intialize method would usually be called here, but only the final child class will call initialize
     return self
 end

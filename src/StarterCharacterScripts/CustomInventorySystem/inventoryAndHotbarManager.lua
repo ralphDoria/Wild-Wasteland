@@ -367,6 +367,16 @@ local function toggleEquipAndUnequipViaClick(toggle : boolean)
     canEquipAndUnequipViaClick = toggle
 end
 
+local function initAndRunProgressBar(slot)
+    local innerFrame : Frame = slot:FindFirstChildWhichIsA("Frame", true)
+    local progressBar = Instance.new("Frame")
+    progressBar.Size = innerFrame.Size
+    progressBar.Size.Y.Scale = 0
+    progressBar.Position = innerFrame.Position
+    TweenService:Create(progressBar, TweenInfo.new())
+    progressBar.Parent = slot
+end
+
 function inventoryAndHotbarManager.wearItem(slot)
     inventoryAndHotbarManager.toggleKeybindToHotbarSlot(false)
     toggleEquipAndUnequipViaClick(false)
@@ -380,6 +390,8 @@ function inventoryAndHotbarManager.wearItem(slot)
             print("equipping tool")
         end
     end
+    print("starting progress bar")
+
     local designatedSlot = wearableSlots[tool:GetAttribute("WearableType")]
     inventoryAndHotbarManager.transferToWearableSlot(slot, designatedSlot)
     tool:GetAttributeChangedSignal("isWearing"):Once(function()
@@ -829,7 +841,7 @@ function inventoryAndHotbarManager.addToUpdateLog(addedToInventory : boolean, it
                 task.defer(function()
                     entry:Destroy()
                 end)
-            else
+            elsee
                 local targetPosition = UDim2.fromOffset(0, updateLogTemplate.AbsoluteSize.Y * layoutOrder)
                 TweenService:Create(entry, TweenInfo.new(tweenTime), {Position = targetPosition}):Play()
             end
