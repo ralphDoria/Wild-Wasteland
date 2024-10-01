@@ -334,7 +334,11 @@ local function connectDragEvents(slot, tool)
                     if isWearableSlot(currentSlotBeingHovered) then --if player is hovering on a wearableSlot
                         print("wearing item")
                         --print("calling transfer to wearable slot")
-                        inventoryAndHotbarManager.transferToWearableSlot(currentSlotBeingDragged, currentSlotBeingHovered)
+                        if wearableSlots[tool:GetAttribute("WearableType")] == currentSlotBeingHovered then
+                            inventoryAndHotbarManager.wearItem(slot)
+                        else
+                            warn("wrong wearable slot")
+                        end
                     else
                         --playSound(swapSound, nil, 0)
                         print(currentSlotBeingDragged.Name .. " <-->" .. currentSlotBeingHovered.Name)
@@ -363,6 +367,36 @@ local function toggleEquipAndUnequipViaClick(toggle : boolean)
     canEquipAndUnequipViaClick = toggle
 end
 
+function inventoryAndHotbarManager.wearItem(slot)
+    inventoryAndHotbarManager.toggleKeybindToHotbarSlot(false)
+    toggleEquipAndUnequipViaClick(false)
+
+    local cachedEquippedTool = character:FindFirstChildOfClass("Tool")
+    local tool : Tool = slot:FindFirstChildWhichIsA("ObjectValue", true).Value
+    if tool:GetAttribute("puttingOn") == false or tool:GetAttribute("puttingOn") == nil then
+        tool:SetAttribute("forceWear", true)
+        if tool.Parent:FindFirstChild("Humanoid") == nil then
+            humanoid:EquipTool(tool)
+            print("equipping tool")
+        end
+    end
+    local designatedSlot = wearableSlots[tool:GetAttribute("WearableType")]
+    inventoryAndHotbarManager.transferToWearableSlot(slot, designatedSlot)
+    tool:GetAttributeChangedSignal("isWearing"):Once(function()
+        humanoid:UnequipTools()
+        if cachedEquippedTool then
+            print("cached tool found")
+            task.defer(function()
+                humanoid:EquipTool(cachedEquippedTool)
+            end)
+        else
+            print("cached tool not found")
+        end
+        inventoryAndHotbarManager.toggleKeybindToHotbarSlot(true)
+        toggleEquipAndUnequipViaClick(true)
+    end)
+end
+
 --[[
     Has slot use TextButton or ImageButton based on whether the tool has a TextureId property that isn't nil.
 ]]
@@ -386,15 +420,7 @@ local function initializeSlotFunctionality(tool : Tool, slot, worn : boolean)
 
         tool:GetAttributeChangedSignal("puttingOn"):Once(function()
             if tool:GetAttribute("puttingOn") == true then
-                inventoryAndHotbarManager.toggleKeybindToHotbarSlot(false)
-                toggleEquipAndUnequipViaClick(false)
-                local designatedSlot = wearableSlots[tool:GetAttribute("WearableType")]
-                inventoryAndHotbarManager.transferToWearableSlot(slot, designatedSlot)
-                tool:GetAttributeChangedSignal("isWearing"):Once(function()
-                    humanoid:UnequipTools()
-                    inventoryAndHotbarManager.toggleKeybindToHotbarSlot(true)
-                    toggleEquipAndUnequipViaClick(true)
-                end)
+                inventoryAndHotbarManager.wearItem(slot)
             end
         end)
 
@@ -617,10 +643,10 @@ function inventoryAndHotbarManager.setSlot(passedTool : Tool, slot)
 end
 
 function inventoryAndHotbarManager.toggleSlotEquippedEffect(slot, toggle : boolean)
-    if toggle == true then
-        Instance.new("UICorner").Parent = slot:FindFirstChild("innerFrame")
-    else
-        if slot then
+    if slot then
+        if toggle == true then
+            Instance.new("UICorner").Parent = slot:FindFirstChild("innerFrame")
+        else
             local uiCorner = slot:FindFirstChildWhichIsA("UICorner", true)
             if uiCorner then
                 uiCorner:Destroy()
