@@ -43,6 +43,9 @@ function Wearable:equip(subclassObject, tableOfFunctions)
 end
 
 function Wearable:PutOn(subclassObject)
+    subclassObject.currentCharacterAnimationController.animationTracks.putOn.Ended:Once(function()
+        subclassObject.tool:SetAttribute("isWearing", true)
+    end)
     subclassObject.currentCharacterAnimationController.animationTracks.putOn:Play()
     subclassObject.viewModelController.animationController.animationTracks.putOn:Play()
 end

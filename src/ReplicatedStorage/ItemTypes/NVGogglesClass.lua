@@ -134,6 +134,8 @@ function NightVisionGoggles:activate()
             self.clicks = 0
         end)
         if self.clicks >= 2 then
+            self.tool:SetAttribute("canDrop", false)
+            self.tool:SetAttribute("puttingOn", true)
             self:wearGoggles()
         end
     end

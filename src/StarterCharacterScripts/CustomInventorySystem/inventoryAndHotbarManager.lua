@@ -75,6 +75,7 @@ local currentSlotBeingHovered : typeof(slotTemplate)
 local currentSlotBeingDragged : typeof(slotTemplate)
 local hoveringInInventory : boolean = false
 local hoveringInHotbar : boolean = false
+local hoveringInWearables : boolean = false
 
 local hoverColor : Color3 = Color3.fromRGB(123, 0, 255)
 local dragColor : Color3 = Color3.fromRGB(0, 181, 217)   
@@ -84,6 +85,13 @@ inventory.MouseEnter:Connect(function()
     hoveringInInventory = true
     inventory.MouseLeave:Once(function()
         hoveringInInventory = false
+    end)
+end)
+
+wearables.MouseEnter:Connect(function()
+    hoveringInWearables = true
+    wearables.MouseLeave:Once(function()
+        hoveringInWearables = false
     end)
 end)
 
@@ -127,7 +135,7 @@ function inventoryAndHotbarManager.initializeSystem()
     inventoryAndHotbarManager.toggleInventory(false)
     inventoryAndHotbarManager.toggleHotbar(false)
     StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) --disables Roblox's default backpack
-    inventoryAndHotbarManager.initializeKeybindToHotbarSlot()
+    inventoryAndHotbarManager.toggleKeybindToHotbarSlot(true)
     inventoryAndHotbarManager.initializeMisc()
     inventoryAndHotbarManager.initializeWearablesGui()
 end
@@ -142,7 +150,7 @@ function inventoryAndHotbarManager.initializeWearablesGui()
                 end
             end
             currentSlotBeingHovered = slot
-            print(currentSlotBeingHovered.Name)
+            --print(currentSlotBeingHovered.Name)
             slot:FindFirstChildWhichIsA("UIStroke", true).Color = hoverColor
             --[[ hover info initialization
             if currentSlotBeingHovered:FindFirstChildOfClass("ObjectValue").Value ~= nil then
@@ -267,7 +275,7 @@ end
 
 local function connectDragEvents(slot, tool)
     local dragSlot
-    currentSlotBeingDragged = inventoryAndHotbarManager.getSlotFromTool(tool)
+    currentSlotBeingDragged = slot  --inventoryAndHotbarManager.getSlotFromTool(tool)
     dragSlot = slot:Clone()
     slot.GroupTransparency = 0.7
     dragSlot.Parent = gui
@@ -281,6 +289,10 @@ local function connectDragEvents(slot, tool)
     dragSound:Play()
     oldMousePosition = UserInputService:GetMouseLocation()
     ]]
+    local wearableIcon = dragSlot:FindFirstChild("Icon", true)
+    if wearableIcon then
+        wearableIcon.Visible = false
+    end
     RunService:BindToRenderStep("DraggingSlot", 200, function()
         local mousePosInVector2 : Vector2 = UserInputService:GetMouseLocation()
         dragSlot.Position = dragSlot.Position:Lerp(UDim2.fromOffset(mousePosInVector2.X, mousePosInVector2.Y), 0.3)
@@ -290,7 +302,7 @@ local function connectDragEvents(slot, tool)
         dragSound.Volume = lerp(dragSound.Volume, math.clamp(calculatedVolume, 0.1, 0.3), 0.1)
         ]]
         local dropLabel = dragSlot:FindFirstChild("DropLabel", true)
-        if not (hoveringInHotbar or hoveringInInventory) then --this means cursor is hovering outside of inventory system
+        if not (hoveringInHotbar or hoveringInInventory or hoveringInWearables) then --this means cursor is hovering outside of inventory system
             if  not dropLabel.Visible then
                 dropLabel.Visible = true
             end
@@ -311,21 +323,33 @@ local function connectDragEvents(slot, tool)
             if dragSlot then 
                 dragSlot:Destroy() 
             end
-            if currentSlotBeingDragged and currentSlotBeingHovered then
-                if isWearableSlot(currentSlotBeingHovered) then --if player is hovering on a wearableSlot
-                    print("calling transfer to wearable slot")
-                    inventoryAndHotbarManager.transferToWearableSlot(currentSlotBeingDragged)
+            if isWearableSlot(currentSlotBeingDragged) then
+                if hoveringInInventory then
+                    print("transferring worn item to inventory")
                 else
-                    --playSound(swapSound, nil, 0)
-                    print(currentSlotBeingDragged.Name .. " <-->" .. currentSlotBeingHovered.Name)
-                    inventoryAndHotbarManager.swapSlots(currentSlotBeingDragged, currentSlotBeingHovered)
+                    print("unwearing & dropping currently worn item on " .. currentSlotBeingDragged.Name)
                 end
-            elseif currentSlotBeingDragged and hoveringInInventory then
-                --playSound(swapSound, nil, 0)
-                inventoryAndHotbarManager.transferSlotToInventory(currentSlotBeingDragged)
-            elseif currentSlotBeingDragged and hoveringInInventory == false then
-                print("dropping tool")
-                rev_generalToolDrop:FireServer(tool)
+            else
+                if currentSlotBeingDragged and currentSlotBeingHovered then
+                    if isWearableSlot(currentSlotBeingHovered) then --if player is hovering on a wearableSlot
+                        print("wearing item")
+                        --print("calling transfer to wearable slot")
+                        inventoryAndHotbarManager.transferToWearableSlot(currentSlotBeingDragged, currentSlotBeingHovered)
+                    else
+                        --playSound(swapSound, nil, 0)
+                        print(currentSlotBeingDragged.Name .. " <-->" .. currentSlotBeingHovered.Name)
+                        inventoryAndHotbarManager.swapSlots(currentSlotBeingDragged, currentSlotBeingHovered)
+                    end
+                elseif currentSlotBeingDragged and hoveringInInventory then
+                    print("transferring to inventory")
+                    --playSound(swapSound, nil, 0)
+                    inventoryAndHotbarManager.transferSlotToInventory(currentSlotBeingDragged)
+                elseif currentSlotBeingDragged and not (hoveringInHotbar or hoveringInInventory or hoveringInWearables) then
+                    print("dropping tool")
+                    rev_generalToolDrop:FireServer(tool)
+                else
+                    print("none")
+                end
             end
             currentSlotBeingDragged.GroupTransparency = 0
             currentSlotBeingDragged = nil
@@ -333,10 +357,16 @@ local function connectDragEvents(slot, tool)
     end)
 end
 
+
+local canEquipAndUnequipViaClick = true
+local function toggleEquipAndUnequipViaClick(toggle : boolean)
+    canEquipAndUnequipViaClick = toggle
+end
+
 --[[
     Has slot use TextButton or ImageButton based on whether the tool has a TextureId property that isn't nil.
 ]]
-local function initializeSlotFunctionality(tool : Tool, slot)
+local function initializeSlotFunctionality(tool : Tool, slot, worn : boolean)
     local imageButton : ImageButton = slot:FindFirstChildWhichIsA("ImageButton", true)
     local textButton : TextButton = slot:FindFirstChildWhichIsA("TextButton", true)
     local button
@@ -354,23 +384,41 @@ local function initializeSlotFunctionality(tool : Tool, slot)
         local dragToggleTime : number = 0.1
         local connection
 
+        tool:GetAttributeChangedSignal("puttingOn"):Once(function()
+            if tool:GetAttribute("puttingOn") == true then
+                inventoryAndHotbarManager.toggleKeybindToHotbarSlot(false)
+                toggleEquipAndUnequipViaClick(false)
+                local designatedSlot = wearableSlots[tool:GetAttribute("WearableType")]
+                inventoryAndHotbarManager.transferToWearableSlot(slot, designatedSlot)
+                tool:GetAttributeChangedSignal("isWearing"):Once(function()
+                    humanoid:UnequipTools()
+                    inventoryAndHotbarManager.toggleKeybindToHotbarSlot(true)
+                    toggleEquipAndUnequipViaClick(true)
+                end)
+            end
+        end)
+
         connection = button.MouseButton1Down:Connect(function()
 
             local currentTime = tick()
 
-            --Event for toggling equip/unequip
-            button.MouseButton1Up:Once(function()
-                if tick() - currentTime <= dragToggleTime then
-                    --toggle equip/unequip
-                    --print("Toggle equip/unequip") 
-                    local slotNotEmpty = slot:FindFirstChildOfClass("ObjectValue").Value ~= nil
-                    if slotNotEmpty then
-                        --print(slot.Name)
-                        --can't used the passed parameter named slot because the button may be reparented to a different slot when slots are swapped
-                        inventoryAndHotbarManager.equipSlotToggle(button:FindFirstAncestorWhichIsA("CanvasGroup")) --remember that slots are of the CanvasGroup type
+            if not worn then 
+                --Event for toggling equip/unequip
+                button.MouseButton1Up:Once(function()
+                    if tick() - currentTime <= dragToggleTime then
+                        if canEquipAndUnequipViaClick then
+                            --toggle equip/unequip
+                            --print("Toggle equip/unequip") 
+                            local slotNotEmpty = slot:FindFirstChildOfClass("ObjectValue").Value ~= nil
+                            if slotNotEmpty then
+                                --print(slot.Name)
+                                --can't used the passed parameter named slot because the button may be reparented to a different slot when slots are swapped
+                                inventoryAndHotbarManager.equipSlotToggle(button:FindFirstAncestorWhichIsA("CanvasGroup")) --remember that slots are of the CanvasGroup type
+                            end
+                        end
                     end
-                end
-            end)
+                end)
+            end
 
             --Event for dragging & reorganizing slots
 
@@ -546,6 +594,7 @@ function inventoryAndHotbarManager.setSlot(passedTool : Tool, slot)
     slotWithoutConnections.Parent = slot.Parent
     slot:Destroy()
     slot = slotWithoutConnections
+    slot.GroupTransparency = 0
 
     initializeSlotFunctionality(passedTool, slot)
     local isHotbarSlot = slot:FindFirstChild("Number", true).Visible
@@ -571,9 +620,11 @@ function inventoryAndHotbarManager.toggleSlotEquippedEffect(slot, toggle : boole
     if toggle == true then
         Instance.new("UICorner").Parent = slot:FindFirstChild("innerFrame")
     else
-        local uiCorner = slot:FindFirstChildWhichIsA("UICorner", true)
-        if uiCorner then
-            uiCorner:Destroy()
+        if slot then
+            local uiCorner = slot:FindFirstChildWhichIsA("UICorner", true)
+            if uiCorner then
+                uiCorner:Destroy()
+            end
         end
     end
 end
@@ -590,18 +641,25 @@ function inventoryAndHotbarManager.getSlotFromTool(tool : Tool)
     return nil
 end
 
-function inventoryAndHotbarManager.initializeKeybindToHotbarSlot()
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        local slotIndex = table.find(slotNameToKeybind, input.KeyCode)
-        if slotIndex then
-            local slotName = tostring(slotIndex)
-            local associatedHotbarSlot = hotbar:FindFirstChild(slotName)
-            local slotNotEmpty = associatedHotbarSlot:FindFirstChildOfClass("ObjectValue").Value ~= nil
-            if slotNotEmpty then
-                inventoryAndHotbarManager.equipSlotToggle(associatedHotbarSlot)
+local keybindConnection
+
+function inventoryAndHotbarManager.toggleKeybindToHotbarSlot(toggle : boolean)
+    if toggle then
+        keybindConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            local slotIndex = table.find(slotNameToKeybind, input.KeyCode)
+            if slotIndex then
+                local slotName = tostring(slotIndex)
+                local associatedHotbarSlot = hotbar:FindFirstChild(slotName)
+                local slotNotEmpty = associatedHotbarSlot:FindFirstChildOfClass("ObjectValue").Value ~= nil
+                if slotNotEmpty then
+                    inventoryAndHotbarManager.equipSlotToggle(associatedHotbarSlot)
+                end
             end
-        end
-    end)
+        end)
+    else
+        keybindConnection:Disconnect()
+        keybindConnection = nil
+    end
 end
 
 --[[
@@ -665,7 +723,7 @@ function inventoryAndHotbarManager.swapSlots(firstSlot, secondSlot)
 end
 
 function inventoryAndHotbarManager.transferSlotToInventory(slot : typeof(slotTemplate))
-    print("transferSlotToInventory()")
+    --print("transferSlotToInventory()")
     if slot.Parent == hotbar then
         local emptyHotbarSlot = inventoryAndHotbarManager.createSlot(nil, "Hotbar", tonumber(slot.Name))
         emptyHotbarSlot.Parent = inventory
@@ -682,21 +740,7 @@ function inventoryAndHotbarManager.transferSlotToInventory(slot : typeof(slotTem
     end
 end
 
-local function convertToWearableSlot(originalSlot)
-    print("Converting to wearable slot")
-    local tool = originalSlot:FindFirstChildWhichIsA("ObjectValue").Value
-    local wearableType = tool:GetAttribute("WearableType")
-
-    local designatedSlot = wearableSlots[wearableType]
-    print(designatedSlot.Name)
-    designatedSlot.ObjectValue.Value = tool
-    designatedSlot:FindFirstChild("Icon", true).ImageTransparency = 0.5
-    local button = setButton(tool, designatedSlot:FindFirstChildWhichIsA("ImageButton", true), designatedSlot:FindFirstChildWhichIsA("TextButton", true))
-    inventoryAndHotbarManager.toggleSlotEquippedEffect(originalSlot, false)
-	inventoryAndHotbarManager.setSlot(nil, originalSlot)
-end
-
-function inventoryAndHotbarManager.transferToWearableSlot(passedSlot)
+function inventoryAndHotbarManager.transferToWearableSlot(passedSlot, targetSlot)
     local tool = passedSlot:FindFirstChildWhichIsA("ObjectValue").Value
     local wearableType = tool:GetAttribute("WearableType")
     if wearableType == nil then
@@ -704,11 +748,30 @@ function inventoryAndHotbarManager.transferToWearableSlot(passedSlot)
         return
     end
 
-    for type, _ in wearableSlots do
-        if wearableType == type then
-            convertToWearableSlot(passedSlot)
+    local slotParent = passedSlot.Parent
+
+    local designatedSlot = wearableSlots[wearableType]
+    if designatedSlot ~= targetSlot then
+        warn("wearable put into wrong wearable slot")
+    else
+        local tool = passedSlot:FindFirstChildWhichIsA("ObjectValue").Value
+        designatedSlot.ObjectValue.Value = tool
+        designatedSlot:FindFirstChild("Icon", true).ImageTransparency = 0.5
+        initializeSlotFunctionality(tool, designatedSlot, true)
+        --local button = setButton(tool, designatedSlot:FindFirstChildWhichIsA("ImageButton", true), designatedSlot:FindFirstChildWhichIsA("TextButton", true))
+        if slotParent == inventory then
+            passedSlot:Destroy()
+        elseif slotParent == hotbar then
+            inventoryAndHotbarManager.toggleSlotEquippedEffect(passedSlot, false)
+            inventoryAndHotbarManager.setSlot(nil, passedSlot)
+        else
+            warn("something went wrong, passed slow is neither a child of hotbar nor inventory")
         end
     end
+end
+
+function inventoryAndHotbarManager.transferOutOfWearableSlot(passedSlot, targetSlot)
+    print("transferring item in " .. passedSlot.Name .. " to targetSlot" )
 end
 
 function inventoryAndHotbarManager.initializeMisc()

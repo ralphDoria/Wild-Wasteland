@@ -143,8 +143,12 @@ function ItemTemplate:equip(subclassObject, tableOfFunctions)
         subclassObject.viewModelController.toolEquipped = true
         ContextActionService:BindAction(Constants.ACTION_DROP_TOOL, function(actionName, inputState, _inputObject)
             if actionName == Constants.ACTION_DROP_TOOL and inputState == Enum.UserInputState.Begin then
-                subclassObject:unequip()
-                rev_dropTool:FireServer(subclassObject.tool, false)
+                if subclassObject.tool:GetAttribute("canDrop") == true then
+                    subclassObject:unequip()
+                    rev_dropTool:FireServer(subclassObject.tool, false)
+                else
+                    print("tool can't be dropped at this time")
+                end
             end
         end, true, Enum.KeyCode.X)
         subclassObject.currentCharacterAnimationController.animationTracks.idle:Play()
