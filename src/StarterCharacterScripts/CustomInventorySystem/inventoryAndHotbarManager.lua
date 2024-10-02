@@ -334,8 +334,8 @@ local function connectDragEvents(slot, tool)
                     if isWearableSlot(currentSlotBeingHovered) then --if player is hovering on a wearableSlot
                         print("wearing item")
                         --print("calling transfer to wearable slot")
-                        if wearableSlots[tool:GetAttribute("WearableType")] == currentSlotBeingHovered then
-                            inventoryAndHotbarManager.wearItem(slot)
+                        if wearableSlots[tool:GetAttribute("WearableType")] == currentSlotBeingHovered then 
+                            inventoryAndHotbarManager.wearItem(slot)--wearing via drag
                         else
                             warn("wrong wearable slot")
                         end
@@ -367,33 +367,57 @@ local function toggleEquipAndUnequipViaClick(toggle : boolean)
     canEquipAndUnequipViaClick = toggle
 end
 
-local function initAndRunProgressBar(slot)
+local function initAndRunProgressBar(slot, wearTime : number)
+    print("wearTime: " .. tostring(wearTime))
     local innerFrame : Frame = slot:FindFirstChildWhichIsA("Frame", true)
     local progressBar = Instance.new("Frame")
-    progressBar.Size = innerFrame.Size
-    progressBar.Size.Y.Scale = 0
-    progressBar.Position = innerFrame.Position
-    TweenService:Create(progressBar, TweenInfo.new())
+    progressBar.BackgroundTransparency = 0.5
+    slot.GroupColor3 = Color3.new(0, 0, 0)
+    progressBar.BackgroundColor3 = Color3.new(1, 1, 1)
+    progressBar.Size = UDim2.fromScale(innerFrame.Size.X.Scale, 0)
+    progressBar.Position = UDim2.fromScale(innerFrame.Position.X.Scale, 1 - innerFrame.Position.Y.Scale)
+    local ti = TweenInfo.new(wearTime, Enum.EasingStyle.Linear)
+    local tweenSize = TweenService:Create(progressBar, ti, {Size = innerFrame.Size})
+    local tweenPosition = TweenService:Create(progressBar, ti, {Position = innerFrame.Position})
+    local tweenColor = TweenService:Create(slot, TweenInfo.new(0.5), {GroupColor3 = Color3.new(1, 1, 1)})
     progressBar.Parent = slot
+    tweenSize.Completed:Once(function()
+        tweenColor:Play()
+        progressBar:Destroy()
+        tweenSize:Destroy()
+        tweenPosition:Destroy()
+        tweenSize = nil
+        tweenPosition = nil
+        ti = nil
+    end)
+    tweenPosition:Play()
+    tweenSize:Play()
 end
 
 function inventoryAndHotbarManager.wearItem(slot)
     inventoryAndHotbarManager.toggleKeybindToHotbarSlot(false)
     toggleEquipAndUnequipViaClick(false)
 
+    local playingEquipAnimation : boolean = false
+
     local cachedEquippedTool = character:FindFirstChildOfClass("Tool")
     local tool : Tool = slot:FindFirstChildWhichIsA("ObjectValue", true).Value
-    if tool:GetAttribute("puttingOn") == false or tool:GetAttribute("puttingOn") == nil then
+    if tool:GetAttribute("puttingOn") == false or tool:GetAttribute("puttingOn") == nil then --if player didn't double click to wear
         tool:SetAttribute("forceWear", true)
         if tool.Parent:FindFirstChild("Humanoid") == nil then
             humanoid:EquipTool(tool)
             print("equipping tool")
+            playingEquipAnimation = true
         end
     end
-    print("starting progress bar")
 
     local designatedSlot = wearableSlots[tool:GetAttribute("WearableType")]
     inventoryAndHotbarManager.transferToWearableSlot(slot, designatedSlot)
+
+    print("starting progress bar")
+    local netWearTime = if not playingEquipAnimation then tool:GetAttribute("wearTime") else tool:GetAttribute("wearTime") + tool:GetAttribute("equipTime")
+    initAndRunProgressBar(designatedSlot, netWearTime)
+
     tool:GetAttributeChangedSignal("isWearing"):Once(function()
         humanoid:UnequipTools()
         if cachedEquippedTool then
@@ -430,9 +454,9 @@ local function initializeSlotFunctionality(tool : Tool, slot, worn : boolean)
         local dragToggleTime : number = 0.1
         local connection
 
-        tool:GetAttributeChangedSignal("puttingOn"):Once(function()
+        tool:GetAttributeChangedSignal("puttingOn"):Once(function() 
             if tool:GetAttribute("puttingOn") == true then
-                inventoryAndHotbarManager.wearItem(slot)
+                inventoryAndHotbarManager.wearItem(slot)--wearing via double click
             end
         end)
 

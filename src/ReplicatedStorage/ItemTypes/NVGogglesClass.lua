@@ -41,6 +41,20 @@ function NightVisionGoggles.new(tool : Tool)
     self.viewModelController = self.VMController.new(workspace.CurrentCamera:WaitForChild("viewModel"), tool, self.animObjects, hrp)
     self.currentCharacter = nil
     self.clicks = 0 --for double clicking feature
+
+    local putOnTrack = character:FindFirstChildWhichIsA("Animator", true):LoadAnimation(self.animObjects.putOn)
+    local equipTrack = character:FindFirstChildWhichIsA("Animator", true):LoadAnimation(self.animObjects.equip)
+    local loadTime = 0
+    while putOnTrack.Length == 0 or equipTrack.Length == 0 do
+        loadTime += task.wait()
+    end
+    tool:SetAttribute("wearTime", putOnTrack.Length)
+    tool:SetAttribute("equipTime", equipTrack.Length)
+    putOnTrack:Destroy()
+    equipTrack:Destroy()
+    loadTime = nil
+    
+
     setmetatable(self, NightVisionGoggles)
     self:intialize()
     return self
