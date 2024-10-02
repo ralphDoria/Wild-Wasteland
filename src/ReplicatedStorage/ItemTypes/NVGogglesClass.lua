@@ -1,6 +1,8 @@
 --NightVisionGoggles will inherit from the Wearable class
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:FindFirstChildOfClass("Humanoid")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -53,7 +55,6 @@ function NightVisionGoggles.new(tool : Tool)
     putOnTrack:Destroy()
     equipTrack:Destroy()
     loadTime = nil
-    
 
     setmetatable(self, NightVisionGoggles)
     self:intialize()
@@ -78,10 +79,12 @@ local tableOfFunctions = {
         --print("cleaning up nv effects")
     end,
     forceWear = function(subclassObject)
-        --print("forceWear = " .. tostring(subclassObject.tool:GetAttribute("forceWear")))
+        print("the functionality of this is being transferred, this is obsolete")
+        --[[
         if subclassObject.tool:GetAttribute("forceWear") == true then
             NightVisionGoggles:wearGoggles(subclassObject)
         end
+        ]]
     end
 }
 
@@ -149,7 +152,7 @@ function NightVisionGoggles:activate()
         end)
         if self.clicks >= 2 then
             self.tool:SetAttribute("canDrop", false)
-            self.tool:SetAttribute("puttingOn", true)
+            self.tool:SetAttribute("SignalingPutOn", true)
             self:wearGoggles()
         end
     end
@@ -165,6 +168,26 @@ function NightVisionGoggles:intialize()
         self.connections,
         self.tool.Activated:Connect(function()
             self:activate()
+        end)
+    )
+    table.insert(
+        self.connections,
+        self.tool:GetAttributeChangedSignal("WearingViaGui"):Once(function()
+            if self.tool:GetAttribute("WearingViaGui") == true then
+                --check if tool has to be equipped
+                local unequipped = self.tool.Parent:FindFirstChild("Humanoid") == nil
+                if unequipped then
+                    humanoid:EquipTool(self.tool)
+                    local waitingTime = 0
+                    while self.canActivate == false do
+                        waitingTime += task.wait()
+                    end
+                    print(task.wait())
+                    self:wearGoggles()
+                else
+                    self:wearGoggles()
+                end
+            end
         end)
     )
     --in here will be events specific to the night vision goggles
