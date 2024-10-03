@@ -61,7 +61,7 @@ function ItemTemplate:initialize(subclassObject)
     table.insert(
         subclassObject.connections,
         subclassObject.tool.Equipped:Connect(function()
-            subclassObject:equip()
+            subclassObject:equip(subclassObject)
         end)
     )
     table.insert(

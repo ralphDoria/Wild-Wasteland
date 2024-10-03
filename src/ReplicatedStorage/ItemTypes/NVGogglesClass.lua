@@ -160,25 +160,29 @@ function NightVisionGoggles:activate()
 end
 
 function NightVisionGoggles:equip()
-    Wearable:equip(self, tableOfFunctions)
+    if self.tool:GetAttribute("TakingOff") == false or self.tool:GetAttribute("TakingOff") == nil then
+        print("calling normal equip procedure")
+        Wearable:equip(self, tableOfFunctions)
+    else
+        print("taking off")
+    end 
 end
 
 function NightVisionGoggles:TakeOff()
     self.canActivate = false
+    self.tool:SetAttribute("TakingOff", true)
     humanoid:EquipTool(self.tool)
     self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
         print("destroying NV goggles accesory")
         rev_takeOffAccessory:FireServer(character, accessory.Name, self.tool)
     end)
     self.currentCharacterAnimationController.animationTracks.putOn.Ended:Once(function()
-        print("playing Idle animation")
-        self.currentCharacterAnimationController.animationTracks.idle:Play()
-        self.viewModelController.animationController.animationTracks.idle:Play()
+        self.canActivate = true
     end)
-    self.currentCharacterAnimationController.animationTracks.putOn:Play()
-    self.viewModelController.animationController.animationTracks.putOn:Play()
-    self.currentCharacterAnimationController.animationTracks.putOn:AdjustSpeed(-1)
-    self.viewModelController.animationController.animationTracks.putOn:AdjustSpeed(-1)
+    self.currentCharacterAnimationController.animationTracks.putOn:Play(0.1,1,-1)
+    self.viewModelController.animationController.animationTracks.putOn:Play(0.1,1,-1)
+    self.currentCharacterAnimationController.animationTracks.idle:Play()
+    self.viewModelController.animationController.animationTracks.idle:Play()
 end
 
 function NightVisionGoggles:intialize()
