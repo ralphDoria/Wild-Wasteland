@@ -6,6 +6,7 @@ local rev_dropTool = ReplicatedStorage.Tools.Shared:FindFirstChild("DropTool", t
 
 local nvgogglesRS = ReplicatedStorage.Tools.Wearable["Night Vision Goggles"]
 local rev_wearAccessory : RemoteEvent = nvgogglesRS:FindFirstChild("wearAccessory", true)
+local rev_takeOffAccessory : RemoteEvent = nvgogglesRS:FindFirstChild("takeOffAccessory", true)
 
 local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
 local detectDroppedToolHitFloor = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("DetectDroppedToolHitFloor"))
@@ -19,6 +20,16 @@ rev_wearAccessory.OnServerEvent:Connect(function(player, character, accessory, t
         end
     end
     --tool.Parent = player.Backpack --unequips this tool specifically
+end)
+
+rev_takeOffAccessory.OnServerEvent:Connect(function(player, character, acccesoryName : string, tool : Tool)
+    local accessory : Accessory = character:FindFirstChild(acccesoryName, true)
+    for _, v in tool:FindFirstChild("ToolModel"):GetDescendants() do
+        if v:IsA("BasePart") or v:IsA("MeshPart") then
+            v.Transparency = 0
+        end
+    end
+    accessory:Destroy()
 end)
 
 rev_playSound.OnServerEvent:Connect(function(player: Player, soundObject : Sound, soundParent : BasePart, delayCorrection : number)

@@ -405,7 +405,7 @@ function inventoryAndHotbarManager.wearItem(slot)
     inventoryAndHotbarManager.toggleKeybindToHotbarSlot(false)
     toggleEquipAndUnequipViaClick(false)
 
-    local cachedEquippedTool = character:FindFirstChildOfClass("Tool")
+    local cachedEquippedTool = character:FindFirstChildOfClass("Tool") and character:FindFirstChildOfClass("Tool") ~= tool
 
     local unequipped = tool.Parent:FindFirstChild("Humanoid") == nil
     local netWearTime : number = if not unequipped then tool:GetAttribute("wearTime") else tool:GetAttribute("wearTime") + tool:GetAttribute("equipTime")
@@ -428,12 +428,12 @@ function inventoryAndHotbarManager.wearItem(slot)
 
     initAndRunProgressBar(designatedSlot, netWearTime)
 
-    tool:GetAttributeChangedSignal("isWearing"):Once(function()
+    tool:GetAttributeChangedSignal("isWearing"):Connect(function()
+        print("unequipping tools")
         humanoid:UnequipTools()
         if cachedEquippedTool then
-            task.defer(function()
-                humanoid:EquipTool(cachedEquippedTool)
-            end)
+            print("equipping cached tool")
+            humanoid:EquipTool(cachedEquippedTool)
         end
         inventoryAndHotbarManager.toggleKeybindToHotbarSlot(true)
         toggleEquipAndUnequipViaClick(true)

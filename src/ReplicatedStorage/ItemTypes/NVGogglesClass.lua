@@ -21,6 +21,7 @@ local nvgogglesRS = ReplicatedStorage.Tools.Wearable["Night Vision Goggles"]
 local accessory : Accessory = nvgogglesRS:FindFirstChildWhichIsA("Accessory", true)
 local nvColorCorrection : ColorCorrectionEffect = nvgogglesRS:FindFirstChildWhichIsA("ColorCorrectionEffect", true)
 local rev_wearAccessory : RemoteEvent = nvgogglesRS:FindFirstChild("wearAccessory", true)
+local rev_takeOffAccessory : RemoteEvent = nvgogglesRS:FindFirstChild("takeOffAccessory", true)
 
 local NightVisionGoggles = {}
 NightVisionGoggles.__index = NightVisionGoggles
@@ -162,6 +163,24 @@ function NightVisionGoggles:equip()
     Wearable:equip(self, tableOfFunctions)
 end
 
+function NightVisionGoggles:TakeOff()
+    self.canActivate = false
+    humanoid:EquipTool(self.tool)
+    self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
+        print("destroying NV goggles accesory")
+        rev_takeOffAccessory:FireServer(character, accessory.Name, self.tool)
+    end)
+    self.currentCharacterAnimationController.animationTracks.putOn.Ended:Once(function()
+        print("playing Idle animation")
+        self.currentCharacterAnimationController.animationTracks.idle:Play()
+        self.viewModelController.animationController.animationTracks.idle:Play()
+    end)
+    self.currentCharacterAnimationController.animationTracks.putOn:Play()
+    self.viewModelController.animationController.animationTracks.putOn:Play()
+    self.currentCharacterAnimationController.animationTracks.putOn:AdjustSpeed(-1)
+    self.viewModelController.animationController.animationTracks.putOn:AdjustSpeed(-1)
+end
+
 function NightVisionGoggles:intialize()
     Wearable:initialize(self)
     table.insert(
@@ -187,6 +206,15 @@ function NightVisionGoggles:intialize()
                 else
                     self:wearGoggles()
                 end
+            end
+        end)
+    )
+    table.insert(
+        self.connections,
+        self.tool:GetAttributeChangedSignal("isWearing"):Connect(function()
+            if self.tool:GetAttribute("isWearing") == false then
+                self:TakeOff()
+                nvEffectOff()
             end
         end)
     )
