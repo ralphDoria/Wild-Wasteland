@@ -5,11 +5,11 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:FindFirstChildOfClass("Humanoid")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local CAS = game:GetService("ContextActionService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
 local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local playSound = require(ReplicatedStorage:FindFirstChild("PlaySoundUtil", true))
 
@@ -29,22 +29,14 @@ local Wearable = require(game:GetService("ReplicatedStorage"):FindFirstChild("We
 setmetatable(NightVisionGoggles, Wearable)
 
 function NightVisionGoggles.new(tool : Tool)
+    --INHERITING FROM:
     local self = Wearable.new(tool)
-    --[[
-    LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE,
-    LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE,
-    LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE, LOOK HERE
-
-    You need to find a way to give this class (the final child class) access to ViewModelController and AnimationController because those
-    need to be created here. I feel close to getting this inheritance thing down
-    ]]
+    --PROPERTIES:
     self.soundObjects.onSwitch = tool.BodyAttach.Sounds.OnSwitch
     self.soundObjects.offSwitch = tool.BodyAttach.Sounds.OffSwitch
     self.soundObjects.nightVision = tool.BodyAttach.Sounds["Night Vision"]
-    self.viewModelController = self.VMController.new(workspace.CurrentCamera:WaitForChild("viewModel"), tool, self.animObjects, hrp)
-    self.currentCharacter = nil
     self.clicks = 0 --for double clicking feature
-
+    --GETTING EQUIP TIME AND WEAR TIME:
     local putOnTrack = character:FindFirstChildWhichIsA("Animator", true):LoadAnimation(self.animObjects.putOn)
     local equipTrack = character:FindFirstChildWhichIsA("Animator", true):LoadAnimation(self.animObjects.equip)
     local loadTime = 0
@@ -56,18 +48,65 @@ function NightVisionGoggles.new(tool : Tool)
     putOnTrack:Destroy()
     equipTrack:Destroy()
     loadTime = nil
-
+    --OOP SETUP:
     setmetatable(self, NightVisionGoggles)
     self:intialize()
     return self
 end 
+
+function NightVisionGoggles:intialize()
+    Wearable:initialize(self)
+    table.insert(
+        self.connections,
+        self.tool.Activated:Connect(function()
+            self:activate()
+        end)
+    )
+    table.insert(
+        self.connections,
+        self.tool:GetAttributeChangedSignal("WearingViaGui"):Once(function()
+            if self.tool:GetAttribute("WearingViaGui") == true then
+                --check if tool has to be equipped
+                local unequipped = self.tool.Parent:FindFirstChild("Humanoid") == nil
+                if unequipped then
+                    humanoid:EquipTool(self.tool)
+                    local waitingTime = 0
+                    while self.canActivate == false do
+                        waitingTime += task.wait()
+                    end
+                    print(task.wait())
+                    self:wearGoggles()
+                else
+                    self:wearGoggles()
+                end
+            end
+        end)
+    )
+    table.insert(
+        self.connections,
+        self.tool:GetAttributeChangedSignal("isWearing"):Connect(function()
+            if self.tool:GetAttribute("isWearing") == false then
+                self:TakeOff()
+            end
+        end)
+    )
+    --in here will be events specific to the night vision goggles
+end
 
 local function nvEffectOff()
     Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
     Lighting.ExposureCompensation = 0
     for _, v in Lighting:GetChildren() do
         if v:IsA("ColorCorrectionEffect") and v.Name == "NV_ColorCorrection" then
-            v:Destroy()
+            local ti = TweenInfo.new(0.5)
+            local tweenBrightness = TweenService:Create(v, ti, {Brightness = -1})
+            local tweenTint = TweenService:Create(v, ti, {TintColor = Color3.new(0, 0, 0)})
+            tweenBrightness.Completed:Once(function()
+                v:Destroy()
+                ti = nil
+            end)
+            tweenTint:Play()
+            tweenBrightness:Play()
         end
     end
     gui.Enabled = false
@@ -80,12 +119,7 @@ local tableOfFunctions = {
         --print("cleaning up nv effects")
     end,
     forceWear = function(subclassObject)
-        print("the functionality of this is being transferred, this is obsolete")
-        --[[
-        if subclassObject.tool:GetAttribute("forceWear") == true then
-            NightVisionGoggles:wearGoggles(subclassObject)
-        end
-        ]]
+        --print("the functionality of this is being transferred, this is obsolete")
     end
 }
 
@@ -129,19 +163,27 @@ function NightVisionGoggles:wearGoggles(subclassObject)
     self.canActivate = false
     self.wearing = true 
     playSound(self.soundObjects.onSwitch, nil, 0)
-    self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
+    self.charAnimController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
         local toolAccessory = self.tool:FindFirstChildWhichIsA("Accessory", true)
-        self.viewModelController:hideViewModelTool()
+        self.vmController:hideViewModelTool()
         playSound(self.soundObjects.nightVision, nil, 0.1)
         nvEffectOn(self)
-        rev_wearAccessory:FireServer(self.currentCharacter, accessory, toolAccessory, self.tool)
+        print("firing remote event")
+        rev_wearAccessory:FireServer(character, accessory, toolAccessory, self.tool)
+        CAS:BindAction("debugTakeOff", function(actionName, inputState, _inputObject)
+            if inputState == Enum.UserInputState.Begin then
+                print("debugTakeOff")
+                self:TakeOff()
+                CAS:UnbindAction("debugTakeOff")
+            end
+        end, true, Enum.KeyCode.Y)
     end)
-    self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("startBlur"):Once(function()
+    self.charAnimController.animationTracks.putOn:GetMarkerReachedSignal("startBlur"):Once(function()
         putOnBlur()
     end)
     NightVisionGoggles:PutOn(self)
-    self.currentCharacterAnimationController.animationTracks.idle:Stop()
-    self.viewModelController.animationController.animationTracks.idle:Stop()
+    self.charAnimController.animationTracks.idle:Stop()
+    self.vmController.animationController.animationTracks.idle:Stop()
 end
 
 function NightVisionGoggles:activate()
@@ -161,7 +203,6 @@ end
 
 function NightVisionGoggles:equip()
     if self.tool:GetAttribute("TakingOff") == false or self.tool:GetAttribute("TakingOff") == nil then
-        print("calling normal equip procedure")
         Wearable:equip(self, tableOfFunctions)
     else
         print("taking off")
@@ -169,60 +210,21 @@ function NightVisionGoggles:equip()
 end
 
 function NightVisionGoggles:TakeOff()
+    playSound(self.soundObjects.offSwitch, nil, 0)
     self.canActivate = false
     self.tool:SetAttribute("TakingOff", true)
     humanoid:EquipTool(self.tool)
-    self.currentCharacterAnimationController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
-        print("destroying NV goggles accesory")
+    self.charAnimController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
         rev_takeOffAccessory:FireServer(character, accessory.Name, self.tool)
+        nvEffectOff()
     end)
-    self.currentCharacterAnimationController.animationTracks.putOn.Ended:Once(function()
+    self.charAnimController.animationTracks.putOn.Ended:Once(function()
         self.canActivate = true
     end)
-    self.currentCharacterAnimationController.animationTracks.putOn:Play(0.1,1,-1)
-    self.viewModelController.animationController.animationTracks.putOn:Play(0.1,1,-1)
-    self.currentCharacterAnimationController.animationTracks.idle:Play()
-    self.viewModelController.animationController.animationTracks.idle:Play()
-end
-
-function NightVisionGoggles:intialize()
-    Wearable:initialize(self)
-    table.insert(
-        self.connections,
-        self.tool.Activated:Connect(function()
-            self:activate()
-        end)
-    )
-    table.insert(
-        self.connections,
-        self.tool:GetAttributeChangedSignal("WearingViaGui"):Once(function()
-            if self.tool:GetAttribute("WearingViaGui") == true then
-                --check if tool has to be equipped
-                local unequipped = self.tool.Parent:FindFirstChild("Humanoid") == nil
-                if unequipped then
-                    humanoid:EquipTool(self.tool)
-                    local waitingTime = 0
-                    while self.canActivate == false do
-                        waitingTime += task.wait()
-                    end
-                    print(task.wait())
-                    self:wearGoggles()
-                else
-                    self:wearGoggles()
-                end
-            end
-        end)
-    )
-    table.insert(
-        self.connections,
-        self.tool:GetAttributeChangedSignal("isWearing"):Connect(function()
-            if self.tool:GetAttribute("isWearing") == false then
-                self:TakeOff()
-                nvEffectOff()
-            end
-        end)
-    )
-    --in here will be events specific to the night vision goggles
+    self.charAnimController.animationTracks.putOn:Play(0.1,1,-1)
+    self.vmController.animationController.animationTracks.putOn:Play(0.1,1,-1)
+    self.charAnimController.animationTracks.idle:Play()
+    self.vmController.animationController.animationTracks.idle:Play()
 end
 
 return NightVisionGoggles

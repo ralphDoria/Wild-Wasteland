@@ -429,10 +429,8 @@ function inventoryAndHotbarManager.wearItem(slot)
     initAndRunProgressBar(designatedSlot, netWearTime)
 
     tool:GetAttributeChangedSignal("isWearing"):Connect(function()
-        print("unequipping tools")
         humanoid:UnequipTools()
         if cachedEquippedTool then
-            print("equipping cached tool")
             humanoid:EquipTool(cachedEquippedTool)
         end
         inventoryAndHotbarManager.toggleKeybindToHotbarSlot(true)

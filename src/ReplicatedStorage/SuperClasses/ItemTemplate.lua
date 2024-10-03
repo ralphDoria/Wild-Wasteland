@@ -8,12 +8,14 @@ local Constants = {
 --LOCAL VARIABLES
 local Players = game:GetService("Players")
 local player = game:GetService("Players").LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
 --SERVICES
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ContextActionService = game:GetService("ContextActionService")
 --EXTERNAL CONTROLLERS
 local AnimationController = require(ReplicatedStorage:FindFirstChild("AnimationController", true))
-local ViewModelController = require(ReplicatedStorage:FindFirstChild("ViewModelController", true))
+local ViewmodelController = require(ReplicatedStorage:FindFirstChild("ViewModelController", true))
 --REMOTE EVENTS
 local rev_playSound = ReplicatedStorage.Tools.Shared:FindFirstChild("PlaySound", true)
 local rev_dropTool = ReplicatedStorage.Tools.Shared:FindFirstChild("DropTool", true)
@@ -29,7 +31,6 @@ function ItemTemplate.new(tool : Tool)
 
     local self = {
         tool = tool,
-        currentCharacter = nil,
         __type = "Item",
         animObjects = { --These are the fundamental animations, more can be added in whatever child class uses this parent class
             equip = toolAnimsFolder:FindFirstChild("equip", true),
@@ -37,14 +38,12 @@ function ItemTemplate.new(tool : Tool)
             --activate = toolAnimsFolder:FindFirstChild("activate", true),
         },
         soundObjects = { equip = tool.BodyAttach.Sounds.equip},
-        VMController = ViewModelController,
-        AnimController = AnimationController, 
         --[[
             The field variable above may not be needed because a new currentCharacterAnimationController is only controlled & destroyed
             here in this parent class
         ]]
-        viewModelController = nil, --this will be set in the final child class, when all animations are given
-        currentCharacterAnimationController = nil, --this will be set later when the tool is equipped/unequipped
+        vmController = nil, --this will be set in the final child class, when all animations are given
+        charAnimController = nil, --this will be set later when the tool is equipped/unequipped
         canActivate = false,
         equipped = false,
         connections = {}
@@ -58,30 +57,58 @@ end
 --[[
 ]]
 function ItemTemplate:initialize(subclassObject)
+
+    --[[
+    The if statement block below is for the case in which this method needs to called in a child class using the child class's properties,
+    but this method has been overriden in the child class.
+    ]]
+    if subclassObject ~= nil then
+        self = subclassObject
+    end
+
+    --Since the :initialize() method is called from the final child class, these animation controllers are created using that final child class's properties
+    self.charAnimController = AnimationController.new(character:FindFirstChild("Animator", true), self.animObjects)
+    self.vmController = ViewmodelController.new(workspace.CurrentCamera:WaitForChild("viewModel"), self.tool, self.animObjects, hrp)
+
+
+    --Event Connetions
     table.insert(
-        subclassObject.connections,
-        subclassObject.tool.Equipped:Connect(function()
-            subclassObject:equip(subclassObject)
+        self.connections,
+        self.tool.Equipped:Connect(function()
+            self:equip(self)
         end)
     )
     table.insert(
-        subclassObject.connections,
-        subclassObject.tool.Unequipped:Connect(function()
-            subclassObject:unequip()
+        self.connections,
+        self.tool.Unequipped:Connect(function()
+            self:unequip()
         end)
     )
     table.insert(
-        subclassObject.connections,
+        self.connections,
         player.Character.Torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
-            if subclassObject:isFirstPerson() then
-                if subclassObject.equipped then
-                    subclassObject.viewModelController:enable()
+            if self:isFirstPerson() then
+                if self.equipped then
+                    self.vmController:enable()
                 end
             else
-                if subclassObject.equipped then
-                    subclassObject.viewModelController:disable()
+                if self.equipped then
+                    self.vmController:disable()
                 end
             end
+        end)
+    )
+    table.insert(
+        self.connections,
+        character.Humanoid.Died:Once(function()
+            print("died connection")
+            --[[
+            if tableOfFunctions.deathProcedure then
+                tableOfFunctions.deathProcedure()
+            end
+            ]]
+            self:unequip()
+            rev_dropTool:FireServer(self.tool)
         end)
     )
 end
@@ -100,62 +127,57 @@ end
     The equip function for every weapon is mostly the same.
 ]]
 function ItemTemplate:equip(subclassObject, tableOfFunctions)
-    self.currentCharacter = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
-    if subclassObject == nil then
-        subclassObject = self
+    --[[
+    The if statement block below is for the case in which this method needs to called in a child class using the child class's properties,
+    but this method has been overriden in the child class.
+    ]]
+    if subclassObject ~= nil then
+        self = subclassObject
     end
-    if subclassObject:isFirstPerson() then
-        subclassObject.viewModelController:enable()
+    --STATE CHANGES:
+    self.equipped = true --necessary (you'll see in a couple of lines down from here)
+    self.vmController.toolEquipped = true
+    self.tool:SetAttribute("canDrop", true)
+    --SFX:
+    rev_playSound:FireServer(self.soundObjects.equip, self.tool.BodyAttach, 0)
+    --[[
+    The event connection that is connected in the initialize method only detects if the play CHANGES from first person to third person or vice
+    versa. Meanwhile, the if statement block below checks if AT THE MOMENT OF THIS TOOL BEING EQUIPPED, that the player is in first person, &
+    futhermore if the view model tool should be shown & the actual tool be hidden.
+    ]]
+    if self:isFirstPerson() then
+        self.vmController:enable()
     else
-        subclassObject.viewModelController:disable()
+        self.vmController:disable()
     end
-    subclassObject.viewModelController:equipTool()
-
-    rev_playSound:FireServer(subclassObject.soundObjects.equip, subclassObject.tool.BodyAttach, 0)
-    subclassObject.equipped = true
-    subclassObject.currentCharacter = player.Character
-    local diedConnection
-    diedConnection = subclassObject.currentCharacter.Humanoid.Died:Connect(function()
-        print("died connection")
-        if tableOfFunctions.deathProcedure then
-            tableOfFunctions.deathProcedure()
-        end
-        subclassObject:unequip()
-        rev_dropTool:FireServer(subclassObject.tool)
-    end)
-    subclassObject.tool:GetPropertyChangedSignal("Parent"):Once(function()
-        local toolWasUnequipped = subclassObject.tool.Parent ~= subclassObject.currentCharacter
-        if toolWasUnequipped then
-            diedConnection:Disconnect()
-        end
-    end)
-    if subclassObject.currentCharacter:GetAttribute(string.gsub(subclassObject.tool.Name, " ", "") .. "AnimsLoaded") == nil then
-		subclassObject.currentCharacter:SetAttribute(string.gsub(subclassObject.tool.Name, " ", "") .. "AnimsLoaded", true)
-		subclassObject.currentCharacterAnimationController = AnimationController.new(subclassObject.currentCharacter:FindFirstChild("Animator", true), subclassObject.animObjects)
-	end
-    --player:GetMouse().Icon = self.tool:GetAttribute("Cursor")
-
-    subclassObject.currentCharacterAnimationController.animationTracks.equip:Play()
-    subclassObject.viewModelController.animationController.animationTracks.equip:Play()
-    subclassObject.currentCharacterAnimationController.animationTracks.equip.Stopped:Wait()
-    if subclassObject.equipped then --checking this because during the equip animation, players can unequip the tool, causing a bug
-        subclassObject.equipped = true
-        subclassObject.viewModelController.toolEquipped = true
+    --GET VIEW MODEL UP TO SPEED:
+    self.vmController:equipTool()
+            --player:GetMouse().Icon = self.tool:GetAttribute("Cursor")
+    --PLAYING EQUIP ANIMATIONS & DETECTING WHEN THEY FINISH:
+    self.charAnimController.animationTracks.equip:Play()
+    self.vmController.animationController.animationTracks.equip:Play()
+    self.charAnimController.animationTracks.equip.Stopped:Wait()
+    --ONCE EQUIP ANIMATION IS FINISHED:
+    if self.equipped then --checking this because during the equip animation, players can unequip the tool, causing a bug
+        --PLAYING IDLE ANIMS:
+        self.charAnimController.animationTracks.idle:Play()
+        self.vmController.animationController.animationTracks.idle:Play()
+        --ALLOW PLAYER TO ACTIVE TOOL
+        self.canActivate = true
+        --GIVE PLAYER ABILITY TO DROP TOOL VIA PRESSING X:
         ContextActionService:BindAction(Constants.ACTION_DROP_TOOL, function(actionName, inputState, _inputObject)
             if actionName == Constants.ACTION_DROP_TOOL and inputState == Enum.UserInputState.Begin then
-                if subclassObject.tool:GetAttribute("canDrop") == true then
-                    subclassObject:unequip()
-                    rev_dropTool:FireServer(subclassObject.tool, false)
+                if self.tool:GetAttribute("canDrop") == true then
+                    self:unequip()
+                    rev_dropTool:FireServer(self.tool, false)
                 else
                     print("tool can't be dropped at this time")
                 end
             end
         end, true, Enum.KeyCode.X)
-        subclassObject.currentCharacterAnimationController.animationTracks.idle:Play()
-        subclassObject.viewModelController.animationController.animationTracks.idle:Play()
-        subclassObject.canActivate = true
+        --ADDED FUNCTIONALITY THAT THE CHILD CLASS CAN GIVE TO THIS PARENT CLASS:
         if tableOfFunctions.forceWear then
-            tableOfFunctions.forceWear(subclassObject)
+            tableOfFunctions.forceWear(self)
         end
     end
 end
@@ -170,28 +192,29 @@ end
     The unequip function for every weapon is mostly the same.
 ]]
 function ItemTemplate:unequip(subclassObject)
-    if subclassObject == nil then
-        subclassObject = self
+    --IF OVERRIDDEN IN CHILD, BUT NEED ORIGINAL:
+    if subclassObject ~= nil then
+        self = subclassObject
     end
-    subclassObject.equipped = false
-    subclassObject.viewModelController.toolEquipped = false
-    subclassObject.viewModelController:disable()
-    subclassObject.viewModelController:unequipTool()
-
-    subclassObject.equipped = false
+    --STATE CHANGES:
+    self.equipped = false
+    self.canActivate = false
+    self.vmController.toolEquipped = false
+    --TAKE AWAY PLAYER'S ABILITY TO DROP TOOL VIA PRESSING X:
     ContextActionService:UnbindAction(Constants.ACTION_DROP_TOOL)
+    --RESET MOUSE ICON:
 	player:GetMouse().Icon = ""
-	subclassObject.canActivate = false
-	for _, animTrack : AnimationTrack in subclassObject.currentCharacter.Humanoid.Animator:GetPlayingAnimationTracks() do
-		for _, anim : Animation in subclassObject.animObjects do
+    --VIEW MODEL SHIT:
+    self.vmController:disable()
+    self.vmController:unequipTool()
+	for _, animTrack : AnimationTrack in character.Humanoid.Animator:GetPlayingAnimationTracks() do
+		for _, anim : Animation in self.animObjects do
             if animTrack.Animation == anim then
                 animTrack:Stop()
             end
         end
 	end
-    subclassObject.viewModelController:stopAllViewModelAnimations()
-	subclassObject.currentCharacterAnimationController:destroy()
-	subclassObject.currentCharacter:SetAttribute(string.gsub(subclassObject.tool.Name, " ", "") .. "AnimsLoaded", nil)
+    self.vmController:stopAllViewModelAnimations()
 end
 
 function ItemTemplate:destroy()
