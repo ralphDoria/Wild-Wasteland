@@ -126,7 +126,7 @@ end
 --[[
     The equip function for every weapon is mostly the same.
 ]]
-function ItemTemplate:equip(subclassObject, tableOfFunctions)
+function ItemTemplate:equip(subclassObject, tableOfFunctions, altAnimInfo)
     --[[
     The if statement block below is for the case in which this method needs to called in a child class using the child class's properties,
     but this method has been overriden in the child class.
@@ -153,15 +153,22 @@ function ItemTemplate:equip(subclassObject, tableOfFunctions)
     --GET VIEW MODEL UP TO SPEED:
     self.vmController:equipTool()
             --player:GetMouse().Icon = self.tool:GetAttribute("Cursor")
+    --PLAYING IDLE ANIMS:
+    self.charAnimController.animationTracks.idle:Play()
+    self.vmController.animationController.animationTracks.idle:Play()
     --PLAYING EQUIP ANIMATIONS & DETECTING WHEN THEY FINISH:
-    self.charAnimController.animationTracks.equip:Play()
-    self.vmController.animationController.animationTracks.equip:Play()
-    self.charAnimController.animationTracks.equip.Stopped:Wait()
+    if altAnimInfo == nil then
+        self.charAnimController.animationTracks.equip:Play()
+        self.vmController.animationController.animationTracks.equip:Play()
+        self.charAnimController.animationTracks.equip.Stopped:Wait()
+    else
+        print("ItemTemplate's :TakeOff()")
+        altAnimInfo.charAnimTrack:Play(altAnimInfo.fadeTime, altAnimInfo.weight, altAnimInfo.speed)
+        altAnimInfo.vmAnimTrack:Play(altAnimInfo.fadeTime, altAnimInfo.weight, altAnimInfo.speed)
+        altAnimInfo.charAnimTrack.Stopped:Wait()
+    end
     --ONCE EQUIP ANIMATION IS FINISHED:
     if self.equipped then --checking this because during the equip animation, players can unequip the tool, causing a bug
-        --PLAYING IDLE ANIMS:
-        self.charAnimController.animationTracks.idle:Play()
-        self.vmController.animationController.animationTracks.idle:Play()
         --ALLOW PLAYER TO ACTIVE TOOL
         self.canActivate = true
         --GIVE PLAYER ABILITY TO DROP TOOL VIA PRESSING X:
@@ -176,7 +183,7 @@ function ItemTemplate:equip(subclassObject, tableOfFunctions)
             end
         end, true, Enum.KeyCode.X)
         --ADDED FUNCTIONALITY THAT THE CHILD CLASS CAN GIVE TO THIS PARENT CLASS:
-        if tableOfFunctions.forceWear then
+        if tableOfFunctions and tableOfFunctions.forceWear then
             tableOfFunctions.forceWear(self)
         end
     end

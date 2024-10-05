@@ -168,7 +168,6 @@ function NightVisionGoggles:wearGoggles(subclassObject)
         self.vmController:hideViewModelTool()
         playSound(self.soundObjects.nightVision, nil, 0.1)
         nvEffectOn(self)
-        print("firing remote event")
         rev_wearAccessory:FireServer(character, accessory, toolAccessory, self.tool)
         CAS:BindAction("debugTakeOff", function(actionName, inputState, _inputObject)
             if inputState == Enum.UserInputState.Begin then
@@ -196,23 +195,23 @@ function NightVisionGoggles:activate()
         if self.clicks >= 2 then
             self.tool:SetAttribute("canDrop", false)
             self.tool:SetAttribute("SignalingPutOn", true)
+            print("signaling put on")
             self:wearGoggles()
         end
     end
 end
 
 function NightVisionGoggles:equip()
-    if self.tool:GetAttribute("TakingOff") == false or self.tool:GetAttribute("TakingOff") == nil then
+    if self.tool:GetAttribute("SignalingTakeOff") == false or self.tool:GetAttribute("SignalingTakeOff") == nil then
         Wearable:equip(self, tableOfFunctions)
-    else
-        print("taking off")
     end 
 end
 
 function NightVisionGoggles:TakeOff()
+    print("nvgoggles's :TakeOff()")
     playSound(self.soundObjects.offSwitch, nil, 0)
     self.canActivate = false
-    self.tool:SetAttribute("TakingOff", true)
+    self.tool:SetAttribute("SignalingTakeOff", true)
     humanoid:EquipTool(self.tool)
     self.charAnimController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
         rev_takeOffAccessory:FireServer(character, accessory.Name, self.tool)
@@ -220,11 +219,21 @@ function NightVisionGoggles:TakeOff()
     end)
     self.charAnimController.animationTracks.putOn.Ended:Once(function()
         self.canActivate = true
+        self.tool:SetAttribute("", false)
     end)
+    Wearable:equip(self, nil, {
+        charAnimTrack = self.charAnimController.animationTracks.putOn,
+        vmAnimTrack = self.vmController.animationController.animationTracks.putOn,
+        fadeTime = 0.1,
+        weight = 1,
+        speed = -1
+    })
+    --[[
     self.charAnimController.animationTracks.putOn:Play(0.1,1,-1)
     self.vmController.animationController.animationTracks.putOn:Play(0.1,1,-1)
     self.charAnimController.animationTracks.idle:Play()
     self.vmController.animationController.animationTracks.idle:Play()
+    ]]
 end
 
 return NightVisionGoggles

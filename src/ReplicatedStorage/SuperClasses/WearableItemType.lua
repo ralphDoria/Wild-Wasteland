@@ -35,10 +35,8 @@ function Wearable:initialize(subclassObject)
     --any additional connnections can be added under here
 end
 
-function Wearable:equip(subclassObject, tableOfFunctions)
-    if not subclassObject.wearing then
-        ItemTemplate:equip(subclassObject, tableOfFunctions)
-    end
+function Wearable:equip(subclassObject, tableOfFunctions, altAnimInfo)
+    ItemTemplate:equip(subclassObject, tableOfFunctions, altAnimInfo)
 end
 
 function Wearable:PutOn(subclassObject)

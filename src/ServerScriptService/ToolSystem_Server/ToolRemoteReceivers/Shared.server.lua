@@ -12,7 +12,6 @@ local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitF
 local detectDroppedToolHitFloor = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("DetectDroppedToolHitFloor"))
 
 rev_wearAccessory.OnServerEvent:Connect(function(player, character, accessory, toolAccessory, tool)
-    print("receiving remote event signal")
     local this : Accessory = accessory:Clone()
     this.Parent = character
     for _, v in toolAccessory:GetDescendants() do

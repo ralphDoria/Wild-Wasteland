@@ -140,50 +140,54 @@ function inventoryAndHotbarManager.initializeSystem()
     inventoryAndHotbarManager.initializeWearablesGui()
 end
 
-function inventoryAndHotbarManager.initializeWearablesGui()
-    for _, slot in wearableSlots do
-        slot.MouseEnter:Connect(function()
-            if currentSlotBeingHovered ~= nil then
-                local uiStroke = currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true)
-                if uiStroke then
-                    uiStroke.Color = defaultColor
-                end
+local function initSingleWearableSlot(slot)
+    slot.MouseEnter:Connect(function()
+        if currentSlotBeingHovered ~= nil then
+            local uiStroke = currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true)
+            if uiStroke then
+                uiStroke.Color = defaultColor
             end
-            currentSlotBeingHovered = slot
-            --print(currentSlotBeingHovered.Name)
-            slot:FindFirstChildWhichIsA("UIStroke", true).Color = hoverColor
-            --[[ hover info initialization
-            if currentSlotBeingHovered:FindFirstChildOfClass("ObjectValue").Value ~= nil then
-                --print("creating hover info")
-                hoverInfoDisplay = createHoverInfoDisplay(currentSlotBeingHovered:FindFirstChildOfClass("ObjectValue").Value)
-                local mouse = player:GetMouse()
-                hoverInfoRunService = RunService.RenderStepped:Connect(function()
-                    hoverInfoDisplay.Position = UDim2.fromOffset(mouse.X, mouse.Y - hoverInfoDisplay.AbsoluteSize.Y + if gui.IgnoreGuiInset then game:GetService("GuiService"):GetGuiInset().Y else 0)
-                    if hoverInfoDisplay.Parent == nil then
-                        hoverInfoDisplay.Parent = gui
-                    end        
-                end)
-            end
-            ]]
-        end)
-        slot.MouseLeave:connect(function()
-            local noQuickHoverChange = currentSlotBeingHovered == slot
-            if noQuickHoverChange then
-                currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true).Color = defaultColor
-                currentSlotBeingHovered = nil
-                --print("currentSlotBeingHovered: nil")
-            end
+        end
+        currentSlotBeingHovered = slot
+        --print(currentSlotBeingHovered.Name)
+        slot:FindFirstChildWhichIsA("UIStroke", true).Color = hoverColor
+        --[[ hover info initialization
+        if currentSlotBeingHovered:FindFirstChildOfClass("ObjectValue").Value ~= nil then
+            --print("creating hover info")
+            hoverInfoDisplay = createHoverInfoDisplay(currentSlotBeingHovered:FindFirstChildOfClass("ObjectValue").Value)
+            local mouse = player:GetMouse()
+            hoverInfoRunService = RunService.RenderStepped:Connect(function()
+                hoverInfoDisplay.Position = UDim2.fromOffset(mouse.X, mouse.Y - hoverInfoDisplay.AbsoluteSize.Y + if gui.IgnoreGuiInset then game:GetService("GuiService"):GetGuiInset().Y else 0)
+                if hoverInfoDisplay.Parent == nil then
+                    hoverInfoDisplay.Parent = gui
+                end        
+            end)
+        end
+        ]]
+    end)
+    slot.MouseLeave:connect(function()
+        local noQuickHoverChange = currentSlotBeingHovered == slot
+        if noQuickHoverChange then
+            currentSlotBeingHovered:FindFirstChildWhichIsA("UIStroke", true).Color = defaultColor
+            currentSlotBeingHovered = nil
+            --print("currentSlotBeingHovered: nil")
+        end
 
-            --[[ hover info clean up
-            if hoverInfoDisplay ~= nil then
-                --print("destroying hover info")
-                hoverInfoDisplay:Destroy()
-                hoverInfoDisplay = nil
-                hoverInfoRunService:Disconnect()
-                hoverInfoRunService = nil
-            end
-            ]]
-        end)
+        --[[ hover info clean up
+        if hoverInfoDisplay ~= nil then
+            --print("destroying hover info")
+            hoverInfoDisplay:Destroy()
+            hoverInfoDisplay = nil
+            hoverInfoRunService:Disconnect()
+            hoverInfoRunService = nil
+        end
+        ]]
+    end)
+end
+
+function inventoryAndHotbarManager.initializeWearablesGui()
+    for _, v in wearableSlots do
+        initSingleWearableSlot(v)
     end
 end
 
@@ -201,6 +205,16 @@ end
 local function isWearableSlot(slot)
     for _, v in wearableSlots do
         if v == slot then
+            return true
+        end
+    end
+    return false
+end
+
+local function isWearableItem(slot)
+    local tool = slot:FindFirstChildWhichIsA("ObjectValue").Value
+    if tool ~= nil then
+        if tool:GetAttribute("WearableType") ~= nil then
             return true
         end
     end
@@ -324,11 +338,7 @@ local function connectDragEvents(slot, tool)
                 dragSlot:Destroy() 
             end
             if isWearableSlot(currentSlotBeingDragged) then
-                if hoveringInInventory then
-                    print("transferring worn item to inventory")
-                else
-                    print("unwearing & dropping currently worn item on " .. currentSlotBeingDragged.Name)
-                end
+                inventoryAndHotbarManager.transferOutOfWearableSlot(currentSlotBeingDragged, currentSlotBeingHovered, hoveringInInventory)
             else
                 if currentSlotBeingDragged and currentSlotBeingHovered then
                     if isWearableSlot(currentSlotBeingHovered) then --if player is hovering on a wearableSlot
@@ -405,7 +415,7 @@ function inventoryAndHotbarManager.wearItem(slot)
     inventoryAndHotbarManager.toggleKeybindToHotbarSlot(false)
     toggleEquipAndUnequipViaClick(false)
 
-    local cachedEquippedTool = character:FindFirstChildOfClass("Tool") and character:FindFirstChildOfClass("Tool") ~= tool
+    local cachedEquippedTool = character:FindFirstChildOfClass("Tool")
 
     local unequipped = tool.Parent:FindFirstChild("Humanoid") == nil
     local netWearTime : number = if not unequipped then tool:GetAttribute("wearTime") else tool:GetAttribute("wearTime") + tool:GetAttribute("equipTime")
@@ -430,7 +440,8 @@ function inventoryAndHotbarManager.wearItem(slot)
 
     tool:GetAttributeChangedSignal("isWearing"):Connect(function()
         humanoid:UnequipTools()
-        if cachedEquippedTool then
+        if cachedEquippedTool and cachedEquippedTool ~= tool then
+            print("Equipping cached tool: " .. cachedEquippedTool.Name)
             humanoid:EquipTool(cachedEquippedTool)
         end
         inventoryAndHotbarManager.toggleKeybindToHotbarSlot(true)
@@ -462,9 +473,17 @@ local function initializeSlotFunctionality(tool : Tool, slot, worn : boolean)
         local dragToggleTime : number = 0.1
         local connection
 
-        tool:GetAttributeChangedSignal("SignalingPutOn"):Once(function() 
+        tool:GetAttributeChangedSignal("SignalingPutOn"):Connect(function() 
             if tool:GetAttribute("SignalingPutOn") == true then --this is changed by the tool's class code
+                print("received signaling put on successfully")
                 inventoryAndHotbarManager.wearItem(slot)--wearing via double click
+            end
+        end)
+
+        tool:GetAttributeChangedSignal("SignalingTakeOff"):Connect(function() 
+            if tool:GetAttribute("SignalingTakeOff") == true then --this is changed by the tool's class code
+                print("received signaling take off successfully")
+                inventoryAndHotbarManager.transferOutOfWearableSlot(inventoryAndHotbarManager.getSlotFromTool(tool), nil, true)
             end
         end)
 
@@ -840,8 +859,37 @@ function inventoryAndHotbarManager.transferToWearableSlot(passedSlot, targetSlot
     end
 end
 
-function inventoryAndHotbarManager.transferOutOfWearableSlot(passedSlot, targetSlot)
-    print("transferring item in " .. passedSlot.Name .. " to targetSlot" )
+
+local storage : Folder = gui.Storage
+local defaultWearableSlots = {
+    Head = storage.Head,
+    Torso = storage.Torso,
+    Legs = storage.Legs,
+    Feet = storage.Feet
+}
+function inventoryAndHotbarManager.transferOutOfWearableSlot(passedSlot, targetSlot, isHoveringInInventory)
+    if targetSlot == nil then
+        if not (hoveringInHotbar or hoveringInInventory or hoveringInWearables) then
+            print("Case 1: Take off wearable & drop.")
+        elseif isHoveringInInventory then
+            print("Case 2: Take off wearable, reset wearable slot, create a slot in inventory for wearable item.")
+        end
+    else
+        --targetSlot exists
+        local slotNotEmpty = targetSlot:FindFirstChildOfClass("ObjectValue").Value ~= nil
+        if slotNotEmpty then
+            if isWearableItem(targetSlot) then
+                print("Case 3b: swap wearable items' places.")
+            else
+                print("Case 3a: do nothing because non wearable item cannot be swapped into wearable slot")
+            end
+        else
+            --slot is empty
+            if not isWearableSlot(targetSlot) then
+                print("Case 3c: Take off wearable item, reset wearable slot to default, intialize wearable into specified empty hotbar slot")
+            end
+        end
+    end
 end
 
 function inventoryAndHotbarManager.initializeMisc()
