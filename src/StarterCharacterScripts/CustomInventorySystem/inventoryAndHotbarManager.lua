@@ -31,8 +31,6 @@ local lerp =  require(game:GetService("ReplicatedStorage"):FindFirstChild("lerp"
 local mouseTrailEffect = require(script.Parent.mouseTrailEffect)
 local ViewportModel = require(ReplicatedStorage:FindFirstChild("ViewportModel", true)) --credit to EgoMoose
 
-local rev_generalToolDrop = ReplicatedStorage.Tools:FindFirstChild("GeneralToolDrop", true)
-
 ----[[ GUI VARIABLES ]]----
 local gui : ScreenGui = player.PlayerGui:WaitForChild("InventoryAndHotbar")
 local forModal : Textbutton = gui:FindFirstChild("ForModal")
@@ -47,6 +45,10 @@ local wearableSlots = {
     ["Torso"] = _wearableSlots:FindFirstChild("Torso", true),
     ["Head"] = _wearableSlots:FindFirstChild("Head", true)
 }
+
+local rev_generalToolDrop = ReplicatedStorage.Tools:FindFirstChild("GeneralToolDrop", true)
+local bev_signalPutOn : BindableEvent = gui:FindFirstChild("SignalPutOn", true)
+local bev_signalTakeOff : BindableEvent = gui:FindFirstChild("SignalTakeOff", true)
 
 local viewportFrame : ViewportFrame = wearables:FindFirstChildOfClass("ViewportFrame")
 local hotbar : CanvasGroup = gui:FindFirstChild("Hotbar", true) -- the hotbar frame
@@ -338,14 +340,14 @@ local function connectDragEvents(slot, tool)
                 dragSlot:Destroy() 
             end
             if isWearableSlot(currentSlotBeingDragged) then
-                inventoryAndHotbarManager.transferOutOfWearableSlot(currentSlotBeingDragged, currentSlotBeingHovered, hoveringInInventory)
+                inventoryAndHotbarManager.transferOutOfWearableSlot(currentSlotBeingDragged, currentSlotBeingHovered)
             else
                 if currentSlotBeingDragged and currentSlotBeingHovered then
                     if isWearableSlot(currentSlotBeingHovered) then --if player is hovering on a wearableSlot
                         --print("calling transfer to wearable slot")
                         if wearableSlots[tool:GetAttribute("WearableType")] == currentSlotBeingHovered then 
                             print("wearing item")
-                            inventoryAndHotbarManager.wearItem(slot)--wearing via drag
+                            inventoryAndHotbarManager.wearItem(slot, true)--wearing via drag
                         else
                             warn("wrong wearable slot")
                         end
@@ -402,7 +404,7 @@ local function initAndRunProgressBar(slot, wearTime : number)
     tweenSize:Play()
 end
 
-function inventoryAndHotbarManager.wearItem(slot)
+function inventoryAndHotbarManager.wearItem(slot, draggedToWear)
     local tool : Tool = slot:FindFirstChildWhichIsA("ObjectValue", true).Value
     local designatedSlot = wearableSlots[tool:GetAttribute("WearableType")]
 
@@ -420,9 +422,9 @@ function inventoryAndHotbarManager.wearItem(slot)
     local unequipped = tool.Parent:FindFirstChild("Humanoid") == nil
     local netWearTime : number = if not unequipped then tool:GetAttribute("wearTime") else tool:GetAttribute("wearTime") + tool:GetAttribute("equipTime")
 
-    local draggedToWear = tool:GetAttribute("SignalingPutOn") == false or tool:GetAttribute("SignalingPutOn") == nil
     if draggedToWear then --if player didn't double click to wear
-        tool:SetAttribute("WearingViaGui", true)
+        --tool:SetAttribute("WearingViaGui", true)
+        bev_signalPutOn:Fire(tool, 1)
     end
 
     local otherTools = {}
@@ -439,15 +441,17 @@ function inventoryAndHotbarManager.wearItem(slot)
     initAndRunProgressBar(designatedSlot, netWearTime)
 
     tool:GetAttributeChangedSignal("isWearing"):Connect(function()
-        humanoid:UnequipTools()
-        if cachedEquippedTool and cachedEquippedTool ~= tool then
-            print("Equipping cached tool: " .. cachedEquippedTool.Name)
-            humanoid:EquipTool(cachedEquippedTool)
-        end
-        inventoryAndHotbarManager.toggleKeybindToHotbarSlot(true)
-        toggleEquipAndUnequipViaClick(true)
-        for _, v in otherTools do
-            v.GroupTransparency = 0
+        if tool:GetAttribute("isWearing") == true then
+            humanoid:UnequipTools()
+            if cachedEquippedTool and cachedEquippedTool ~= tool then
+                print("Equipping cached tool: " .. cachedEquippedTool.Name)
+                humanoid:EquipTool(cachedEquippedTool)
+            end
+            inventoryAndHotbarManager.toggleKeybindToHotbarSlot(true)
+            toggleEquipAndUnequipViaClick(true)
+            for _, v in otherTools do
+                v.GroupTransparency = 0
+            end
         end
     end)
 end
@@ -461,6 +465,7 @@ local function initializeSlotFunctionality(tool : Tool, slot, worn : boolean)
     local button
     local hoverStartDetection
     local hoverEndDetection
+    local slotEventConnections = {}
 
     if tool == nil then
         imageButton.Visible = false
@@ -473,19 +478,48 @@ local function initializeSlotFunctionality(tool : Tool, slot, worn : boolean)
         local dragToggleTime : number = 0.1
         local connection
 
-        tool:GetAttributeChangedSignal("SignalingPutOn"):Connect(function() 
-            if tool:GetAttribute("SignalingPutOn") == true then --this is changed by the tool's class code
-                print("received signaling put on successfully")
-                inventoryAndHotbarManager.wearItem(slot)--wearing via double click
-            end
-        end)
-
-        tool:GetAttributeChangedSignal("SignalingTakeOff"):Connect(function() 
-            if tool:GetAttribute("SignalingTakeOff") == true then --this is changed by the tool's class code
-                print("received signaling take off successfully")
-                inventoryAndHotbarManager.transferOutOfWearableSlot(inventoryAndHotbarManager.getSlotFromTool(tool), nil, true)
-            end
-        end)
+        local wearableEventConnections = {}
+        if tool:GetAttribute("WearableType") ~= nil then
+            table.insert(
+                wearableEventConnections,
+                bev_signalPutOn.Event:Connect(function(thisTool : Tool, firingDirection : number)
+                    --[[
+                    Firing direction key:
+                    1 - from inventory to tool
+                    2 - from tool to inventory
+                    ]]
+                    if firingDirection == 2 then
+                        if thisTool == tool then
+                            print("put on signal received from tool to inventory code")
+                            inventoryAndHotbarManager.wearItem(slot)--wearing via double click
+                        end
+                    end
+                end)
+            )
+            table.insert(
+                wearableEventConnections,
+                bev_signalTakeOff.Event:Connect(function(thisTool : Tool, firingDirection : number)
+                    --[[
+                    Firing direction key:
+                    1 - from inventory to tool
+                    2 - from tool to inventory
+                    ]]
+                    if firingDirection == 2 then
+                        if thisTool == tool then
+                            print("take off signal received from tool to inventory code")
+                            local wearableItemSlot = inventoryAndHotbarManager.getSlotFromTool(tool)
+                            inventoryAndHotbarManager.transferOutOfWearableSlot(wearableItemSlot, nil, true)
+                        end
+                    end
+                end)
+            )
+            slot.Destroying:Once(function()
+                for _, thisConnection in wearableEventConnections do
+                    thisConnection:Disconnect()
+                end
+                wearableEventConnections = nil
+            end)
+        end
 
         connection = button.MouseButton1Down:Connect(function()
 
@@ -526,6 +560,9 @@ local function initializeSlotFunctionality(tool : Tool, slot, worn : boolean)
         detectSlotEmpty = objectValue:GetPropertyChangedSignal("Value"):Connect(function()
             if objectValue.Value == nil then -- and currentButton == button --meaning a swap didn't occur
                 --print("Associated tool changed to  nil, disconnecting associated tool's events")
+                print(slot)
+                print("detected slot became empty")
+                print("THIS EVENT CONNECTION RIGHT HERE MIGHT BE OBSOLETE BECAUSE IT DOESN'T PRINT ANYTHING, but idk for sure & why, if so")
                 connection:Disconnect()
                 connection = nil
                 detectSlotEmpty:Disconnect()
@@ -719,7 +756,15 @@ function inventoryAndHotbarManager.toggleSlotEquippedEffect(slot, toggle : boole
 end
 
 function inventoryAndHotbarManager.getSlotFromTool(tool : Tool)
-    local source = if tool:GetAttribute("HotbarSlot") then hotbar else inventory
+    local source
+    if tool:GetAttribute("HotbarSlot") then 
+       source = hotbar 
+    elseif tool:GetAttribute("isWearing") == true then
+        source = _wearableSlots
+    else
+        source = inventory
+    end
+
     for _, slot in ipairs(source:GetChildren()) do
         if slot:IsA(slotTemplate.ClassName) and slot ~= slotTemplate then
             if slot:FindFirstChildOfClass("ObjectValue").Value == tool then
@@ -867,26 +912,36 @@ local defaultWearableSlots = {
     Legs = storage.Legs,
     Feet = storage.Feet
 }
-function inventoryAndHotbarManager.transferOutOfWearableSlot(passedSlot, targetSlot, isHoveringInInventory)
+
+function inventoryAndHotbarManager.transferOutOfWearableSlot(passedSlot, targetSlot, forceTransferToInventory)
     if targetSlot == nil then
-        if not (hoveringInHotbar or hoveringInInventory or hoveringInWearables) then
-            print("Case 1: Take off wearable & drop.")
-        elseif isHoveringInInventory then
-            print("Case 2: Take off wearable, reset wearable slot, create a slot in inventory for wearable item.")
+        if hoveringInInventory or forceTransferToInventory then
+            print("Case 2: Create a new slot in inventory.")
+        elseif not (hoveringInHotbar or hoveringInInventory or hoveringInWearables) then
+            --print("hoveringInHotbar: " .. tostring(hoveringInHotbar) .. ", hoveringInInventory: " .. tostring(hoveringInInventory) .. ", hoveringInWearables: " .. tostring(hoveringInWearables))
+            print("Case 1: Drop")
+            local tool = passedSlot:FindFirstChildWhichIsA("ObjectValue", true).Value
+            rev_generalToolDrop:FireServer(tool)
+            local replacement = defaultWearableSlots[passedSlot.Name]:Clone()
+            initSingleWearableSlot(replacement)
+            replacement.Parent = passedSlot.Parent
+            passedSlot:Destroy()
+        else
+            --print("do nothing")
         end
     else
         --targetSlot exists
         local slotNotEmpty = targetSlot:FindFirstChildOfClass("ObjectValue").Value ~= nil
         if slotNotEmpty then
             if isWearableItem(targetSlot) then
-                print("Case 3b: swap wearable items' places.")
+                print("Case 3b: Swap wearable items' places.")
             else
                 print("Case 3a: do nothing because non wearable item cannot be swapped into wearable slot")
             end
         else
             --slot is empty
             if not isWearableSlot(targetSlot) then
-                print("Case 3c: Take off wearable item, reset wearable slot to default, intialize wearable into specified empty hotbar slot")
+                print("Case 3c: intialize wearable into specified empty hotbar slot")
             end
         end
     end

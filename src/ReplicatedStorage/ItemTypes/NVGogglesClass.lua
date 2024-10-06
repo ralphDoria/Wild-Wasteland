@@ -22,6 +22,9 @@ local accessory : Accessory = nvgogglesRS:FindFirstChildWhichIsA("Accessory", tr
 local nvColorCorrection : ColorCorrectionEffect = nvgogglesRS:FindFirstChildWhichIsA("ColorCorrectionEffect", true)
 local rev_wearAccessory : RemoteEvent = nvgogglesRS:FindFirstChild("wearAccessory", true)
 local rev_takeOffAccessory : RemoteEvent = nvgogglesRS:FindFirstChild("takeOffAccessory", true)
+local inventoryAndHotbar = player.PlayerGui.InventoryAndHotbar
+local bev_signalPutOn : BindableEvent = inventoryAndHotbar:FindFirstChild("SignalPutOn", true)
+local bev_signalTakeOff : BindableEvent = inventoryAndHotbar:FindFirstChild("SignalTakeOff", true)
 
 local NightVisionGoggles = {}
 NightVisionGoggles.__index = NightVisionGoggles
@@ -64,6 +67,32 @@ function NightVisionGoggles:intialize()
     )
     table.insert(
         self.connections,
+        bev_signalPutOn.Event:Connect(function(thisTool : Tool, firingDirection : number)
+            --[[
+            Firing direction key:
+            1 - from inventory to tool
+            2 - from tool to inventory
+            ]]
+            if firingDirection == 1 then
+                if thisTool == self.tool then
+                    print("put on signal received from inventory to tool code")
+                    --check if tool has to be equipped
+                    local unequipped = self.tool.Parent:FindFirstChild("Humanoid") == nil
+                    if unequipped then
+                        humanoid:EquipTool(self.tool)
+                        local waitingTime = 0
+                        while self.canActivate == false do
+                            waitingTime += task.wait()
+                        end
+                        print(task.wait())
+                        self:wearGoggles()
+                    else
+                        self:wearGoggles()
+                    end
+                end
+            end
+        end)
+        --[[
         self.tool:GetAttributeChangedSignal("WearingViaGui"):Once(function()
             if self.tool:GetAttribute("WearingViaGui") == true then
                 --check if tool has to be equipped
@@ -81,14 +110,7 @@ function NightVisionGoggles:intialize()
                 end
             end
         end)
-    )
-    table.insert(
-        self.connections,
-        self.tool:GetAttributeChangedSignal("isWearing"):Connect(function()
-            if self.tool:GetAttribute("isWearing") == false then
-                self:TakeOff()
-            end
-        end)
+        ]]
     )
     --in here will be events specific to the night vision goggles
 end
@@ -171,7 +193,7 @@ function NightVisionGoggles:wearGoggles(subclassObject)
         rev_wearAccessory:FireServer(character, accessory, toolAccessory, self.tool)
         CAS:BindAction("debugTakeOff", function(actionName, inputState, _inputObject)
             if inputState == Enum.UserInputState.Begin then
-                print("debugTakeOff")
+                --print("debugTakeOff")
                 self:TakeOff()
                 CAS:UnbindAction("debugTakeOff")
             end
@@ -194,8 +216,8 @@ function NightVisionGoggles:activate()
         end)
         if self.clicks >= 2 then
             self.tool:SetAttribute("canDrop", false)
-            self.tool:SetAttribute("SignalingPutOn", true)
-            print("signaling put on")
+            bev_signalPutOn:Fire(self.tool, 2)
+            --self.tool:SetAttribute("SignalingPutOn", true)
             self:wearGoggles()
         end
     end
@@ -208,10 +230,11 @@ function NightVisionGoggles:equip()
 end
 
 function NightVisionGoggles:TakeOff()
-    print("nvgoggles's :TakeOff()")
+    --print("nvgoggles's :TakeOff()")
     playSound(self.soundObjects.offSwitch, nil, 0)
     self.canActivate = false
-    self.tool:SetAttribute("SignalingTakeOff", true)
+    bev_signalTakeOff:Fire(self.tool, 2)
+    --self.tool:SetAttribute("SignalingTakeOff", true)
     humanoid:EquipTool(self.tool)
     self.charAnimController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
         rev_takeOffAccessory:FireServer(character, accessory.Name, self.tool)
@@ -219,7 +242,7 @@ function NightVisionGoggles:TakeOff()
     end)
     self.charAnimController.animationTracks.putOn.Ended:Once(function()
         self.canActivate = true
-        self.tool:SetAttribute("", false)
+        self.tool:SetAttribute("isWearing", false)
     end)
     Wearable:equip(self, nil, {
         charAnimTrack = self.charAnimController.animationTracks.putOn,
