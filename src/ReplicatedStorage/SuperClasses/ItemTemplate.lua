@@ -162,7 +162,7 @@ function ItemTemplate:equip(subclassObject, tableOfFunctions, altAnimInfo)
         self.vmController.animationController.animationTracks.equip:Play()
         self.charAnimController.animationTracks.equip.Stopped:Wait()
     else
-        --print("ItemTemplate's :TakeOff()")
+        --print("ItemTemplate's part of wearable's :TakeOff()")
         altAnimInfo.charAnimTrack:Play(altAnimInfo.fadeTime, altAnimInfo.weight, altAnimInfo.speed)
         altAnimInfo.vmAnimTrack:Play(altAnimInfo.fadeTime, altAnimInfo.weight, altAnimInfo.speed)
         altAnimInfo.charAnimTrack.Stopped:Wait()

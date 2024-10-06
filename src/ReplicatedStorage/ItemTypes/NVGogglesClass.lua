@@ -92,30 +92,20 @@ function NightVisionGoggles:intialize()
                 end
             end
         end)
-        --[[
-        self.tool:GetAttributeChangedSignal("WearingViaGui"):Once(function()
-            if self.tool:GetAttribute("WearingViaGui") == true then
-                --check if tool has to be equipped
-                local unequipped = self.tool.Parent:FindFirstChild("Humanoid") == nil
-                if unequipped then
-                    humanoid:EquipTool(self.tool)
-                    local waitingTime = 0
-                    while self.canActivate == false do
-                        waitingTime += task.wait()
-                    end
-                    print(task.wait())
-                    self:wearGoggles()
-                else
-                    self:wearGoggles()
-                end
-            end
-        end)
-        ]]
     )
     --in here will be events specific to the night vision goggles
 end
 
-local function nvEffectOff()
+local function revertNVEffect()
+    gui.Enabled = false
+    RunService:UnbindFromRenderStep(bindName)
+    local cc : ColorCorrectionEffect = Lighting:FindFirstChild(nvColorCorrection.Name)
+    cc:Destroy()
+    Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
+    Lighting.ExposureCompensation = 0
+end
+
+local function turnOffNVEffect()
     Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
     Lighting.ExposureCompensation = 0
     for _, v in Lighting:GetChildren() do
@@ -137,7 +127,7 @@ end
 
 local tableOfFunctions = {
     deathProcedure = function()
-        nvEffectOff()
+        turnOffNVEffect()
         --print("cleaning up nv effects")
     end,
     forceWear = function(subclassObject)
@@ -145,7 +135,7 @@ local tableOfFunctions = {
     end
 }
 
-local function nvEffectOn(subclassObject)
+local function turnOnNVEffect(subclassObject)
     gui.Enabled = true
     RunService:BindToRenderStep(bindName, 200, function()
         grain.TileSize = UDim2.new(math.random(7, 10) / 10, 0, math.random(7, 10) / 10, 0)
@@ -182,6 +172,7 @@ function NightVisionGoggles:wearGoggles(subclassObject)
     if subclassObject ~= nil then
         self = subclassObject
     end
+    self.tool:SetAttribute("canDrop", false)
     self.canActivate = false
     self.wearing = true 
     playSound(self.soundObjects.onSwitch, nil, 0)
@@ -189,18 +180,21 @@ function NightVisionGoggles:wearGoggles(subclassObject)
         local toolAccessory = self.tool:FindFirstChildWhichIsA("Accessory", true)
         self.vmController:hideViewModelTool()
         playSound(self.soundObjects.nightVision, nil, 0.1)
-        nvEffectOn(self)
+        turnOnNVEffect(self)
         rev_wearAccessory:FireServer(character, accessory, toolAccessory, self.tool)
-        CAS:BindAction("debugTakeOff", function(actionName, inputState, _inputObject)
-            if inputState == Enum.UserInputState.Begin then
-                --print("debugTakeOff")
-                self:TakeOff()
-                CAS:UnbindAction("debugTakeOff")
-            end
-        end, true, Enum.KeyCode.Y)
     end)
     self.charAnimController.animationTracks.putOn:GetMarkerReachedSignal("startBlur"):Once(function()
-        putOnBlur()
+        --putOnBlur()
+    end)
+    self.charAnimController.animationTracks.putOn.Ended:Once(function()
+        print("can take off now")
+        CAS:BindAction("debugTakeOff", function(actionName, inputState, _inputObject)
+            if inputState == Enum.UserInputState.Begin then
+                print("debugTakeOff")
+                CAS:UnbindAction("debugTakeOff")
+                self:TakeOff()
+            end
+        end, true, Enum.KeyCode.Y)
     end)
     NightVisionGoggles:PutOn(self)
     self.charAnimController.animationTracks.idle:Stop()
@@ -215,16 +209,14 @@ function NightVisionGoggles:activate()
             self.clicks = 0
         end)
         if self.clicks >= 2 then
-            self.tool:SetAttribute("canDrop", false)
-            bev_signalPutOn:Fire(self.tool, 2)
-            --self.tool:SetAttribute("SignalingPutOn", true)
+            bev_signalPutOn:Fire(self.tool, 2) --this is specifically for when equipping a wearable item by double clicking
             self:wearGoggles()
         end
     end
 end
 
 function NightVisionGoggles:equip()
-    if self.tool:GetAttribute("SignalingTakeOff") == false or self.tool:GetAttribute("SignalingTakeOff") == nil then
+    if not self.tool:GetAttribute("NegateDefaultEquip") then
         Wearable:equip(self, tableOfFunctions)
     end 
 end
@@ -234,16 +226,21 @@ function NightVisionGoggles:TakeOff()
     playSound(self.soundObjects.offSwitch, nil, 0)
     self.canActivate = false
     bev_signalTakeOff:Fire(self.tool, 2)
-    --self.tool:SetAttribute("SignalingTakeOff", true)
+    self.tool:SetAttribute("NegateDefaultEquip", true)
     humanoid:EquipTool(self.tool)
     self.charAnimController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
+        print("checkpoint 2")
         rev_takeOffAccessory:FireServer(character, accessory.Name, self.tool)
-        nvEffectOff()
+        --turnOffNVEffect()
+        revertNVEffect()
     end)
     self.charAnimController.animationTracks.putOn.Ended:Once(function()
+        print("checkpoint 3")
         self.canActivate = true
         self.tool:SetAttribute("isWearing", false)
+        self.tool:SetAttribute("NegateDefaultEquip", false)
     end)
+    print("checkpoint 1")
     Wearable:equip(self, nil, {
         charAnimTrack = self.charAnimController.animationTracks.putOn,
         vmAnimTrack = self.vmController.animationController.animationTracks.putOn,
@@ -251,12 +248,6 @@ function NightVisionGoggles:TakeOff()
         weight = 1,
         speed = -1
     })
-    --[[
-    self.charAnimController.animationTracks.putOn:Play(0.1,1,-1)
-    self.vmController.animationController.animationTracks.putOn:Play(0.1,1,-1)
-    self.charAnimController.animationTracks.idle:Play()
-    self.vmController.animationController.animationTracks.idle:Play()
-    ]]
 end
 
 return NightVisionGoggles
