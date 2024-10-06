@@ -163,6 +163,7 @@ function ItemTemplate:equip(subclassObject, tableOfFunctions, altAnimInfo)
         self.charAnimController.animationTracks.equip.Stopped:Wait()
     else
         --print("ItemTemplate's part of wearable's :TakeOff()")
+        --print(altAnimInfo.charAnimTrack.IsPlaying) --if the animation track is already playing, & you try to play in reverse speed, the animation track just stops for some reason
         altAnimInfo.charAnimTrack:Play(altAnimInfo.fadeTime, altAnimInfo.weight, altAnimInfo.speed)
         altAnimInfo.vmAnimTrack:Play(altAnimInfo.fadeTime, altAnimInfo.weight, altAnimInfo.speed)
         altAnimInfo.charAnimTrack.Stopped:Wait()

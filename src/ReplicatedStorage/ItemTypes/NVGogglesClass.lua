@@ -105,29 +105,28 @@ local function revertNVEffect()
     Lighting.ExposureCompensation = 0
 end
 
-local function turnOffNVEffect()
-    Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
-    Lighting.ExposureCompensation = 0
-    for _, v in Lighting:GetChildren() do
-        if v:IsA("ColorCorrectionEffect") and v.Name == "NV_ColorCorrection" then
-            local ti = TweenInfo.new(0.5)
-            local tweenBrightness = TweenService:Create(v, ti, {Brightness = -1})
-            local tweenTint = TweenService:Create(v, ti, {TintColor = Color3.new(0, 0, 0)})
-            tweenBrightness.Completed:Once(function()
-                v:Destroy()
-                ti = nil
-            end)
-            tweenTint:Play()
-            tweenBrightness:Play()
-        end
-    end
+local function turnOffNVEffect(subclassObject)
+    local cc : ColorCorrectionEffect = Lighting:FindFirstChild(nvColorCorrection.Name)
+    local fadeToBlack = TweenService:Create(cc, TweenInfo.new(0.2), {TintColor = Color3.new(0, 0, 0)})
+    local fadeToNormal = TweenService:Create(cc, TweenInfo.new(0.2), {TintColor = Color3.new(1, 1, 1)})
+    fadeToBlack:Play()
+    fadeToBlack.Completed:Wait()
     gui.Enabled = false
     RunService:UnbindFromRenderStep(bindName)
+    -- modified properties of color correction: Tint Color, Saturation, Contrast, Brightness
+    TweenService:Create(cc, TweenInfo.new(0), {Saturation = 0}):Play() --this cancels any currently playing tweens just in case turnOnNVEffect is still in progress
+    TweenService:Create(cc, TweenInfo.new(0), {Contrast = 0}):Play()
+    TweenService:Create(cc, TweenInfo.new(0), {Brightness = 0}):Play()
+    Lighting.OutdoorAmbient = Color3.new(0, 0, 0)
+    Lighting.ExposureCompensation = 0
+    fadeToNormal:Play()
+    fadeToNormal.Completed:Wait()
+    cc:Destroy()
 end
 
 local tableOfFunctions = {
-    deathProcedure = function()
-        turnOffNVEffect()
+    deathProcedure = function(subclassObject)
+        turnOffNVEffect(subclassObject)
         --print("cleaning up nv effects")
     end,
     forceWear = function(subclassObject)
@@ -140,18 +139,25 @@ local function turnOnNVEffect(subclassObject)
     RunService:BindToRenderStep(bindName, 200, function()
         grain.TileSize = UDim2.new(math.random(7, 10) / 10, 0, math.random(7, 10) / 10, 0)
     end)
-    local cc = nvColorCorrection:Clone()
-    cc.Contrast = -1
-    cc.TintColor = Color3.fromRGB(255, 255, 255)
+    local ti = TweenInfo.new(subclassObject.soundObjects.nightVision.TimeLength, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+    local cc = Instance.new(nvColorCorrection.ClassName)
+    cc.Name = nvColorCorrection.Name
+    --for that brief flash effect
     cc.Brightness = 1
-    cc.Parent = Lighting
+    cc.Contrast = -1
     cc.Saturation = -1
-    local tweenTime = subclassObject.soundObjects.nightVision.TimeLength
-    Lighting.ExposureCompensation = 3
-    TweenService:Create(cc, TweenInfo.new(tweenTime), {Contrast = 0.2}):Play()
-    TweenService:Create(cc, TweenInfo.new(tweenTime), {Brightness = 0.2}):Play()
-    TweenService:Create(cc, TweenInfo.new(tweenTime), {TintColor = Color3.fromRGB(22, 148, 0)}):Play()
-    TweenService:Create(Lighting, TweenInfo.new(tweenTime), {OutdoorAmbient = Color3.fromRGB(255, 255, 255)}):Play()
+    cc.Parent = Lighting
+    -- modified properties of color correction: Tint Color, Saturation, Contrast, Brightness
+    TweenService:Create(cc, ti, {TintColor = nvColorCorrection.TintColor}):Play()
+    TweenService:Create(cc, ti, {Contrast = nvColorCorrection.Contrast}):Play()
+    TweenService:Create(cc, ti, {Brightness = nvColorCorrection.Brightness}):Play()
+    -- modified properties of Lighting service: ExposureCompensation (0.8) 
+    Lighting.ExposureCompensation = 0.8
+    Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+    --[[
+    TweenService:Create(Lighting, ti, {ExposureCompensation = 0.8}):Play()
+    TweenService:Create(Lighting, ti, {OutdoorAmbient = Color3.new(1, 1, 1)}):Play()
+    ]]
 end
 
 local function putOnBlur()
@@ -159,13 +165,14 @@ local function putOnBlur()
     nvBlur.Name = "nvBlur"
     nvBlur.Size = 0
     nvBlur.Parent = Lighting
-    TweenService:Create(nvBlur, TweenInfo.new(1, Enum.EasingStyle.Exponential), {Size = 56}):Play()
-    task.wait(1)
-    local blurFade = TweenService:Create(nvBlur, TweenInfo.new(0.5), {Size = 0})
-    blurFade.Completed:Once(function()
+    local fadeInBlur = TweenService:Create(nvBlur, TweenInfo.new(0.2, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut), {Size = 56})
+    local fadeOutBlur = TweenService:Create(nvBlur, TweenInfo.new(1), {Size = 0})
+    fadeInBlur:Play()
+    fadeInBlur.Completed:Wait()
+    fadeOutBlur.Completed:Once(function()
         nvBlur:Destroy()
     end)
-    blurFade:Play()
+    fadeOutBlur:Play()
 end
 
 function NightVisionGoggles:wearGoggles(subclassObject)
@@ -184,17 +191,19 @@ function NightVisionGoggles:wearGoggles(subclassObject)
         rev_wearAccessory:FireServer(character, accessory, toolAccessory, self.tool)
     end)
     self.charAnimController.animationTracks.putOn:GetMarkerReachedSignal("startBlur"):Once(function()
-        --putOnBlur()
+        putOnBlur()
     end)
     self.charAnimController.animationTracks.putOn.Ended:Once(function()
-        print("can take off now")
-        CAS:BindAction("debugTakeOff", function(actionName, inputState, _inputObject)
-            if inputState == Enum.UserInputState.Begin then
-                print("debugTakeOff")
-                CAS:UnbindAction("debugTakeOff")
-                self:TakeOff()
-            end
-        end, true, Enum.KeyCode.Y)
+        task.defer(function()
+            print("can take off now")
+            CAS:BindAction("debugTakeOff", function(actionName, inputState, _inputObject)
+                if actionName == "debugTakeOff" and inputState == Enum.UserInputState.Begin then
+                    print("debugTakeOff")
+                    CAS:UnbindAction("debugTakeOff")
+                    self:TakeOff()
+                end
+            end, true, Enum.KeyCode.Y)
+        end)
     end)
     NightVisionGoggles:PutOn(self)
     self.charAnimController.animationTracks.idle:Stop()
@@ -223,24 +232,29 @@ end
 
 function NightVisionGoggles:TakeOff()
     --print("nvgoggles's :TakeOff()")
+    task.spawn(function()
+        turnOffNVEffect(self)
+    end)
     playSound(self.soundObjects.offSwitch, nil, 0)
     self.canActivate = false
     bev_signalTakeOff:Fire(self.tool, 2)
     self.tool:SetAttribute("NegateDefaultEquip", true)
     humanoid:EquipTool(self.tool)
     self.charAnimController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
-        print("checkpoint 2")
         rev_takeOffAccessory:FireServer(character, accessory.Name, self.tool)
-        --turnOffNVEffect()
-        revertNVEffect()
+        --[[
+        for _, v in self.tool:FindFirstChild("ToolModel"):GetDescendants() do
+            if v:IsA("BasePart") or v:IsA("MeshPart") then
+                v.LocalTransparencyModifier = 1
+            end
+        end
+        ]]
     end)
     self.charAnimController.animationTracks.putOn.Ended:Once(function()
-        print("checkpoint 3")
         self.canActivate = true
         self.tool:SetAttribute("isWearing", false)
         self.tool:SetAttribute("NegateDefaultEquip", false)
     end)
-    print("checkpoint 1")
     Wearable:equip(self, nil, {
         charAnimTrack = self.charAnimController.animationTracks.putOn,
         vmAnimTrack = self.vmController.animationController.animationTracks.putOn,
