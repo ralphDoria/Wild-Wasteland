@@ -112,12 +112,12 @@ function inventoryAndHotbarManager.toggleHotbar(toggle : boolean)
 end
 hotbar.MouseEnter:Connect(function()
     hoveringInHotbar = true
-    inventoryAndHotbarManager.toggleHotbar(true)
+    --inventoryAndHotbarManager.toggleHotbar(true)
 end)
 hotbar.MouseLeave:Connect(function()
     hoveringInHotbar = false
     if main.Visible == false then
-        inventoryAndHotbarManager.toggleHotbar(false)
+        --inventoryAndHotbarManager.toggleHotbar(false)
     end
 end)
 
@@ -135,9 +135,9 @@ end
 function inventoryAndHotbarManager.initializeSystem()
     gui.Enabled = true
     inventoryAndHotbarManager.toggleInventory(false)
-    inventoryAndHotbarManager.toggleHotbar(false)
+    inventoryAndHotbarManager.toggleHotbar(true)
     StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) --disables Roblox's default backpack
-    inventoryAndHotbarManager.toggleKeybindToHotbarSlot(true)
+    inventoryAndHotbarManager.toggleInventoryInput(true)
     inventoryAndHotbarManager.initializeMisc()
     inventoryAndHotbarManager.initializeWearablesGui()
 end
@@ -379,17 +379,28 @@ local function toggleEquipAndUnequipViaClick(toggle : boolean)
     canEquipAndUnequipViaClick = toggle
 end
 
-local function initAndRunProgressBar(slot, wearTime : number)
+function inventoryAndHotbarManager.toggleInventoryInput(toggle : boolean)
+    inventoryAndHotbarManager.toggleKeybindToHotbarSlot(toggle)
+    toggleEquipAndUnequipViaClick(toggle)
+end
+
+local function initAndRunProgressBar(slot, wearTime : number, reversed : boolean)
+    local iAmGoingCrazyToFixThisBug
+    iAmGoingCrazyToFixThisBug = slot.DescendantAdded:Connect(function(descendant)
+        if descendant.ClassName == "UICorner" then
+            descendant:Destroy()
+        end
+    end)
     local innerFrame : Frame = slot:FindFirstChildWhichIsA("Frame", true)
     local progressBar = Instance.new("Frame")
     progressBar.BackgroundTransparency = 0.5
     slot.GroupColor3 = Color3.new(0.5, 0.5, 0.5)
     progressBar.BackgroundColor3 = Color3.new(1, 1, 1)
-    progressBar.Size = UDim2.fromScale(innerFrame.Size.X.Scale, 0)
-    progressBar.Position = UDim2.fromScale(innerFrame.Position.X.Scale, 1 - innerFrame.Position.Y.Scale)
+    progressBar.Size = if not reversed then UDim2.fromScale(innerFrame.Size.X.Scale, 0) else innerFrame.Size
+    progressBar.Position = if not reversed then UDim2.fromScale(innerFrame.Position.X.Scale, 1 - innerFrame.Position.Y.Scale) else innerFrame.Position
     local ti = TweenInfo.new(wearTime, Enum.EasingStyle.Linear)
-    local tweenSize = TweenService:Create(progressBar, ti, {Size = innerFrame.Size})
-    local tweenPosition = TweenService:Create(progressBar, ti, {Position = innerFrame.Position})
+    local tweenSize = TweenService:Create(progressBar, ti, {Size = if not reversed then innerFrame.Size else UDim2.fromScale(innerFrame.Size.X.Scale, 0)})
+    local tweenPosition = TweenService:Create(progressBar, ti, {Position = if not reversed then innerFrame.Position else UDim2.fromScale(innerFrame.Position.X.Scale, 1 - innerFrame.Position.Y.Scale)})
     progressBar.Parent = slot
     tweenSize.Completed:Once(function()
         slot.GroupColor3 = Color3.new(1, 1, 1)
@@ -399,9 +410,11 @@ local function initAndRunProgressBar(slot, wearTime : number)
         tweenSize = nil
         tweenPosition = nil
         ti = nil
+        iAmGoingCrazyToFixThisBug:Disconnect()
     end)
     tweenPosition:Play()
     tweenSize:Play()
+    return tweenSize
 end
 
 function inventoryAndHotbarManager.wearItem(slot, draggedToWear)
@@ -414,8 +427,7 @@ function inventoryAndHotbarManager.wearItem(slot, draggedToWear)
         return 
     end
 
-    inventoryAndHotbarManager.toggleKeybindToHotbarSlot(false)
-    toggleEquipAndUnequipViaClick(false)
+    inventoryAndHotbarManager.toggleInventoryInput(false)
 
     local cachedEquippedTool = character:FindFirstChildOfClass("Tool")
 
@@ -427,32 +439,23 @@ function inventoryAndHotbarManager.wearItem(slot, draggedToWear)
         bev_signalPutOn:Fire(tool, 1)
     end
 
-    local otherTools = {}
-    for _, v in backpack:GetChildren() do
-        if v:IsA("Tool") then
-            local thisSlot = inventoryAndHotbarManager.getSlotFromTool(v)
-            thisSlot.GroupTransparency = 0.5
-            table.insert(otherTools, thisSlot)
-        end
-    end
-
     inventoryAndHotbarManager.transferToWearableSlot(slot, designatedSlot)
 
     initAndRunProgressBar(designatedSlot, netWearTime)
 
-    tool:GetAttributeChangedSignal("isWearing"):Connect(function()
+    local connection
+    connection = tool:GetAttributeChangedSignal("isWearing"):Connect(function()
         if tool:GetAttribute("isWearing") == true then
             humanoid:UnequipTools()
             if cachedEquippedTool and cachedEquippedTool ~= tool then
-                print("Equipping cached tool: " .. cachedEquippedTool.Name)
                 humanoid:EquipTool(cachedEquippedTool)
             end
-            inventoryAndHotbarManager.toggleKeybindToHotbarSlot(true)
-            toggleEquipAndUnequipViaClick(true)
-            for _, v in otherTools do
-                v.GroupTransparency = 0
-            end
+            inventoryAndHotbarManager.toggleInventoryInput(true)
         end
+    end)
+    designatedSlot.Destroying:Once(function()
+        connection:Disconnect()
+        connection = nil
     end)
 end
 
@@ -506,7 +509,7 @@ local function initializeSlotFunctionality(tool : Tool, slot, worn : boolean)
                     ]]
                     if firingDirection == 2 then
                         if thisTool == tool then
-                            print("take off signal received from tool to inventory code")
+                            --print("take off signal received from tool to inventory code")
                             local wearableItemSlot = inventoryAndHotbarManager.getSlotFromTool(tool)
                             inventoryAndHotbarManager.transferOutOfWearableSlot(wearableItemSlot, nil, true)
                         end
@@ -649,7 +652,7 @@ function inventoryAndHotbarManager.toggleInventory(toggle : boolean)
         end
     end
     forModal.Modal = toggle --unlocks mouse in first person
-    inventoryAndHotbarManager.toggleHotbar(toggle)
+    --inventoryAndHotbarManager.toggleHotbar(toggle)
     local newlyCalculatedToggleTime
     if toggle then
         --[[
@@ -754,12 +757,12 @@ function inventoryAndHotbarManager.toggleSlotEquippedEffect(slot, toggle : boole
         end
     end
 end
-
+    
 function inventoryAndHotbarManager.getSlotFromTool(tool : Tool)
     local source
     if tool:GetAttribute("HotbarSlot") then 
        source = hotbar 
-    elseif tool:GetAttribute("isWearing") == true then
+    elseif tool:GetAttribute("isWearing") == true then --this causes errors if the slot is a wearable and its "isWearing" attribute is false
         source = _wearableSlots
     else
         source = inventory
@@ -777,8 +780,11 @@ end
 
 local keybindConnection
 
+inventoryAndHotbarManager.disabledInputSlots = {}
+
 function inventoryAndHotbarManager.toggleKeybindToHotbarSlot(toggle : boolean)
     if toggle then
+        --warn("enbaling keybindToHotbarSlot")
         keybindConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
             local slotIndex = table.find(slotNameToKeybind, input.KeyCode)
             if slotIndex then
@@ -790,9 +796,20 @@ function inventoryAndHotbarManager.toggleKeybindToHotbarSlot(toggle : boolean)
                 end
             end
         end)
+        for _, v in inventoryAndHotbarManager.disabledInputSlots do
+            v.GroupTransparency = 0
+        end
     else
+        --warn("disabling keybindToHotbarSlot")
         keybindConnection:Disconnect()
         keybindConnection = nil
+        for _, v in backpack:GetChildren() do
+            if v:IsA("Tool") then
+                local thisSlot = inventoryAndHotbarManager.getSlotFromTool(v)
+                thisSlot.GroupTransparency = 0.5
+                table.insert(inventoryAndHotbarManager.disabledInputSlots, thisSlot)
+            end
+        end
     end
 end
 
@@ -858,20 +875,25 @@ end
 
 function inventoryAndHotbarManager.transferSlotToInventory(slot : typeof(slotTemplate))
     --print("transferSlotToInventory()")
+    local tool = slot:FindFirstChild("ObjectValue", true).Value
     if slot.Parent == hotbar then
         local emptyHotbarSlot = inventoryAndHotbarManager.createSlot(nil, "Hotbar", tonumber(slot.Name))
         emptyHotbarSlot.Parent = inventory
         inventoryAndHotbarManager.swapSlots(slot, emptyHotbarSlot) --feel like I solved a Rubik's cube with this one
         --print(emptyHotbarSlot.Name)
-        local tool = slot:FindFirstChild("ObjectValue", true).Value
         tool:SetAttribute("HotbarSlot", nil)
         slot.LayoutOrder = getNumberOfInventorySlots() + 1
         slot.Name = tool.Name
         slot:FindFirstChild("Number", true).Visible = false
-    else --slot is already in inventory
+        return slot
+    elseif slot.Parent == inventory then
         --change the slot's layout order to be +1 the greatest layout order
         slot.LayoutOrder = getNumberOfInventorySlots() + 1
-    end
+    elseif slot.Parent == _wearableSlots then
+        inventoryAndHotbarManager.createSlot(tool, "Inventory")
+    else
+        warn("unaccounted for scenario just occurred: couldn't match slot's parent")
+    end 
 end
 
 function inventoryAndHotbarManager.transferToWearableSlot(passedSlot, targetSlot)
@@ -914,18 +936,42 @@ local defaultWearableSlots = {
 }
 
 function inventoryAndHotbarManager.transferOutOfWearableSlot(passedSlot, targetSlot, forceTransferToInventory)
+    local tool = passedSlot:FindFirstChildWhichIsA("ObjectValue", true).Value
     if targetSlot == nil then
         if hoveringInInventory or forceTransferToInventory then
             print("Case 2: Create a new slot in inventory.")
+            inventoryAndHotbarManager.toggleInventoryInput(false)
+            bev_signalTakeOff:Fire(tool, 1)
+            local lastTween = initAndRunProgressBar(passedSlot, tool:GetAttribute("wearTime"), true)
+            lastTween.Completed:Once(function()
+                local inventorySlot = inventoryAndHotbarManager.transferSlotToInventory(passedSlot)
+                local replacement = defaultWearableSlots[passedSlot.Name]:Clone()
+                wearableSlots[replacement.Name] = replacement
+                passedSlot:Destroy()
+                replacement.Parent = _wearableSlots
+                initSingleWearableSlot(replacement)
+                inventoryAndHotbarManager.toggleInventoryInput(true)
+            end)
         elseif not (hoveringInHotbar or hoveringInInventory or hoveringInWearables) then
             --print("hoveringInHotbar: " .. tostring(hoveringInHotbar) .. ", hoveringInInventory: " .. tostring(hoveringInInventory) .. ", hoveringInWearables: " .. tostring(hoveringInWearables))
             print("Case 1: Drop")
-            local tool = passedSlot:FindFirstChildWhichIsA("ObjectValue", true).Value
-            rev_generalToolDrop:FireServer(tool)
-            local replacement = defaultWearableSlots[passedSlot.Name]:Clone()
-            initSingleWearableSlot(replacement)
-            replacement.Parent = passedSlot.Parent
-            passedSlot:Destroy()
+            inventoryAndHotbarManager.toggleInventoryInput(false)
+            bev_signalTakeOff:Fire(tool, 1)
+            local lastTween = initAndRunProgressBar(passedSlot, tool:GetAttribute("wearTime"), true)
+            lastTween.Completed:Once(function()
+                if tool:GetAttribute("ForceDropNow") == true then
+                    tool:SetAttribute("ForceDropNow", false)
+                    warn("received ForceDropNow")
+                    rev_generalToolDrop:FireServer(tool)
+                    local replacement = defaultWearableSlots[passedSlot.Name]:Clone()
+                    wearableSlots[replacement.Name] = replacement
+                    passedSlot.Destroying:Once(function()
+                        replacement.Parent = _wearableSlots
+                        initSingleWearableSlot(replacement)
+                        inventoryAndHotbarManager.toggleInventoryInput(true)
+                    end)
+                end
+            end)
         else
             --print("do nothing")
         end

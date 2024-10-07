@@ -80,11 +80,15 @@ function NightVisionGoggles:intialize()
                     local unequipped = self.tool.Parent:FindFirstChild("Humanoid") == nil
                     if unequipped then
                         humanoid:EquipTool(self.tool)
-                        local waitingTime = 0
+                        --local waitingTime = 0
                         while self.canActivate == false do
-                            waitingTime += task.wait()
+                            task.wait()
+                            --waitingTime += task.wait()
                         end
-                        print(task.wait())
+                        --[[
+                        print(self.canActivate)
+                        print(waitingTime)
+                        ]]
                         self:wearGoggles()
                     else
                         self:wearGoggles()
@@ -93,16 +97,23 @@ function NightVisionGoggles:intialize()
             end
         end)
     )
+    table.insert(
+        self.connections,
+        bev_signalTakeOff.Event:Connect(function(thisTool : Tool, firingDirection : number)
+            --[[
+            Firing direction key:
+            1 - from inventory to tool
+            2 - from tool to inventory
+            ]]
+            if firingDirection == 1 then
+                if thisTool == self.tool then
+                    --print("take off signal received from inventory to tool code")
+                    self:TakeOff(true)
+                end
+            end
+        end)
+    )
     --in here will be events specific to the night vision goggles
-end
-
-local function revertNVEffect()
-    gui.Enabled = false
-    RunService:UnbindFromRenderStep(bindName)
-    local cc : ColorCorrectionEffect = Lighting:FindFirstChild(nvColorCorrection.Name)
-    cc:Destroy()
-    Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
-    Lighting.ExposureCompensation = 0
 end
 
 local function turnOffNVEffect(subclassObject)
@@ -111,6 +122,7 @@ local function turnOffNVEffect(subclassObject)
     local fadeToNormal = TweenService:Create(cc, TweenInfo.new(0.2), {TintColor = Color3.new(1, 1, 1)})
     fadeToBlack:Play()
     fadeToBlack.Completed:Wait()
+    task.wait(0.2)
     gui.Enabled = false
     RunService:UnbindFromRenderStep(bindName)
     -- modified properties of color correction: Tint Color, Saturation, Contrast, Brightness
@@ -195,7 +207,6 @@ function NightVisionGoggles:wearGoggles(subclassObject)
     end)
     self.charAnimController.animationTracks.putOn.Ended:Once(function()
         task.defer(function()
-            print("can take off now")
             CAS:BindAction("debugTakeOff", function(actionName, inputState, _inputObject)
                 if actionName == "debugTakeOff" and inputState == Enum.UserInputState.Begin then
                     print("debugTakeOff")
@@ -226,19 +237,23 @@ end
 
 function NightVisionGoggles:equip()
     if not self.tool:GetAttribute("NegateDefaultEquip") then
+        --print("calling normal equip function")
         Wearable:equip(self, tableOfFunctions)
     end 
 end
 
-function NightVisionGoggles:TakeOff()
+function NightVisionGoggles:TakeOff(signaledFromGui : boolean)
     --print("nvgoggles's :TakeOff()")
     task.spawn(function()
         turnOffNVEffect(self)
     end)
     playSound(self.soundObjects.offSwitch, nil, 0)
     self.canActivate = false
-    bev_signalTakeOff:Fire(self.tool, 2)
+    if not signaledFromGui then
+        bev_signalTakeOff:Fire(self.tool, 2)
+    end
     self.tool:SetAttribute("NegateDefaultEquip", true)
+    local cachedTool = character:FindFirstChildOfClass("Tool")
     humanoid:EquipTool(self.tool)
     self.charAnimController.animationTracks.putOn:GetMarkerReachedSignal("overlapped"):Once(function()
         rev_takeOffAccessory:FireServer(character, accessory.Name, self.tool)
@@ -251,9 +266,16 @@ function NightVisionGoggles:TakeOff()
         ]]
     end)
     self.charAnimController.animationTracks.putOn.Ended:Once(function()
-        self.canActivate = true
         self.tool:SetAttribute("isWearing", false)
         self.tool:SetAttribute("NegateDefaultEquip", false)
+    end)
+    self.charAnimController.animationTracks.putOn.Stopped:Once(function()
+        --print("\"Firing\" ForceDropNow")
+        self.tool:SetAttribute("ForceDropNow", true)
+        if cachedTool then
+            print(cachedTool)
+            humanoid:EquipTool(cachedTool)
+        end
     end)
     Wearable:equip(self, nil, {
         charAnimTrack = self.charAnimController.animationTracks.putOn,

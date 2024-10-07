@@ -79,6 +79,14 @@ RunService:BindToRenderStep("ViewModel", 200, function(dt)
     head.CFrame = camera.CFrame
 end)
 
+--[[for debugging
+local BodyAttachJoint = viewModel:FindFirstChild("BodyAttachJoint", true)
+BodyAttachJoint:GetPropertyChangedSignal("Part1"):Connect(function()
+    local bodyAttach = BodyAttachJoint.Part1
+    print(if bodyAttach then bodyAttach.Parent else "nil")
+end)    
+]]
+
 character:WaitForChild("Humanoid").Died:Connect(function()
     RunService:UnbindFromRenderStep("ViewModel")
     repeat task.wait() until character:FindFirstChildOfClass("Tool") == nil

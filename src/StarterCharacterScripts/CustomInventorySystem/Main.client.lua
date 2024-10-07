@@ -78,7 +78,7 @@ backpack.ChildAdded:Connect(function(child)
 		if emptyHotbarSlot then
 			--adding item to hotbar
 			inventoryAndHotbarManager.setSlot(child, emptyHotbarSlot)
-			flashHotbar()
+			--flashHotbar()
 		else
 			--adding item to inventory
 			inventoryAndHotbarManager.createSlot(child, "Inventory")
@@ -90,7 +90,7 @@ end)
 local function updateGuiAfterDroppedTool(droppedTool : Tool)
 	updateCachedItems()
 	inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(droppedTool), false)
-	inventoryAndHotbarManager.setSlot(nil, inventoryAndHotbarManager.getSlotFromTool(droppedTool))
+	inventoryAndHotbarManager.setSlot(nil, inventoryAndHotbarManager.getSlotFromTool(droppedTool)) --this errors if the slot is a wearable and its "isWearing" attribute is false
 end
 
 backpack.ChildRemoved:Connect(function(child)

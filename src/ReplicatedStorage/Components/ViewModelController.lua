@@ -228,12 +228,16 @@ end
 
 function ViewModelController:equipTool()
    self.vmTool.Parent = self.viewModel
+   --warn("setting vm BodyAttachJoint to " .. self.vmTool.Name)
    self.viewModel:WaitForChild("Torso").BodyAttachJoint.Part1 = self.vmTool.BodyAttach 
 end
 
 function ViewModelController:unequipTool()
     self.vmTool.Parent = nil
-    self.viewModel:WaitForChild("Torso").BodyAttachJoint.Part1 = nil
+    if not self.viewModel:FindFirstChildOfClass("Tool") then
+        --warn("setting vm BodyAttachJoint to nil by " .. self.vmTool.Name .. "'s code.")
+        self.viewModel:WaitForChild("Torso").BodyAttachJoint.Part1 = nil
+    end
 end
 
 function ViewModelController:stopAllViewModelAnimations()
