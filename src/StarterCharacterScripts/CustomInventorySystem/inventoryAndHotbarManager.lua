@@ -340,7 +340,9 @@ local function connectDragEvents(slot, tool)
                 dragSlot:Destroy() 
             end
             if isWearableSlot(currentSlotBeingDragged) then
-                inventoryAndHotbarManager.transferOutOfWearableSlot(currentSlotBeingDragged, currentSlotBeingHovered)
+                if currentSlotBeingDragged ~= currentSlotBeingHovered then
+                    inventoryAndHotbarManager.transferOutOfWearableSlot(currentSlotBeingDragged, currentSlotBeingHovered) 
+                end
             else
                 if currentSlotBeingDragged and currentSlotBeingHovered then
                     if isWearableSlot(currentSlotBeingHovered) then --if player is hovering on a wearableSlot
@@ -439,9 +441,12 @@ function inventoryAndHotbarManager.wearItem(slot, draggedToWear)
         bev_signalPutOn:Fire(tool, 1)
     end
 
-    inventoryAndHotbarManager.transferToWearableSlot(slot, designatedSlot)
-
     initAndRunProgressBar(designatedSlot, netWearTime)
+    table.insert(
+        inventoryAndHotbarManager.DragDisabledSlots,
+        designatedSlot
+    )
+    inventoryAndHotbarManager.transferToWearableSlot(slot, designatedSlot)
 
     local connection
     connection = tool:GetAttributeChangedSignal("isWearing"):Connect(function()
@@ -452,12 +457,15 @@ function inventoryAndHotbarManager.wearItem(slot, draggedToWear)
             end
             inventoryAndHotbarManager.toggleInventoryInput(true)
         end
+        table.remove(inventoryAndHotbarManager.DragDisabledSlots, table.find(inventoryAndHotbarManager.DragDisabledSlots, designatedSlot))
     end)
     designatedSlot.Destroying:Once(function()
         connection:Disconnect()
         connection = nil
     end)
 end
+
+inventoryAndHotbarManager.DragDisabledSlots = {}
 
 --[[
     Has slot use TextButton or ImageButton based on whether the tool has a TextureId property that isn't nil.
@@ -548,12 +556,16 @@ local function initializeSlotFunctionality(tool : Tool, slot, worn : boolean)
 
             --Event for dragging & reorganizing slots
 
-            task.spawn(function()
-                task.wait(dragToggleTime)
-                if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-                    connectDragEvents(slot, tool)
-                end
-            end)
+            if table.find(inventoryAndHotbarManager.DragDisabledSlots, slot) == nil then
+                task.spawn(function()
+                    task.wait(dragToggleTime)
+                    if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                        connectDragEvents(slot, tool)
+                    end
+                end)
+            else
+                warn(slot.Name .. " can't be dragged.")
+            end
 
         end)
 
@@ -873,7 +885,7 @@ function inventoryAndHotbarManager.swapSlots(firstSlot, secondSlot)
     setSlotParentAndUpdateNameAndToolAttribute(secondSlot, cachedFirstSlotParent, cachedFirstSlotName)
 end
 
-function inventoryAndHotbarManager.transferSlotToInventory(slot : typeof(slotTemplate))
+function inventoryAndHotbarManager.transferSlotToInventory(slot : typeof(slotTemplate), foundCachedTool : boolean)
     --print("transferSlotToInventory()")
     local tool = slot:FindFirstChild("ObjectValue", true).Value
     if slot.Parent == hotbar then
@@ -889,8 +901,13 @@ function inventoryAndHotbarManager.transferSlotToInventory(slot : typeof(slotTem
     elseif slot.Parent == inventory then
         --change the slot's layout order to be +1 the greatest layout order
         slot.LayoutOrder = getNumberOfInventorySlots() + 1
+        return slot
     elseif slot.Parent == _wearableSlots then
-        inventoryAndHotbarManager.createSlot(tool, "Inventory")
+        local inventorySlot = inventoryAndHotbarManager.createSlot(tool, "Inventory")
+        if not foundCachedTool then
+            inventoryAndHotbarManager.toggleSlotEquippedEffect(inventorySlot, true)
+        end
+        return inventorySlot 
     else
         warn("unaccounted for scenario just occurred: couldn't match slot's parent")
     end 
@@ -942,9 +959,14 @@ function inventoryAndHotbarManager.transferOutOfWearableSlot(passedSlot, targetS
             print("Case 2: Create a new slot in inventory.")
             inventoryAndHotbarManager.toggleInventoryInput(false)
             bev_signalTakeOff:Fire(tool, 1)
+            --[[
+
+            ]]
+            local foundCachedTool = character:FindFirstChildOfClass("Tool")
+            warn(foundCachedTool)
             local lastTween = initAndRunProgressBar(passedSlot, tool:GetAttribute("wearTime"), true)
             lastTween.Completed:Once(function()
-                local inventorySlot = inventoryAndHotbarManager.transferSlotToInventory(passedSlot)
+                local inventorySlot = inventoryAndHotbarManager.transferSlotToInventory(passedSlot, if foundCachedTool then true else false)
                 local replacement = defaultWearableSlots[passedSlot.Name]:Clone()
                 wearableSlots[replacement.Name] = replacement
                 passedSlot:Destroy()

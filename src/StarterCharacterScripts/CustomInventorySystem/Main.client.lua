@@ -70,7 +70,9 @@ backpack.ChildAdded:Connect(function(child)
 	--create a slot in the hotbar if the hotbar's not full, or else, create a slot in the inventory
 	if table.find(cachedItems, child) then
 		--print(child.Name .. " unequipped")
-		inventoryAndHotbarManager.toggleSlotEquippedEffect(inventoryAndHotbarManager.getSlotFromTool(child), false)
+		local slot = inventoryAndHotbarManager.getSlotFromTool(child)
+		--print(if slot then slot.Parent else "nil")
+		inventoryAndHotbarManager.toggleSlotEquippedEffect(slot, false)
 	else
 		--print(child.Name .. " was added to inventory")
 		inventoryAndHotbarManager.addToUpdateLog(true, child)

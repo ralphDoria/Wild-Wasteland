@@ -206,15 +206,7 @@ function NightVisionGoggles:wearGoggles(subclassObject)
         putOnBlur()
     end)
     self.charAnimController.animationTracks.putOn.Ended:Once(function()
-        task.defer(function()
-            CAS:BindAction("debugTakeOff", function(actionName, inputState, _inputObject)
-                if actionName == "debugTakeOff" and inputState == Enum.UserInputState.Begin then
-                    print("debugTakeOff")
-                    CAS:UnbindAction("debugTakeOff")
-                    self:TakeOff()
-                end
-            end, true, Enum.KeyCode.Y)
-        end)
+
     end)
     NightVisionGoggles:PutOn(self)
     self.charAnimController.animationTracks.idle:Stop()
@@ -273,7 +265,6 @@ function NightVisionGoggles:TakeOff(signaledFromGui : boolean)
         --print("\"Firing\" ForceDropNow")
         self.tool:SetAttribute("ForceDropNow", true)
         if cachedTool then
-            print(cachedTool)
             humanoid:EquipTool(cachedTool)
         end
     end)
