@@ -755,6 +755,7 @@ function inventoryAndHotbarManager.setSlot(passedTool : Tool, slot)
             slot:Destroy()
         end
     end
+    return slot
 end
 
 function inventoryAndHotbarManager.toggleSlotEquippedEffect(slot, toggle : boolean)
@@ -885,7 +886,7 @@ function inventoryAndHotbarManager.swapSlots(firstSlot, secondSlot)
     setSlotParentAndUpdateNameAndToolAttribute(secondSlot, cachedFirstSlotParent, cachedFirstSlotName)
 end
 
-function inventoryAndHotbarManager.transferSlotToInventory(slot : typeof(slotTemplate), foundCachedTool : boolean)
+function inventoryAndHotbarManager.transferSlotToInventory(slot : typeof(slotTemplate))
     --print("transferSlotToInventory()")
     local tool = slot:FindFirstChild("ObjectValue", true).Value
     if slot.Parent == hotbar then
@@ -903,11 +904,7 @@ function inventoryAndHotbarManager.transferSlotToInventory(slot : typeof(slotTem
         slot.LayoutOrder = getNumberOfInventorySlots() + 1
         return slot
     elseif slot.Parent == _wearableSlots then
-        local inventorySlot = inventoryAndHotbarManager.createSlot(tool, "Inventory")
-        if not foundCachedTool then
-            inventoryAndHotbarManager.toggleSlotEquippedEffect(inventorySlot, true)
-        end
-        return inventorySlot 
+        return inventoryAndHotbarManager.createSlot(tool, "Inventory") 
     else
         warn("unaccounted for scenario just occurred: couldn't match slot's parent")
     end 
@@ -952,6 +949,14 @@ local defaultWearableSlots = {
     Feet = storage.Feet
 }
 
+local function createReplacementForWearableSlot(slot)
+    local replacement = defaultWearableSlots[slot.Name]:Clone()
+    wearableSlots[replacement.Name] = replacement
+    initSingleWearableSlot(replacement)
+    replacement.Parent = _wearableSlots
+    return replacement
+end
+
 function inventoryAndHotbarManager.transferOutOfWearableSlot(passedSlot, targetSlot, forceTransferToInventory)
     local tool = passedSlot:FindFirstChildWhichIsA("ObjectValue", true).Value
     if targetSlot == nil then
@@ -966,12 +971,22 @@ function inventoryAndHotbarManager.transferOutOfWearableSlot(passedSlot, targetS
             warn(foundCachedTool)
             local lastTween = initAndRunProgressBar(passedSlot, tool:GetAttribute("wearTime"), true)
             lastTween.Completed:Once(function()
-                local inventorySlot = inventoryAndHotbarManager.transferSlotToInventory(passedSlot, if foundCachedTool then true else false)
-                local replacement = defaultWearableSlots[passedSlot.Name]:Clone()
-                wearableSlots[replacement.Name] = replacement
+                --local inventorySlot = inventoryAndHotbarManager.transferSlotToInventory(passedSlot, if foundCachedTool then true else false)
+                --[[
+                    The line below does the exact same thing as the line above, except it's less convoluted. Later, maybe I should
+                    put the whole of case 2 inside the :transferSlotToInventory() method.
+                ]]
+                local inventorySlot = inventoryAndHotbarManager.createSlot(tool, "Inventory")
+                if not foundCachedTool then
+                    --[[
+                        This has to be done because the events in main don't handle the newly created slot, but rather tries to toggle the
+                        slot equipped effect for the slot that is being destroyed (passedSlot) because main uses 
+                        :getSlotFromTool(). The functions are working as intended, I'm just not putting it together correctly sometimes.
+                    ]]
+                    inventoryAndHotbarManager.toggleSlotEquippedEffect(inventorySlot, true) 
+                end
+                createReplacementForWearableSlot(passedSlot)
                 passedSlot:Destroy()
-                replacement.Parent = _wearableSlots
-                initSingleWearableSlot(replacement)
                 inventoryAndHotbarManager.toggleInventoryInput(true)
             end)
         elseif not (hoveringInHotbar or hoveringInInventory or hoveringInWearables) then
@@ -985,11 +1000,8 @@ function inventoryAndHotbarManager.transferOutOfWearableSlot(passedSlot, targetS
                     tool:SetAttribute("ForceDropNow", false)
                     warn("received ForceDropNow")
                     rev_generalToolDrop:FireServer(tool)
-                    local replacement = defaultWearableSlots[passedSlot.Name]:Clone()
-                    wearableSlots[replacement.Name] = replacement
                     passedSlot.Destroying:Once(function()
-                        replacement.Parent = _wearableSlots
-                        initSingleWearableSlot(replacement)
+                        createReplacementForWearableSlot(passedSlot)
                         inventoryAndHotbarManager.toggleInventoryInput(true)
                     end)
                 end
@@ -1010,6 +1022,36 @@ function inventoryAndHotbarManager.transferOutOfWearableSlot(passedSlot, targetS
             --slot is empty
             if not isWearableSlot(targetSlot) then
                 print("Case 3c: intialize wearable into specified empty hotbar slot")
+                --it is implied here that targetSlot is an empty hotbar slot
+                
+                inventoryAndHotbarManager.toggleInventoryInput(false)
+                bev_signalTakeOff:Fire(tool, 1)
+                --[[
+
+                ]]
+                local foundCachedTool = character:FindFirstChildOfClass("Tool")
+                warn(foundCachedTool)
+                local lastTween = initAndRunProgressBar(passedSlot, tool:GetAttribute("wearTime"), true)
+                lastTween.Completed:Once(function()
+                    --local inventorySlot = inventoryAndHotbarManager.transferSlotToInventory(passedSlot, if foundCachedTool then true else false)
+                    --[[
+                        The line below does the exact same thing as the line above, except it's less convoluted. Later, maybe I should
+                        put the whole of case 2 inside the :transferSlotToInventory() method.
+                    ]]
+                    local initializedHotbarSlot = inventoryAndHotbarManager.setSlot(tool, targetSlot)
+                    if not foundCachedTool then
+                        --[[
+                            This has to be done because the events in main don't handle the newly created slot, but rather tries to toggle the
+                            slot equipped effect for the slot that is being destroyed (passedSlot) because main uses 
+                            :getSlotFromTool(). The functions are working as intended, I'm just not putting it together correctly sometimes.
+                        ]]
+                        warn(targetSlot.Name .. " passed into toggleSlotEquippedEffect")
+                        inventoryAndHotbarManager.toggleSlotEquippedEffect(initializedHotbarSlot, true) 
+                    end
+                    createReplacementForWearableSlot(passedSlot)
+                    passedSlot:Destroy()
+                    inventoryAndHotbarManager.toggleInventoryInput(true)
+                end)
             end
         end
     end
