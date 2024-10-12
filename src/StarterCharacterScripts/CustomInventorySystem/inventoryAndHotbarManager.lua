@@ -761,7 +761,9 @@ end
 function inventoryAndHotbarManager.toggleSlotEquippedEffect(slot, toggle : boolean)
     if slot then
         if toggle == true then
-            Instance.new("UICorner").Parent = slot:FindFirstChild("innerFrame")
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(1, 0)
+            corner.Parent = slot:FindFirstChild("innerFrame")
         else
             local uiCorner = slot:FindFirstChildWhichIsA("UICorner", true)
             if uiCorner then
@@ -943,10 +945,10 @@ end
 
 local storage : Folder = gui.Storage
 local defaultWearableSlots = {
-    Head = storage.Head,
-    Torso = storage.Torso,
-    Legs = storage.Legs,
-    Feet = storage.Feet
+    Head = storage:FindFirstChild("Head", true),
+    Torso = storage:FindFirstChild("Torso", true),
+    Legs = storage:FindFirstChild("Legs", true),
+    Feet = storage:FindFirstChild("Feet", true)
 }
 
 local function createReplacementForWearableSlot(slot)
@@ -996,15 +998,11 @@ function inventoryAndHotbarManager.transferOutOfWearableSlot(passedSlot, targetS
             bev_signalTakeOff:Fire(tool, 1)
             local lastTween = initAndRunProgressBar(passedSlot, tool:GetAttribute("wearTime"), true)
             lastTween.Completed:Once(function()
-                if tool:GetAttribute("ForceDropNow") == true then
-                    tool:SetAttribute("ForceDropNow", false)
-                    warn("received ForceDropNow")
-                    rev_generalToolDrop:FireServer(tool)
-                    passedSlot.Destroying:Once(function()
-                        createReplacementForWearableSlot(passedSlot)
-                        inventoryAndHotbarManager.toggleInventoryInput(true)
-                    end)
-                end
+                rev_generalToolDrop:FireServer(tool)
+                passedSlot.Destroying:Once(function()
+                    createReplacementForWearableSlot(passedSlot)
+                    inventoryAndHotbarManager.toggleInventoryInput(true)
+                end)
             end)
         else
             --print("do nothing")
@@ -1015,6 +1013,7 @@ function inventoryAndHotbarManager.transferOutOfWearableSlot(passedSlot, targetS
         if slotNotEmpty then
             if isWearableItem(targetSlot) then
                 print("Case 3b: Swap wearable items' places.")
+                --implementation on hold until a new wearable item is created
             else
                 print("Case 3a: do nothing because non wearable item cannot be swapped into wearable slot")
             end

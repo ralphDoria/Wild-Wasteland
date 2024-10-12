@@ -1,170 +1,136 @@
+--SERVICES
 local ContentProvider = game:GetService("ContentProvider")
+local Debris = game:GetService("Debris")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local StarterPlayer = game:GetService("StarterPlayer")
-local loadingUI : ScreenGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("LoadingScreenUI")
-local assetCounter : TextLabel = loadingUI:FindFirstChild("assetCounter", true)
-local loadingLabel : TextLabel = loadingUI:FindFirstChild("loadingLabel", true)
-local plr = game:GetService("Players").LocalPlayer
-
-local randomMessages : TextLabel = loadingUI:FindFirstChild("randomMessages", true)
-local messages = {
-	"plssssss wait :D"
-}
-
-local function typewriterEffect(guiLabel : GuiLabel, message : string)
-
-end
-
 local SoundService = game:GetService("SoundService")
-local loadingScreenBackgroundMusic = SoundService:WaitForChild("LoadingScreenBackgroundMusic")
-
-local backgroundSongs = {}
-for _, v in loadingScreenBackgroundMusic:GetChildren() do
-	if v:IsA("Sound") then
-		table.insert(backgroundSongs, v)
-	end
-end
-local SFX = {
-	finishedLoadingCue1 = SoundService:WaitForChild("ONESHOT FX-Lonely Call Slide"),
-	decision = SoundService:WaitForChild("guiSFX"):WaitForChild("OneShot - Menu Decision"),
-	cancel = SoundService:WaitForChild("guiSFX"):WaitForChild("OneShot - Menu Cancel"),
-	hover = SoundService:WaitForChild("guiSFX"):WaitForChild("minorSelect")
+local plr = game:GetService("Players").LocalPlayer
+local char = plr.Character or plr.CharacterAdded:Wait()
+--REFERENCES
+local inventoryAndHotbar = plr.PlayerGui:WaitForChild("InventoryAndHotbar")
+local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
+local titleScreen : ScreenGui = plr:WaitForChild("PlayerGui"):WaitForChild("TitleScreen")
+local mainFrame : Frame = titleScreen.Main
+local mainInfo : TextBox = titleScreen:FindFirstChild("mainInfo", true)
+local miscInfo : TextBox = titleScreen:FindFirstChild("miscInfo", true)
+local circle : Frame = titleScreen:FindFirstChild("circle", true)
+local gradient : UIGradient = circle:FindFirstChild("UIGradient", true)
+local buttons : Frame = titleScreen:FindFirstChild("Buttons", true)
+local Logo : ImageLabel = titleScreen:FindFirstChild("Logo", true)
+	--SOUND
+local sounds : Folder = titleScreen.Sounds
+local music = {
+	halloween = sounds.music["Halloween Horrors Waltz"],
+	jazzWaltzA = sounds.music["Jazz Waltz (a)"],
+	mapleLeafRag = sounds.music["Maple Leaf Rag"]
 }
-
-local currentSongIndex = math.random(1, #backgroundSongs)
-local currentBackgroundSong : Sound = backgroundSongs[currentSongIndex]
-local currentFinishedLoadingCue : Sound = SFX.finishedLoadingCue1
-
-local soundSettingButtons = {
-	soundIcon = loadingUI:FindFirstChild("soundIcon", true),
-	rightArrow = loadingUI:FindFirstChild("rightArrow", true),
-	leftArrow = loadingUI:FindFirstChild("leftArrow", true),
-	songTitle = loadingUI:FindFirstChild("songTitle", true)
-}
-
-local Debris = game:GetService("Debris")
-
-local function playSound(sound : Sound)
-	local x = sound:Clone()
-	x.Parent = sound.Parent
-	x:Play()
-	Debris:AddItem(x, x.TimeLength)
-end
-
-local connections = {}
-
-for _, v in soundSettingButtons	 do
-	if v:IsA("GuiButton") then
-		table.insert(connections, 
-		v.MouseEnter:Connect(function()
-			playSound(SFX.hover)
-			v.BackgroundTransparency = 0.5
-		end))
-		table.insert(connections, 
-		v.MouseLeave:Connect(function()
-			v.BackgroundTransparency = 1
-		end))
-	end
-end
-
-local muted = false
-currentBackgroundSong.Volume = 0.5
-soundSettingButtons.songTitle.Text = "\"" .. currentBackgroundSong.Name .. "\""
-soundSettingButtons.soundIcon.Image = soundSettingButtons.soundIcon:WaitForChild("fullVolume").Texture
-
-table.insert(connections,
-soundSettingButtons.soundIcon.MouseButton1Click:Connect(function()
-	if muted then
-		playSound(SFX.decision)
-		muted = false
-		currentBackgroundSong.Volume = 0.5
-		soundSettingButtons.songTitle.Text = "\"" .. currentBackgroundSong.Name .. "\""
-		soundSettingButtons.soundIcon.Image = soundSettingButtons.soundIcon:WaitForChild("fullVolume").Texture
-	else
-		playSound(SFX.cancel)
-		muted = true
-		currentBackgroundSong.Volume = 0
-		soundSettingButtons.songTitle.Text = "[Muted]"
-		soundSettingButtons.soundIcon.Image = soundSettingButtons.soundIcon:WaitForChild("mute").Texture
-	end
-end))
-
-table.insert(connections,
-soundSettingButtons.rightArrow.MouseButton1Click:Connect(function()
-	currentBackgroundSong:Stop()
-	playSound(SFX.decision)
-	currentSongIndex += 1
-	if currentSongIndex > #backgroundSongs then
-		currentSongIndex = 1
-	end
-	currentBackgroundSong = backgroundSongs[currentSongIndex]
-	soundSettingButtons.songTitle.Text = "\"" .. currentBackgroundSong.Name .. "\""
-	currentBackgroundSong:Play()
-end))
-
-table.insert(connections,
-soundSettingButtons.leftArrow.MouseButton1Click:Connect(function()
-	currentBackgroundSong:Stop()
-	playSound(SFX.decision)
-	currentSongIndex -= 1
-	if currentSongIndex < 1 then
-		currentSongIndex = #backgroundSongs
-	end
-	currentBackgroundSong = backgroundSongs[currentSongIndex]
-	soundSettingButtons.songTitle.Text = "\"" .. currentBackgroundSong.Name .. "\""
-	currentBackgroundSong:Play()
-end))
-
-game:GetService('StarterGui'):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
-StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
---------------------------
-
+local masterSG : SoundGroup = SoundService:WaitForChild("0 - Master")
+local musicSG : SoundGroup = masterSG:WaitForChild("Music")
+local ambienceSG : SoundGroup = masterSG:WaitForChild("Ambience")
+	--SPAWNS
 local spawnPoints = game.Workspace:FindFirstChild("spawnPoints", true)
 local loadingScreenSpawn = spawnPoints:WaitForChild("loadingScreenSpawn")
 local spawn0 = spawnPoints:WaitForChild("spawn0")
+--LOCAL FIELDS
+local tips = {
+	"slots are draggable",
+	""
+}
+--------------------------------------------------------------------------------------------------------
 
-local char = plr.Character or plr.CharacterAdded:Wait()
-char:WaitForChild("Humanoid").WalkSpeed = 0
-char:WaitForChild("Humanoid").JumpHeight = 0
-char:WaitForChild("HumanoidRootPart").CFrame = loadingScreenSpawn.CFrame
+local connections = {}
+
+--PREPARATIONS FOR LOADING SCREEN
+game:GetService('StarterGui'):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+game:GetService('StarterGui'):SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
+char.Humanoid.WalkSpeed = 0
+char.Humanoid.JumpHeight = 0
+char.HumanoidRootPart.CFrame = loadingScreenSpawn.CFrame
 plr.RespawnLocation = loadingScreenSpawn
+--------------------------
 
-currentBackgroundSong:Play()
-
-local function fadeAudio(sound : Sound, endVolume : number, fadeTime : number)
-	local originalVolume = sound.Volume
-	--assert(sound.Volume ~= endVolume, "endVolume parameter needs to be different from current sound volume")
-	repeat
-		if endVolume > originalVolume then
-			local difference = endVolume - originalVolume
-			local divided = difference/fadeTime
-			sound.Volume = math.clamp(sound.Volume + task.wait()*divided, originalVolume, endVolume)
-		else
-			local difference = originalVolume - endVolume
-			local divided = difference/fadeTime
-			sound.Volume = math.clamp(sound.Volume - task.wait()*divided, endVolume, originalVolume)
-		end
-	until sound.Volume == endVolume
+--SOUND EFFECTS
+local function toggleMuffle(equalizer : EqualizerSoundEffect, toggle : boolean, transitionTime : number)
+	if not equalizer.Enabled then equalizer.Enabled = true end
+	local ti : TweenInfo = TweenInfo.new(transitionTime, Enum.EasingStyle.Linear)
+	if toggle then
+		TweenService:Create(equalizer, ti, {HighGain = -80}):Play()
+		TweenService:Create(equalizer, ti, {MidGain = -80}):Play()
+		TweenService:Create(equalizer, ti, {LowGain = 10}):Play()
+	else
+		TweenService:Create(equalizer, ti, {HighGain = 0}):Play()
+		TweenService:Create(equalizer, ti, {MidGain = 0}):Play()
+		TweenService:Create(equalizer, ti, {LowGain = 0}):Play()
+	end
 end
 
-local function fadeOutGuis(guiTable, tweenInfo : TweenInfo, propertyToTween)
-	local tweens = {}
-	for _, gui in guiTable do
-		assert(gui:IsA("GuiBase"), "guiTable contains non-guis")
-		table.insert(
-			tweens,
-			TweenService:Create(gui, tweenInfo, propertyToTween)
-		)
+--[[
+local function trackSwitchEffect(pitch : PitchShiftSoundEffect, from : Sound, to : Sound)
+	if not pitch.Enabled then pitch.Enabled = true end
+	local tweenTime = 0.2
+	local tween2 = TweenService:Create(pitch, TweenInfo.new(tweenTime, Enum.EasingStyle.Linear), {Octave = 0.25})
+	local tween1 = TweenService:Create(pitch, TweenInfo.new(tweenTime, Enum.EasingStyle.Linear), {Octave = 1.5})
+	local tween3 = TweenService:Create(pitch, TweenInfo.new(tweenTime, Enum.EasingStyle.Linear), {Octave = 1})
+	tween1.Completed:Once(function()
+		to:Play()
+		task.wait(tweenTime)
+		tween2:Play()
+	end)
+	tween2.Completed:Once(function()
+		from:Stop()
+		task.wait(tweenTime)
+		tween3:Play()
+	end)
+	tween1:Play()
+end
+]]
+
+local function pitchDown(pitch : PitchShiftSoundEffect, time : number)
+	pitch.Enabled = true
+	local ti = TweenInfo.new(time, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+	local targetPitch = 0.5
+	if pitch.Octave == targetPitch then
+		warn("effect is already pitched down")
 	end
-	for _, tween in tweens do
-		tween:Play()
-	end
-	return tweens[1]
+	local tween = TweenService:Create(pitch, ti, {Octave = targetPitch})
+	tween:Play()
+	return tween
 end
 
-loadingUI.Enabled = true
+local function pitchUp(pitch : PitchShiftSoundEffect, time : number)
+	pitch.Enabled = true
+	local ti = TweenInfo.new(time, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
+	local targetPitch = 1
+	if pitch.Octave == targetPitch then
+		warn("effect is already pitched up")
+	end
+	local tween = TweenService:Create(pitch, ti, {Octave = targetPitch})
+	tween:Play()
+	return tween
+end
+
+local function fadeVolume(sound : Sound, targetVolume : number, time : number)
+	if targetVolume == sound.Volume then
+		warn("Sound's volume is already at target volume")
+	end
+	TweenService:Create(sound, TweenInfo.new(time, Enum.EasingStyle.Linear), {Volume = targetVolume}):Play()
+end
+
+local stroke = titleScreen.uiModifiers.UIStroke
+local corner = titleScreen.uiModifiers.UICorner
+local function hoverEffect(guiObject)
+	stroke.Parent = guiObject
+	corner.Parent = guiObject
+end
+hoverEffect(nil)
+
+--------------------------------------------------------------------------------------------
+
+titleScreen.Enabled = true
 -- Disables the Reset Button
 ----[ Creates a Loop to make sure that the ResetButtonCallBack works.
 local disableResetButton = task.spawn(function()
@@ -176,16 +142,27 @@ local disableResetButton = task.spawn(function()
 	until success
 end)
 
-repeat wait() until game:IsLoaded()
-
-local assets = game:GetDescendants()
+ambienceSG.Volume = 0
+--LOADING SCREEN STARTED
+repeat 
+	task.wait() 
+until game:IsLoaded()
+inventoryAndHotbar.Enabled = false
+local assets = game:GetChildren()
 local maxAssets = #assets
+mainInfo.Text = "Loading... <br /> " .. tostring(0) ..  "/" .. tostring(maxAssets)
+musicSG.radioEffect.Enabled = false
+musicSG.reverb.Enabled = false
+toggleMuffle(musicSG.lowPassFilter, true, 0)
+musicSG.pitchShifter.Octave = 0.5
+pitchUp(musicSG.pitchShifter, 2)
+music.jazzWaltzA:Play()
+circle.Visible = true
+mainInfo.Visible = true
+miscInfo.Visible = true
+task.wait(1)
 
-local plr = game:GetService("Players").LocalPlayer
-local plrGui : PlayerGui = plr:WaitForChild("PlayerGui")
-
-loadingUI.Parent = plrGui --loading begin
-
+--[[
 local thread = task.spawn(function()
 	local dotCount = 0
 	
@@ -202,9 +179,22 @@ local thread = task.spawn(function()
 	end
 end)
 
-assetCounter.Text = "0%"
+]]
 
-print("skipping loading screen")
+for i, v in ipairs(assets) do
+	ContentProvider:PreloadAsync({v})
+	mainInfo.Text = "Loading... <br /> " .. tostring(math.round(i/maxAssets * 100)) .. "% of " .. tostring(maxAssets) .. " assets"
+	--
+	if i/maxAssets == 1 then
+		gradient.Transparency = NumberSequence.new(0)
+	else
+		gradient.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(i/maxAssets, 1),
+			NumberSequenceKeypoint.new(1, 1)
+		 })
+	end
+end
 --[[
 if not RunService:IsStudio() then
 	for i, assetToLoad in ipairs(assets) do
@@ -216,35 +206,77 @@ else
 end
 ]]
 
+--FINISHED LOADING
+mainInfo.Text = "Loading... <br /> " .. tostring(math.round(1 * 100)) .. "% of " .. tostring(maxAssets) .. " assets"
+
+task.wait(1)
+circle.Visible = false
+mainInfo.Visible = false
+miscInfo.Visible = false
+local tween = pitchDown(musicSG.pitchShifter, 1)
+tween.Completed:Wait()
+music.jazzWaltzA:Pause()
+sounds.fx.nukeSiren:Play()
+task.wait(3)
+fadeVolume(sounds.fx.nukeSiren, 0, 10)
+mainFrame.BackgroundColor3 = Color3.new(1, 1, 1)
+sounds.fx.nukeRumbling:Play()
+local flashing = TweenService:Create(mainFrame, 
+	TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.InOut, math.huge, true), 
+	{BackgroundColor3 = Color3.new(0.7,0.7,0.7)})
+local fading = TweenService:Create(mainFrame.blackScreen, TweenInfo.new(6, Enum.EasingStyle.Linear), {Transparency = 0})
+flashing:Play()	
+task.wait(8)
+fading:Play()
+fading.Completed:Wait()
+flashing:Cancel()
+mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+mainFrame.blackScreen.Transparency = 1
+task.wait(1)
+
+local currentlyHoveringOn = nil
+for _, v in buttons:GetChildren() do
+	if v:IsA("GuiButton") then
+		v.MouseEnter:Connect(function()
+			playSound(sounds.interface.hover, nil, 0)
+			hoverEffect(v)
+			currentlyHoveringOn = v
+		end)
+		v.MouseLeave:Connect(function()
+			if currentlyHoveringOn == v then
+				currentlyHoveringOn = nil
+				hoverEffect(nil)
+			end
+		end)
+		v.MouseButton1Down:Connect(function()
+			playSound(sounds.interface.click, nil, 0)
+			toggleMuffle(musicSG.lowPassFilter, true, 0.5)
+		end)
+	end
+end
+
+sounds.fx.buzzingLight.Volume = 0
+sounds.fx.buzzingLight:Play()
+fadeVolume(sounds.fx.buzzingLight, 1, 3)
+Logo.ImageTransparency = 1
+Logo.Visible = true
+TweenService:Create(Logo, TweenInfo.new(3, Enum.EasingStyle.Bounce, Enum.EasingDirection.InOut), {ImageTransparency = 0}):Play()
+buttons.Position = UDim2.fromScale(-(buttons.Size.X.Scale), 0)
+buttons.Visible = true --TWEEN THIS
+TweenService:Create(buttons, TweenInfo.new(3, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), {Position = UDim2.fromScale(0, 0)}):Play()
+musicSG.reverb.Enabled = true
+musicSG.radioEffect.Enabled = true
+toggleMuffle(musicSG.lowPassFilter, false, 0)
+musicSG.pitchShifter.Octave = 1
+music.jazzWaltzA:Play()
+
 char:WaitForChild("HumanoidRootPart").CFrame = spawn0.CFrame
 plr.RespawnLocation = spawn0
 
-
-task.cancel(thread)
-loadingLabel.Text = "LOADED"
-char:WaitForChild("Humanoid").WalkSpeed = StarterPlayer.CharacterWalkSpeed
-char:WaitForChild("Humanoid").JumpHeight = StarterPlayer.CharacterJumpHeight
-
-for _, connection in pairs(connections) do
-	connection:Disconnect()
-	connection = nil
-end
-
-fadeAudio(currentBackgroundSong, 0, 2)
-currentBackgroundSong:Stop()
-currentFinishedLoadingCue:Play()
-local tweenInfo = TweenInfo.new(currentFinishedLoadingCue.TimeLength, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
-fadeOutGuis(
-	{soundSettingButtons.soundIcon, loadingUI:FindFirstChild("Wallpaper", true)},
-	tweenInfo,
-	{ImageTransparency = 1}
-)
-local lastTween = fadeOutGuis(
-	{loadingLabel, assetCounter, soundSettingButtons.leftArrow, soundSettingButtons.rightArrow, soundSettingButtons.songTitle, randomMessages},
-	tweenInfo,
-	{TextTransparency = 1}
-)
-lastTween.Completed:Wait()
-loadingUI:Destroy()
-
+--[[
+char.Humanoid.WalkSpeed = StarterPlayer.CharacterWalkSpeed
+char.Humanoid.JumpHeight = StarterPlayer.CharacterJumpHeight
 StarterGui:SetCore("ResetButtonCallback", true)
+game:GetService('StarterGui'):SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
+ambienceSG.Volume = 1
+]]

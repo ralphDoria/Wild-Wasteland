@@ -12,7 +12,7 @@ local lastUpdate : number = 0
 local cursorClones : {[any] : any} = {}
 
 local cursor = Instance.new("ImageLabel")
-cursor.Parent = gui
+--cursor.Parent = gui
 cursor.Size = UDim2.fromOffset(20, 20)
 cursor.Image = mouseTrailIcon.Texture
 cursor.BorderSizePixel = 0
