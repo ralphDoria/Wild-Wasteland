@@ -133,13 +133,18 @@ local function getMouseDelta()
 end
 
 function inventoryAndHotbarManager.initializeSystem()
-    gui.Enabled = true
+    inventoryAndHotbarManager.intitializeHotbar()
+    repeat
+        task.wait()
+        --print("Waiting for hotbar to initialize")
+    until hotbar:GetAttribute("Initialized")
     inventoryAndHotbarManager.toggleInventory(false)
     inventoryAndHotbarManager.toggleHotbar(true)
     StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) --disables Roblox's default backpack
     inventoryAndHotbarManager.toggleInventoryInput(true)
     inventoryAndHotbarManager.initializeMisc()
     inventoryAndHotbarManager.initializeWearablesGui()
+    gui.Enabled = true
 end
 
 local function initSingleWearableSlot(slot)

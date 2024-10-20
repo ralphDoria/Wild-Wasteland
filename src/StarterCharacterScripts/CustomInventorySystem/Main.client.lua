@@ -40,8 +40,6 @@ ContextActionService:BindAction(
 	Enum.KeyCode.Tab
 )
 
-inventoryAndHotbarManager.intitializeHotbar()
-
 local cachedItems = backpack:GetChildren()
 
 local function updateCachedItems()
@@ -138,9 +136,15 @@ rev_statChangeSound.OnClientEvent:Connect(function(tagName : string)
     end
 end)
 
-repeat
-	task.wait()
-	--print("Waiting for hotbar to initialize")
-until hotbar:GetAttribute("Initialized")
 
-inventoryAndHotbarManager.initializeSystem()
+if player:GetAttribute("inTitleScreen") == false then
+	inventoryAndHotbarManager.initializeSystem()
+else
+	local connection
+	connection = player:GetAttributeChangedSignal("inTitleScreen"):Connect(function()
+		if player:GetAttribute("inTitleScreen") == false then
+			inventoryAndHotbarManager.initializeSystem()
+			connection:Disconnect()
+		end
+	end)
+end
