@@ -6,7 +6,34 @@ local camera = workspace.CurrentCamera
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character.Humanoid
 local rfn_getShirtTemplateId : RemoteFunction = ReplicatedStorage:WaitForChild("getShirtTemplateId")
+
+local accessoryEffects = {}
+local function updateAccessoryEffects()
+    local temp = {}
+    for _, v in character:GetDescendants() do
+        if v:IsA("ParticleEmitter") or v:IsA("Fire") then
+            local info = {
+                instance = v,
+                savedParent = v.Parent
+            }
+            table.insert(temp, info)
+        end
+    end
+    return temp
+end
+local function toggleAccessoryEffects(toggle : boolean)
+    for _, v in accessoryEffects do
+        if toggle then
+            v.instance.Parent = v.savedParent
+        else
+            v.instance.Parent = nil
+        end
+    end
+end
+player.CharacterAppearanceLoaded:Wait()
+accessoryEffects = updateAccessoryEffects()
 
 local viewModel = ReplicatedStorage:WaitForChild("viewModel"):Clone()
 local IdValid, IdNotValid = pcall(function()
@@ -59,20 +86,27 @@ local function changeViewModelTransparency(newTransparency : number)
     end
 end
 
---initially hide the viewModel if player is in first person
-if isFirstPerson() then
-    changeViewModelTransparency(0)
-else
-    changeViewModelTransparency(1)
-end
 
---shows the view model in first person and hides it in third person
-torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
+local function reactToCameraViewChange()
+    print(accessoryEffects)
+    print("hello")
     if isFirstPerson() then
         changeViewModelTransparency(0)
     else
         changeViewModelTransparency(1)
     end
+end
+--initially hide the viewModel if player is in first person
+reactToCameraViewChange()
+
+--shows the view model in first person and hides it in third person
+torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
+    if torso.LocalTransparencyModifier > 0 then
+        toggleAccessoryEffects(false)
+    else
+        toggleAccessoryEffects(true)
+    end
+    reactToCameraViewChange()
 end)
 
 RunService:BindToRenderStep("ViewModel", 200, function(dt)

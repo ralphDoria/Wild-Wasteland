@@ -31,10 +31,6 @@ local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 local SoundService = game:GetService("SoundService")
 local GuiService = game:GetService("GuiService")
---UTILITY
-local utility = ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility")
-local SoundUtil = require(utility:WaitForChild("SoundUtil"))
-local playSound = require(utility:WaitForChild("PlaySoundUtil"))
 --REFERENCES
 local background : Frame = startScreen.background
 local loadingScreenElements = {
@@ -52,6 +48,14 @@ local sideScreens = {
 	["SETTINGS"] = startScreen.sideScreens.SETTINGS,
 	["NOTES"] = startScreen.sideScreens.NOTES
 }
+local stroke = startScreen.uiModifiers.UIStroke
+local corner = startScreen.uiModifiers.UICorner
+--UTILITY
+local utility = ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility")
+local SoundUtil = require(utility:WaitForChild("SoundUtil"))
+local playSound = require(utility:WaitForChild("PlaySoundUtil"))
+local organizer = require(script.Parent:WaitForChild("organizer"))
+organizer.init(titleScreenElements, loadingScreenElements, stroke, corner)
 --SOUND
 local sounds : Folder = startScreen.Sounds
 local music = {
@@ -72,34 +76,8 @@ local tips = {
 	""
 }
 --------------------------------------------------------------------------------------------------------
-local stroke = startScreen.uiModifiers.UIStroke
-local corner = startScreen.uiModifiers.UICorner
-local function hoverEffect(old, new)
-	if old ~= nil then
-		old.Size = UDim2.new(1, 0, 0, 50)
-		old.TextTransparency = 0.3
-	end
-	if new ~= nil then
-		new.Size = UDim2.new(1, 0, 0, 60)
-		new.TextTransparency = 0
-	end
-end
-local function selectEffect(guiObject)
-	stroke.Parent = guiObject
-	corner.Parent = guiObject
-end
-local function togglePage(page, toggle : boolean, time : number)
-	local tween
-	if toggle then
-		tween = TweenService:Create(page, TweenInfo.new(time), {Size = UDim2.fromScale(0.8, 1)})
-	else
-		tween = TweenService:Create(page, TweenInfo.new(time), {Size = UDim2.fromScale(0.8, 0)})
-	end
-	tween:Play()
-	return tween
-end
-selectEffect(nil)
-hoverEffect(nil, nil)
+organizer.selectEffect(nil)
+organizer.hoverEffect(nil, nil)
 
 --CHAR PREP
 local humanoid = char:WaitForChild("Humanoid")
@@ -111,14 +89,8 @@ plr.RespawnLocation = loadingScreenSpawn
 GuiService.TouchControlsEnabled = false --disabled mobile touch controls
 loadingScreenElements.mainInfo.Text = "Loading... <br /> 0%"
 titleScreenElements.buttons.Position = UDim2.fromScale(-(titleScreenElements.buttons.Size.X.Scale), 0)
-for _, v in titleScreenElements do
-	v.Visible = false
-end
-for _, v in loadingScreenElements do
-	if v:IsA("GuiObject") then
-		v.Visible = true
-	end
-end
+organizer.toggleGuiVisibilityIn(titleScreenElements, false)
+organizer.toggleGuiVisibilityIn(loadingScreenElements, false)
 for _, v in sideScreens do
 	v.Size = UDim2.fromScale(0.8, 0)
 	v.Visible = true
@@ -141,7 +113,7 @@ music.jazzWaltzA:Play()
 loadingScreenElements.progressCircle.Visible = true
 loadingScreenElements.mainInfo.Visible = true
 loadingScreenElements.miscInfo.Visible = true
-task.wait(1)
+local Icon = require(ReplicatedStorage:WaitForChild("NonRojoManaged"):WaitForChild("TopbarPlus"):WaitForChild("Icon"))
 
 --[[
 local thread = task.spawn(function()
@@ -191,11 +163,7 @@ end
 loadingScreenElements.mainInfo.Text = "Loading... <br /> " .. tostring(math.round(1 * 100)) .. "%"	
 
 task.wait(1)
-for _, v in loadingScreenElements do
-	if v:IsA("GuiObject") then
-		v.Visible = false
-	end
-end
+organizer.toggleGuiVisibilityIn(loadingScreenElements, false)
 SoundUtil.pitchDown(musicSG.pitchShifter, 1)
 local fadeOut = SoundUtil.fadeVolume(music.jazzWaltzA, 0, 1)
 fadeOut.Completed:Wait()
@@ -230,6 +198,8 @@ local isActivated = {
 	["SETTINGS"] = false,
 }
 
+
+
 local currentlyHoveringOn = nil
 for _, v in titleScreenElements.buttons:GetChildren() do
 	if v:IsA("GuiButton") then
@@ -237,7 +207,7 @@ for _, v in titleScreenElements.buttons:GetChildren() do
 			connections,
 			v.MouseEnter:Connect(function()
 				playSound(sounds.interface.hover, nil, 0)
-				hoverEffect(currentlyHoveringOn, v)
+				organizer.hoverEffect(currentlyHoveringOn, v)
 				currentlyHoveringOn = v
 			end)
 		)
@@ -245,7 +215,7 @@ for _, v in titleScreenElements.buttons:GetChildren() do
 			connections,
 			v.MouseLeave:Connect(function()
 				if currentlyHoveringOn == v then
-					hoverEffect(currentlyHoveringOn, nil)
+					organizer.hoverEffect(currentlyHoveringOn, nil)
 					currentlyHoveringOn = nil
 				end
 			end)
@@ -261,27 +231,26 @@ for _, v in titleScreenElements.buttons:GetChildren() do
 						for key, v2 in isActivated do
 							if key ~= v.Name and v2 == true then
 								isActivated[key] = false
-								togglePage(sideScreens[key], false, time)
+								organizer.togglePage(sideScreens[key], false, time)
 							end
 						end
 						SoundUtil.toggleMuffle(musicSG.lowPassFilter, true, time)
-						selectEffect(v)
-						togglePage(sideScreens[v.Name], true, time)
+						organizer.selectEffect(v)
+						organizer.togglePage(sideScreens[v.Name], true, time)
 					else
 						isActivated[v.Name] = false
 						SoundUtil.toggleMuffle(musicSG.lowPassFilter, false, time)
-						selectEffect(nil)
-						togglePage(sideScreens[v.Name], false, time)
+						organizer.selectEffect(nil)
+						organizer.togglePage(sideScreens[v.Name], false, time)
 					end
 				else
-					for _, v in connections do
-						v:Disconnect()
-					end
-					selectEffect(v)
+					organizer.toggleButtonsInteractable(false)
+					
+					organizer.selectEffect(v)
 					for key, v2 in isActivated do
 						if key ~= v.Name and v2 == true then
 							isActivated[key] = false
-							togglePage(sideScreens[key], false, time)
+							organizer.togglePage(sideScreens[key], false, time)
 						end
 					end
 					SoundUtil.toggleMuffle(musicSG.lowPassFilter, false, time)
@@ -301,7 +270,8 @@ for _, v in titleScreenElements.buttons:GetChildren() do
 						sounds.fx.buzzingLight:Stop()
 					end)
 					closeButtonsPanel.Completed:Once(function()
-						titleScreenElements.buttons.Visible = false
+						organizer.selectEffect(nil)
+						v:Destroy()
 						Eyelids.Enabled = true
 
 						task.wait(1)
@@ -314,7 +284,8 @@ for _, v in titleScreenElements.buttons:GetChildren() do
 						game:GetService('StarterGui'):SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
 						GuiService.TouchControlsEnabled = true -- reenabled mobile touch controls
 						ambienceSG.Volume = 1
-						startScreen.Enabled = false
+						background.BackgroundTransparency = 1
+						titleScreenElements.buttons.Visible = true
 						plr.CameraMode = Enum.CameraMode.LockFirstPerson
 
 						local openUpper = TweenService:Create(Eyelids.upper, TweenInfo.new(2), {Position = UDim2.fromScale(0, -0.6)})
@@ -323,6 +294,34 @@ for _, v in titleScreenElements.buttons:GetChildren() do
 						openLower:Play()
 						openLower.Completed:Wait()
 						plr.CameraMode = Enum.CameraMode.Classic
+
+						organizer.toggleButtonsInteractable(true)
+						local menuIcon = Icon.new()
+						menuIcon
+							:setLabel("Settings")
+							:setImage(119890863099288, "Deselected")
+							:setImage(124329776276328, "Selected")
+							:setCaption("Press M")
+							:bindToggleKey(Enum.KeyCode.M)
+
+						local closeButtonsPanel = TweenService:Create(
+							titleScreenElements.buttons, 
+							TweenInfo.new(1, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), 
+							{Position = UDim2.fromScale(-(titleScreenElements.buttons.Size.X.Scale), 0)})
+						local openButtonsPanel = TweenService:Create(
+							titleScreenElements.buttons, 
+							TweenInfo.new(1, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), 
+							{Position = UDim2.fromScale(0, 0)})
+
+						menuIcon.selected:Connect(function()
+							print("menu icon selected")
+							openButtonsPanel:Play()
+						end)
+						menuIcon.deselected:Connect(function()
+							print("menu icon deselected")
+							closeButtonsPanel:Play()
+						end)
+
 						task.wait(5)
 						local ff = char:FindFirstChildOfClass("ForceField")
 						if ff then
