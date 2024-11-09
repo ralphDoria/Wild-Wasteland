@@ -176,21 +176,23 @@ end
 
 shopUI.Enabled = false
 local exit : TextButton = shopUI:FindFirstChild("Exit", true)
-for _, v in game:GetService("CollectionService"):GetTagged("Shop") do
-    assert(v:IsA("ProximityPrompt"), v.Name .. " has the Shop tag but isn't a proximity prompt")
 
-    v.Triggered:Connect(function()
+local function handleShopTag(instance)
+    print("shop tag detected")
+    assert(instance:IsA("ProximityPrompt"), instance.Name .. " has the Shop tag but isn't a proximity prompt")
+
+    instance.Triggered:Connect(function()
         if not shopUI.Enabled then
             shopUI.Enabled = true
             menuOpen:Play()
-            v.Enabled = false
+            instance.Enabled = false
             exit.Modal = true
 
             exit.MouseButton1Down:Once(function()
                 if shopUI.Enabled then
                     shopUI.Enabled = false
                     menuClose:Play()
-                    v.Enabled = true
+                    instance.Enabled = true
                     exit.Modal = false
                 end
             end)
@@ -198,3 +200,15 @@ for _, v in game:GetService("CollectionService"):GetTagged("Shop") do
         end
     end)
 end
+
+local SHOP_TAG = "Shop"
+
+local CollectionService = game:GetService("CollectionService")
+
+for _, v in CollectionService:GetTagged(SHOP_TAG) do
+    handleShopTag(v)
+end
+
+CollectionService:GetInstanceAddedSignal(SHOP_TAG):Connect(function(instance)
+    handleShopTag(instance)
+end)

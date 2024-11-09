@@ -8,43 +8,10 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local rfn_getShirtTemplateId : RemoteFunction = ReplicatedStorage:WaitForChild("getShirtTemplateId")
 
-local accessoryEffects = {}
-local function updateAccessoryEffects()
-    local temp = {}
-    for _, v in character:GetChildren() do
-        if v:IsA("Accessory") then
-            for _, j in v:GetDescendants() do
-                if j:IsA("ParticleEmitter") or j:IsA("Fire") then
-                    local info = {
-                        instance = j,
-                        savedTransparency = j.Transparency
-                    }
-                    table.insert(temp, info)
-                end
-            end
-        end
-    end
-    return temp
-end
-local function toggleAccessoryEffects(toggle : boolean)
-    if #accessoryEffects == 0 then
-        warn("no accessory particles found")
-    end
-    for _, v in accessoryEffects do
-        if toggle then
-            v.instance.Transparency = v.savedTransparency
-        else
-            v.instance.Transparency = NumberSequence.new(1)
-        end
-    end
-end
-
 repeat
     print("waiting for appearance to load")
     task.wait()
 until player:HasAppearanceLoaded()
-
-accessoryEffects = updateAccessoryEffects()
 
 local viewModel = ReplicatedStorage:WaitForChild("viewModel"):Clone()
 local IdValid, IdNotValid = pcall(function()
@@ -83,7 +50,6 @@ end
 
 viewModel.Parent = camera
 
-local torso = character.Torso
 local hrp = character.HumanoidRootPart
 
 local visualizer = Instance.new("Part")
@@ -92,13 +58,11 @@ visualizer.Transparency = 0.5
 visualizer.BrickColor = BrickColor.new("Really red")
 visualizer.Anchored = true
 visualizer.CanCollide = false
-visualizer.Parent = workspace
+--visualizer.Parent = workspace
 
 local function isFirstPerson()
-    local artificialHeadPosition = (hrp.Position + Vector3.new(0, 1.5, 0))
-    visualizer.Position = artificialHeadPosition
-    local distance = (artificialHeadPosition - camera.CFrame.Position).Magnitude
-    return distance < 1.1, distance
+    --return (character.Head.Position - camera.CFrame.Position).Magnitude < 1 --(this is unreliable because of camera sway)
+    return character.Head.LocalTransparencyModifier == 1
 end
 local function changeViewModelTransparency(newTransparency : number)
     for _, v in viewModel:GetDescendants() do
@@ -109,7 +73,7 @@ local function changeViewModelTransparency(newTransparency : number)
 end
 local function reactToCameraViewChange()
     local firstPerson = isFirstPerson()
-    toggleAccessoryEffects(not firstPerson)
+    print("first person: " .. tostring(firstPerson))
     if firstPerson then
         changeViewModelTransparency(0)
     else
@@ -120,8 +84,6 @@ end
 reactToCameraViewChange()
 
 RunService:BindToRenderStep("ViewModel", 200, function(dt)
-    local _, distance = isFirstPerson()
-    print(distance)
     reactToCameraViewChange()
     head.CFrame = camera.CFrame
 end)
