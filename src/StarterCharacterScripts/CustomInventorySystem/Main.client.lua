@@ -10,7 +10,7 @@ local StarterGui = game:GetService("StarterGui")
 local rev_statChangeSound = ReplicatedStorage:FindFirstChild("StatChangeSound", true)
 local playSound = require(ReplicatedStorage:FindFirstChild("PlaySoundUtil", true))
 local SoundService = game:GetService("SoundService")
-local coinCollectSound : Sound = SoundService.CurrencySystem["Coins ka-ching"]
+local coinCollectSound : Sound = SoundService:FindFirstChild("Coins ka-ching", true)
 local ammoCollectSound : Sound = SoundService:FindFirstChild("Ammo pickup", true)
 
 local inventoryAndHotbarManager = require(script.Parent:FindFirstChild("inventoryAndHotbarManager"))

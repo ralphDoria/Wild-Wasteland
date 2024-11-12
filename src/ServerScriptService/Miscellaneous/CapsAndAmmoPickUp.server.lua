@@ -15,7 +15,7 @@ end
 
 local playSound = game:GetService("ReplicatedStorage"):FindFirstChild("PlayerSoundUtil", true)
 local SoundService = game:GetService("SoundService")
-local coinCollectSound : Sound = SoundService.CurrencySystem["Coins ka-ching"]
+local coinCollectSound : Sound = SoundService:FindFirstChild("Coins ka-ching", true)
 local ammoCollectSound : Sound = SoundService:FindFirstChild("Ammo pickup", true)
 
 local currencyProxProm : ProximityPrompt = ReplicatedStorage:FindFirstChild("BottleCaps", true).ProximityPrompt

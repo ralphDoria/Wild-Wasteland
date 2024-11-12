@@ -73,7 +73,7 @@ local function changeViewModelTransparency(newTransparency : number)
 end
 local function reactToCameraViewChange()
     local firstPerson = isFirstPerson()
-    print("first person: " .. tostring(firstPerson))
+    --print("first person: " .. tostring(firstPerson))
     if firstPerson then
         changeViewModelTransparency(0)
     else

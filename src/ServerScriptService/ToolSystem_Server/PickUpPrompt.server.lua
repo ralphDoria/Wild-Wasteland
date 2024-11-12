@@ -11,7 +11,7 @@ local COLLECTION_TAG = "PUP" --acronym for Pick Up Prompt
 local playSound = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
 
 ------------------------------------------------------------------------<<<SFX>>>
-local pickUpSound = game:GetService("SoundService"):WaitForChild("Item Pick Up")
+local pickUpSound = game:GetService("SoundService"):FindFirstChild("Item Pick Up", true)
 
 ------------------------------------------------------------------------<<<FUNCTIONS>>>
 local function handleTaggedInstance(taggedObject)

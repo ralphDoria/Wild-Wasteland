@@ -12,7 +12,7 @@ local ViewportModel = require(ReplicatedStorage:FindFirstChild("ViewportModel", 
 
 local playSound = require(ReplicatedStorage:FindFirstChild("PlaySoundUtil", true))
 
-local shopGuiSFX : SoundGroup = game:GetService("SoundService").ShopGuiSFX
+local shopGuiSFX : SoundGroup = game:GetService("SoundService").SoundStorage:FindFirstChild("Shop", true)
 local menuOpen : Sound = shopGuiSFX["Synth Sparkle Tone High Pitch Tone Burst 4 (SFX)"]
 local menuClose : Sound = shopGuiSFX["Synth Sparkle Tone High Pitch Tone Burst Din (SFX)"]
 local itemSelect : Sound = shopGuiSFX["Button Click"]

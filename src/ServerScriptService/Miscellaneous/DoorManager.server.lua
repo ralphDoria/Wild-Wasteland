@@ -6,7 +6,7 @@ local TweenService = game:GetService("TweenService")
 
 local playSound = require(game:GetService("ReplicatedStorage"):WaitForChild("RojoManaged_RS"):WaitForChild("Utility"):WaitForChild("PlaySoundUtil"))
 
-local doorSFX = game:GetService("SoundService").doorSFX
+local doorSFX = game:GetService("SoundService").SoundStorage:FindFirstChild("VaultDoor", true)
 local vaultDoorOpenSound = doorSFX["Vault Sliding Door Open"]
 local vaultDoorCloseSound = doorSFX["Vault Sliding Door Close"]
 

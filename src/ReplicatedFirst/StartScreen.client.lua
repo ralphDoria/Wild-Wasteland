@@ -66,6 +66,17 @@ local music = {
 local masterSG : SoundGroup = SoundService:WaitForChild("0 - Master")
 local musicSG : SoundGroup = masterSG:WaitForChild("Music")
 local ambienceSG : SoundGroup = masterSG:WaitForChild("Ambience")
+local gameSG : SoundGroup = masterSG:WaitForChild("Game")
+local interfaceSG : SoundGroup = masterSG:WaitForChild("Interface")
+local menuSG : SoundGroup = masterSG:WaitForChild("Menu")
+local soundGroups = {
+	master = masterSG,
+	music = musicSG,
+	ambience = ambienceSG,
+	game = gameSG,
+	interface = interfaceSG,
+	menu = menuSG
+}
 	--SPAWNS
 local spawnPoints = game.Workspace:FindFirstChild("spawnPoints", true)
 local loadingScreenSpawn = spawnPoints:WaitForChild("loadingScreenSpawn")
@@ -96,7 +107,13 @@ for _, v in sideScreens do
 	v.Visible = true
 end
 --SOUND PREP
-ambienceSG.Volume = 0
+for _, sg in soundGroups do
+	sg.Volume = 0
+end
+soundGroups.master.Volume = 1
+soundGroups.menu.Volume = 1
+soundGroups.music.Volume = 0.3
+soundGroups.interface.Volume = 1
 --LOADING SCREEN STARTED
 
 repeat 
@@ -283,7 +300,12 @@ for _, v in titleScreenElements.buttons:GetChildren() do
 						StarterGui:SetCore("ResetButtonCallback", true)
 						game:GetService('StarterGui'):SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
 						GuiService.TouchControlsEnabled = true -- reenabled mobile touch controls
-						ambienceSG.Volume = 1
+						--turning up volume again
+						for _, sg in soundGroups do
+							sg.Volume = 1
+						end
+						soundGroups.music.Volume = 0.3
+
 						background.BackgroundTransparency = 1
 						titleScreenElements.buttons.Visible = true
 						plr.CameraMode = Enum.CameraMode.LockFirstPerson
@@ -304,22 +326,35 @@ for _, v in titleScreenElements.buttons:GetChildren() do
 							:setCaption("Press M")
 							:bindToggleKey(Enum.KeyCode.M)
 
+						local menuTransitionTime = 0.5
+
 						local closeButtonsPanel = TweenService:Create(
 							titleScreenElements.buttons, 
-							TweenInfo.new(1, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), 
+							TweenInfo.new(menuTransitionTime, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), 
 							{Position = UDim2.fromScale(-(titleScreenElements.buttons.Size.X.Scale), 0)})
 						local openButtonsPanel = TweenService:Create(
 							titleScreenElements.buttons, 
-							TweenInfo.new(1, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), 
+							TweenInfo.new(menuTransitionTime, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), 
 							{Position = UDim2.fromScale(0, 0)})
-
+						local fadeInBackground = TweenService:Create(
+							background, 
+							TweenInfo.new(menuTransitionTime, Enum.EasingStyle.Circular, Enum.EasingDirection.Out),
+							{Transparency = 0.1})
+						local fadeOutBackground = TweenService:Create(
+							background, 
+							TweenInfo.new(menuTransitionTime, Enum.EasingStyle.Circular, Enum.EasingDirection.Out),
+							{Transparency = 1})
 						menuIcon.selected:Connect(function()
 							print("menu icon selected")
 							openButtonsPanel:Play()
+							fadeInBackground:Play()
+							SoundUtil.toggleMuffle(soundGroups.master.lowPassFilter, true, menuTransitionTime)
 						end)
 						menuIcon.deselected:Connect(function()
 							print("menu icon deselected")
 							closeButtonsPanel:Play()
+							fadeOutBackground:Play()
+							SoundUtil.toggleMuffle(soundGroups.master.lowPassFilter, false, menuTransitionTime)
 						end)
 
 						task.wait(5)
