@@ -69,6 +69,13 @@ local function numberAbbreviator(num : number)
     return nil
 end
 
+local suffixes = {"K", "M", "B", "T", "Q"}
+
+local function roundNumber(number)
+	local finalNr = math.floor((((number/1000^(math.floor(math.log(number, 1e3))))*100)+0.5)) /100 .. (suffixes[math.floor(math.log(number, 1e3))] or "")
+	return finalNr
+end
+
 --[[
 Puts commas in large numbers, for when hovering to reveal what's behind the abbreviated number
 ]]
@@ -88,7 +95,7 @@ end
 function misc.initDisplayAndUpdateEvents()
 
     local function updateBillboardGui(stat, amountGained : number, newAmount : number)
-        local abbreviated = numberAbbreviator(newAmount)
+        local abbreviated = roundNumber(newAmount)
         amountDisplayLabels[stat.name].Text = if abbreviated then abbreviated else newAmount
         --[[
         if amountGained > 0 then
