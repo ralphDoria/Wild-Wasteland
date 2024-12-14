@@ -7,7 +7,6 @@ humanoidFinder.humanoidTable = {}
     ADDED AFTER IT CHECKS WORKSPACE.
 ]]
 function humanoidFinder.findHumanoids(parent)
-    warn("running it")
     for _, child in ipairs(parent:GetDescendants()) do
         local humanoid = child:FindFirstChildWhichIsA("Humanoid", true)
         table.insert(humanoidFinder.humanoidTable, humanoid) -- Add the humanoid to the table
