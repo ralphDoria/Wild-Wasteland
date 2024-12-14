@@ -1,19 +1,12 @@
 local tag = "npc_mutantRoach"
-
 local targetPart = game.Workspace.npc_roach_test.targetLocation
-
 local CollectionService = game:GetService("CollectionService")
+local mutantRoach = require(script.Parent.mutantRoach)
 
 local function mutantRoachTagHandler(taggedInstance)
-    local humanoid = taggedInstance:FindFirstChildOfClass("Humanoid")
-    while true do
-        print("calling moveTo")
-        humanoid:MoveTo(targetPart.Position, targetPart)
-        task.wait(1)
-    end
+    local roach = mutantRoach.new(taggedInstance)
+    roach:turnOn()
 end
-
-
 
 --<<EXECUTING CODE BELOW>>
 for _, taggedInstance in CollectionService:GetTagged(tag) do
