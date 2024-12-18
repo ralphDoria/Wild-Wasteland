@@ -9,6 +9,9 @@
       "RojoManaged_RS": {
         "$className": "Folder",
         "$path": "src/ReplicatedStorage"
+      },
+      "Packages": {
+        "$path": "Packages"
       }
     },
 
