@@ -178,7 +178,7 @@ shopUI.Enabled = false
 local exit : TextButton = shopUI:FindFirstChild("Exit", true)
 
 local function handleShopTag(instance)
-    print("shop tag detected")
+    --print("shop tag detected")
     assert(instance:IsA("ProximityPrompt"), instance.Name .. " has the Shop tag but isn't a proximity prompt")
 
     instance.Triggered:Connect(function()

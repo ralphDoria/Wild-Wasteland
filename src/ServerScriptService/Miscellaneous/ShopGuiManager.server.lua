@@ -4,10 +4,7 @@ local ToolCatalog = require(game:GetService("ServerScriptService"):FindFirstChil
 local rev_initializeShopGui : RemoteEvent = ReplicatedStorage:FindFirstChild("InitializeShopGui", true)
 local rfn_getToolModel : RemoteFunction = ReplicatedStorage:FindFirstChild("GetToolModel", true)
 
-print("connecting player added event")
 Players.PlayerAdded:Connect(function(player : Player)
-    print("player detected to have been added from server shop manager")
-
     local PlayerGui = player.PlayerGui
     local shopUI :  ScreenGui = PlayerGui:WaitForChild("ShopUI")
    
@@ -39,7 +36,7 @@ Players.PlayerAdded:Connect(function(player : Player)
         rev_initializeShopGui:FireClient(player, tab)
     end
 
-    print("firing init shop event")
+    --print("firing init shop event")
     rev_initializeShopGui:FireClient(player, "Completed")
 end)
 

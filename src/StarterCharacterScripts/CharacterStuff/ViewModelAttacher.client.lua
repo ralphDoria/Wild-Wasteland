@@ -9,7 +9,7 @@ local character = player.Character or player.CharacterAdded:Wait()
 local rfn_getShirtTemplateId : RemoteFunction = ReplicatedStorage:WaitForChild("getShirtTemplateId")
 
 repeat
-    print("waiting for appearance to load")
+    --print("waiting for appearance to load")
     task.wait()
 until player:HasAppearanceLoaded()
 

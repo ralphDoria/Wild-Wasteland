@@ -16,7 +16,7 @@ function humanoidFinder.findHumanoids(parent)
         if child:IsA("Model") and child:FindFirstChild("Humanoid") then
             local humanoid = child:FindFirstChild("Humanoid")
             if humanoid then
-                print("adding " .. child.Name .. "'s humanoid to the table")
+                --print("adding " .. child.Name .. "'s humanoid to the table")
                 table.insert(humanoidFinder.humanoidTable, humanoid) -- Add the humanoid to the table
             end
         end

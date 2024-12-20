@@ -217,7 +217,6 @@ function ViewModelController:hideViewModelTool()
     --hides view model tool
     for _, instance in self.vmTool:GetDescendants() do
         if instance:IsA("BasePart") then
-            print("hiding: " .. instance.Name)
             instance.LocalTransparencyModifier = 1
         end
     end

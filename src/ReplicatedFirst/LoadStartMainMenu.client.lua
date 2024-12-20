@@ -1,4 +1,4 @@
-print("Started Running lsmMenu LocalScript")
+--print("Started Running lsmMenu LocalScript")
 --Of utmost importance:
 local StarterGui = game:GetService("StarterGui")
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
