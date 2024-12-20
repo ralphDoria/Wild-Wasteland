@@ -1,0 +1,10 @@
+[submodule "src/ReplicatedStorage/Submodules/Promise"]
+	path = src/ReplicatedStorage/Submodules/Promise
+	url = https://github.com/evaera/roblox-lua-promise.git
+
+[submodule "src/ReplicatedStorage/Submodules/GoodSignal"]
+	path = src/ReplicatedStorage/Submodules/GoodSignal
+	url = https://gist.github.com/b75a322e0919d60dde8a0316d1f09d2f.git
+[submodule "src/ReplicatedSTorage/Submodules/raycastHitboxRbxl"]
+	path = src/ReplicatedSTorage/Submodules/raycastHitboxRbxl
+	url = https://github.com/Swordphin/raycastHitboxRbxl.git
