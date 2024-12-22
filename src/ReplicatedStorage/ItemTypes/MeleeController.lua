@@ -9,7 +9,7 @@ local Constants = {
     ACTION_DROP_TOOL = "Dropped"
 }
 
-local RaycastHitbox = require(ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("RaycastHitboxV4"))
+local RaycastHitbox = require(ReplicatedStorage:FindFirstChild("RaycastHitboxV4", true))
 local AnimationController = require(ReplicatedStorage:FindFirstChild("AnimationController", true))
 local ViewModelController = require(ReplicatedStorage:FindFirstChild("ViewModelController", true))
 

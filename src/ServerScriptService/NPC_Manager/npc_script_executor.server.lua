@@ -20,7 +20,6 @@ CollectionService:GetInstanceAddedSignal(tag):Connect(function(taggedInstance)
 end)
 
 --trying out Trove
-
 local trove = Trove.new()
 local part = trove:Add(Instance.new("Part"))
 warn(part.Parent)
@@ -30,16 +29,4 @@ trove:Add(function()
     warn(part.Parent)
 end)
 
-trove:Add(task.spawn(function()
-    while task.wait(0.1) do
-        print("test")
-    end
-end))
-
-
-print(part)
-task.wait(3)
-trove:Clean()
-
-
-
+--trove:Clean()
