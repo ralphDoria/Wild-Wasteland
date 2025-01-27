@@ -1,6 +1,9 @@
 local CollectionService = game:GetService("CollectionService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local playSound = require(ReplicatedStorage:FindFirstChild("PlaySoundUtil", true))
 
 local tag = "UISlider"
 local barIncrements : number = 100
@@ -21,6 +24,8 @@ local function handleTaggedInstance(taggedInstance)
     local bar : TextButton = taggedInstance:FindFirstChild("Bar")
     local fill : Frame = bar:FindFirstChild("Fill")
     local valueBox : TextBox = taggedInstance:FindFirstChild("ValueBox")
+    local clickSFX : Sound = taggedInstance:FindFirstChild("Click")
+    local pitch : PitchShiftSoundEffect = clickSFX:FindFirstChildOfClass("PitchShiftSoundEffect")
     local renderStepBindName = "sliderRenderStepBind"
 
     local originalValue : number = 583 --in practice, this will use the value of the item it is associated with
@@ -34,7 +39,7 @@ local function handleTaggedInstance(taggedInstance)
     end)
 
     valueBox.FocusLost:Connect(function()
-        if valueBox.Text ~= nil and tonumber(valueBox.Text) <= originalValue then
+        if string.len(valueBox.Text) ~= 0 and tonumber(valueBox.Text) <= originalValue then
             --valid input
             dropAmount = valueBox.Text
             proportion = valueBox.Text / originalValue
@@ -48,16 +53,23 @@ local function handleTaggedInstance(taggedInstance)
     bar.MouseButton1Down:Connect(function()
         RunService:BindToRenderStep(renderStepBindName, 200, function()
             proportion = 
-            math.round(
-                math.clamp(
-                    (UserInputService:GetMouseLocation().X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X,
-                    0,
-                    1
-                ) 
-                * barIncrements
-            ) / barIncrements
-            valueBox.Text = truncateToWholeNumber(proportion * originalValue)
-            fill.Size = UDim2.fromScale(proportion, 1)
+                math.round(
+                    math.clamp(
+                        (UserInputService:GetMouseLocation().X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X,
+                        0,
+                        1
+                    ) 
+                    * barIncrements
+                ) / barIncrements
+            local newAmount = truncateToWholeNumber(proportion * originalValue)
+            if newAmount ~= dropAmount then
+                --only change these when the proportion changes
+                dropAmount = newAmount
+                valueBox.Text = dropAmount
+                fill.Size = UDim2.fromScale(proportion, 1)
+                pitch.Octave = 0.5 + (2-0.5) * proportion
+                playSound(clickSFX, clickSFX.Parent)
+            end
 
             if not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
                 RunService:UnbindFromRenderStep(renderStepBindName)

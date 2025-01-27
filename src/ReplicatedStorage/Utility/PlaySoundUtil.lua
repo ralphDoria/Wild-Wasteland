@@ -23,7 +23,7 @@ return function(soundObject : Sound, soundParent, delayCorrection : number)
             soundClone.Parent = x
             soundClone:Play()
             --Debris:AddItem(x, soundClone.TimeLength)
-        elseif soundParent:IsA("BasePart") or soundParent:IsA("MeshPart") then
+        elseif soundParent:IsA("BasePart") or soundParent:IsA("MeshPart") or soundParent:IsA("GuiObject") then
             soundClone.Parent = soundParent
             soundClone:Play()
         else
