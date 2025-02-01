@@ -6,7 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local playSound = require(ReplicatedStorage:FindFirstChild("PlaySoundUtil", true))
 
 local tag = "UISlider"
-local barIncrements : number = 100
+local barIncrements : number = nil
 
 print(math.round(5.8))
 print(math.round(55.0000001))
@@ -24,11 +24,12 @@ local function handleTaggedInstance(taggedInstance)
     local bar : TextButton = taggedInstance:FindFirstChild("Bar")
     local fill : Frame = bar:FindFirstChild("Fill")
     local valueBox : TextBox = taggedInstance:FindFirstChild("ValueBox")
-    local clickSFX : Sound = taggedInstance:FindFirstChild("Click")
-    local pitch : PitchShiftSoundEffect = clickSFX:FindFirstChildOfClass("PitchShiftSoundEffect")
+    local sliderChangeSFX : Sound = taggedInstance:FindFirstChildOfClass("Sound")
+    local pitch : PitchShiftSoundEffect = sliderChangeSFX:FindFirstChildOfClass("PitchShiftSoundEffect")
     local renderStepBindName = "sliderRenderStepBind"
 
-    local originalValue : number = 583 --in practice, this will use the value of the item it is associated with
+    local originalValue : number = 100 --in practice, this will use the value of the item it is associated with
+    barIncrements = originalValue
     local proportion : number = 0
     local dropAmount : number = proportion*originalValue
     fill.Size = UDim2.fromScale(proportion, 1)
@@ -67,8 +68,10 @@ local function handleTaggedInstance(taggedInstance)
                 dropAmount = newAmount
                 valueBox.Text = dropAmount
                 fill.Size = UDim2.fromScale(proportion, 1)
-                pitch.Octave = 0.5 + (2-0.5) * proportion
-                playSound(clickSFX, clickSFX.Parent)
+                if pitch ~= nil then
+                    pitch.Octave = 0.5 + (2-0.5) * proportion 
+                end
+                playSound(sliderChangeSFX, sliderChangeSFX.Parent)
             end
 
             if not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
