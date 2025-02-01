@@ -8,9 +8,6 @@ local playSound = require(ReplicatedStorage:FindFirstChild("PlaySoundUtil", true
 local tag = "UISlider"
 local barIncrements : number = nil
 
-print(math.round(5.8))
-print(math.round(55.0000001))
-
 local function truncateToWholeNumber(value: number): string
     return value-value%1
 end

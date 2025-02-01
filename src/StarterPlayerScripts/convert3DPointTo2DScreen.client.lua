@@ -1,14 +1,16 @@
-local wearableAreas = workspace:FindFirstChild("wearableAreas", true)
 local RunService = game:GetService("RunService")
 local bindName = "wearableUISlots"
 local player = game:GetService("Players").LocalPlayer
+local Workspace = game:GetService("Workspace")
 local screenGui : ScreenGui = player.PlayerGui:WaitForChild("3Dto2D")
+local viewportFrame = screenGui:FindFirstChildWhichIsA("ViewportFrame", true)
+local wearableAreas = screenGui:FindFirstChild("wearableAreas", true)
 local circleTemplate = screenGui:FindFirstChild("Circle")
 local slotTemplate = screenGui:FindFirstChild("Square")
 local lineTemplate = screenGui:FindFirstChild("Line")
 local infoTable = {
     Head = {
-        threeD = wearableAreas:WaitForChild("Head"),
+        threeD = wearableAreas:WaitForChild("HeadArea"),
         twoD = {
             circle = circleTemplate:Clone(),
             slot = slotTemplate:Clone(),
@@ -17,7 +19,7 @@ local infoTable = {
         }
     },
     Torso = {
-        threeD = wearableAreas:WaitForChild("Torso"),
+        threeD = wearableAreas:WaitForChild("TorsoArea"),
         twoD = {
             circle = circleTemplate:Clone(),
             slot = slotTemplate:Clone(),
@@ -26,7 +28,7 @@ local infoTable = {
         }
     },
     Legs = {
-        threeD = wearableAreas:WaitForChild("Legs"),
+        threeD = wearableAreas:WaitForChild("LegsArea"),
         twoD = {
             circle = circleTemplate:Clone(),
             slot = slotTemplate:Clone(),
@@ -35,7 +37,7 @@ local infoTable = {
         }
     },
     Feet = {
-        threeD = wearableAreas:WaitForChild("Feet"),
+        threeD = wearableAreas:WaitForChild("FeetArea"),
         twoD = {
             circle = circleTemplate:Clone(),
             slot = slotTemplate:Clone(),
@@ -53,9 +55,14 @@ for _, area in infoTable do
     end
 end
 
-local function get2DPosition (Position: Vector3) : UDim2
-	local ScreenPosition, inView = workspace.CurrentCamera:WorldToViewportPoint(Position)
-	local ScreenSize = workspace.CurrentCamera.ViewportSize
+local vpCamera = Instance.new("Camera")
+vpCamera.Parent = viewportFrame
+viewportFrame.CurrentCamera = vpCamera
+vpCamera.CFrame = CFrame.Angles(0, math.pi, 0) * CFrame.new(0, 0, 10)
+
+local function get2DPosition (Position: Vector3, camera : Camera) : UDim2
+	local ScreenPosition, inView = camera:WorldToViewportPoint(Position)
+	local ScreenSize = camera.ViewportSize
 	
 	if inView then
 		local Vector2Position = Vector2.new(math.clamp(ScreenPosition.X, 0, ScreenSize.X), math.clamp(ScreenPosition.Y, 0, ScreenSize.Y))
@@ -71,22 +78,23 @@ end
 local function findHypotenuseAndTheta(point1: UDim2, point2 : UDim2) : number
     local x = point1.X.Offset - point2.X.Offset
     local y = point1.Y.Offset - point2.Y.Offset
-    local hypotenuse = math.pow(math.pow(x, 2) + math.pow(y, 2), 1/2)
-    local theta = math.tan(y/x)
+    local hypotenuse = math.sqrt(math.pow(x, 2) + math.pow(y, 2))
+    local theta = math.atan2(y, x)
     return hypotenuse, theta
 end
 
 RunService:BindToRenderStep(bindName, 200, function()
     for _, area in infoTable do
         local ui = area.twoD
-        local screenPosition : UDim2 = get2DPosition(area.threeD.Position)
+        local screenPosition : UDim2 = get2DPosition(area.threeD.Position, vpCamera)
+        print(screenPosition)
 
         --positioning the circle
         local circlePosition : UDim2 = screenPosition
         ui.circle.Position = circlePosition
 
         --positioning the slot
-        local slotPosition : UDim2 = circlePosition  + UDim2.fromOffset(100 * ui.offset, -slotTemplate.AbsoluteSize.Y)
+        local slotPosition : UDim2 = circlePosition  + UDim2.fromOffset(75 * ui.offset, -slotTemplate.AbsoluteSize.Y)
         ui.slot.Position = slotPosition
 
         --connecting a line between the circle and slot
