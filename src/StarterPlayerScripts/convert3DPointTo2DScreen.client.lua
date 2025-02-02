@@ -1,10 +1,11 @@
 local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
 local bindName = "wearableUISlots"
 local player = game:GetService("Players").LocalPlayer
 local Workspace = game:GetService("Workspace")
 local screenGui : ScreenGui = player.PlayerGui:WaitForChild("3Dto2D")
 local viewportFrame = screenGui:FindFirstChildWhichIsA("ViewportFrame", true)
-local wearableAreas = screenGui:FindFirstChild("wearableAreas", true)
+local wearableAreas = screenGui:FindFirstChild("wearableAreas", true) or workspace:FindFirstChild("wearableAreas", true)
 local circleTemplate = screenGui:FindFirstChild("Circle")
 local slotTemplate = screenGui:FindFirstChild("Square")
 local lineTemplate = screenGui:FindFirstChild("Line")
@@ -58,15 +59,27 @@ end
 local vpCamera = Instance.new("Camera")
 vpCamera.Parent = viewportFrame
 viewportFrame.CurrentCamera = vpCamera
-vpCamera.CFrame = CFrame.Angles(0, math.pi, 0) * CFrame.new(0, 0, 10)
+vpCamera.CFrame = CFrame.Angles(0, math.pi, 0) * CFrame.new(0, 0, 7)
 
-local function get2DPosition (Position: Vector3, camera : Camera) : UDim2
-	local ScreenPosition, inView = camera:WorldToViewportPoint(Position)
-	local ScreenSize = camera.ViewportSize
+local function get2DPosition(Position: Vector3, camera : Camera) : UDim2
+	local ScreenPosition : Vector3, inView : boolean = camera:WorldToViewportPoint(Position)
+	local ScreenSize : Vector2 = camera.ViewportSize
 	
 	if inView then
-		local Vector2Position = Vector2.new(math.clamp(ScreenPosition.X, 0, ScreenSize.X), math.clamp(ScreenPosition.Y, 0, ScreenSize.Y))
-		return UDim2.fromOffset(Vector2Position.X, Vector2Position.Y)
+        if camera == workspace.CurrentCamera then
+            local Vector2Position = Vector2.new(math.clamp(ScreenPosition.X, 0, ScreenSize.X), math.clamp(ScreenPosition.Y, 0, ScreenSize.Y))
+            return UDim2.fromOffset(Vector2Position.X, Vector2Position.Y)
+        else
+            local vpFrame = camera.Parent --if it's not the workspace's CurrentCamera, then the Camera should be parented to a ViewportFrame
+            local xOffset = vpFrame.AbsolutePosition.X + ScreenPosition.X * vpFrame.AbsoluteSize.X
+            local yOffset = vpFrame.AbsolutePosition.Y + ScreenPosition.Y * vpFrame.AbsoluteSize.Y
+            local pos = UDim2.fromOffset(xOffset, yOffset)
+            if screenGui.IgnoreGuiInset == true then
+                --need to manually take into account gui inset
+                pos = pos + UDim2.fromOffset(GuiService:GetGuiInset().X, GuiService:GetGuiInset().Y)
+            end
+            return pos
+        end
 	else
 		local Vector2Position = Vector2.new(math.clamp(ScreenPosition.X, 0, ScreenSize.X), math.clamp(ScreenPosition.Y, 0, ScreenSize.Y))
 		local scaleX = Vector2Position.X / ScreenSize.X
@@ -87,7 +100,6 @@ RunService:BindToRenderStep(bindName, 200, function()
     for _, area in infoTable do
         local ui = area.twoD
         local screenPosition : UDim2 = get2DPosition(area.threeD.Position, vpCamera)
-        print(screenPosition)
 
         --positioning the circle
         local circlePosition : UDim2 = screenPosition
@@ -104,3 +116,4 @@ RunService:BindToRenderStep(bindName, 200, function()
         ui.line.Rotation = math.deg(theta) + 90
     end
 end)
+
