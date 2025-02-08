@@ -5,46 +5,65 @@ local player = game:GetService("Players").LocalPlayer
 local Workspace = game:GetService("Workspace")
 local screenGui : ScreenGui = player.PlayerGui:WaitForChild("3Dto2D")
 local viewportFrame = screenGui:FindFirstChildWhichIsA("ViewportFrame", true)
-local wearableAreas = screenGui:FindFirstChild("wearableAreas", true) or workspace:FindFirstChild("wearableAreas", true)
+--local wearableAreas = screenGui:FindFirstChild("wearableAreas", true) or workspace:FindFirstChild("wearableAreas", true)
+local character = player.Character or player.CharacterAdded:Wait()
 local circleTemplate = screenGui:FindFirstChild("Circle")
 local slotTemplate = screenGui:FindFirstChild("Square")
 local lineTemplate = screenGui:FindFirstChild("Line")
+
+character.Archivable = true
+local clonedCharacter : Model = character:Clone()
+clonedCharacter:FindFirstChild("RojoManaged_SCS"):Destroy()
+clonedCharacter:PivotTo(CFrame.new(0, 1.5, 0))
+clonedCharacter.Parent = viewportFrame:FindFirstChildOfClass("WorldModel")
+
+local vpCameraRadius : number = 7
+
+local vpCamera = Instance.new("Camera")
+vpCamera.Parent = viewportFrame
+viewportFrame.CurrentCamera = vpCamera
+vpCamera.CFrame = CFrame.Angles(0, math.pi, 0) * CFrame.new(0, 0, vpCameraRadius)
+
 local infoTable = {
     Head = {
-        threeD = wearableAreas:WaitForChild("HeadArea"),
+        threeD = clonedCharacter:FindFirstChild("Torso").CFrame * CFrame.new(0, 1.5, 0),
         twoD = {
             circle = circleTemplate:Clone(),
             slot = slotTemplate:Clone(),
             line = lineTemplate:Clone(),
             offset = 1
-        }
+        },
+        initialSlotPosition = nil
     },
     Torso = {
-        threeD = wearableAreas:WaitForChild("TorsoArea"),
+        threeD = clonedCharacter:FindFirstChild("Torso").CFrame,
         twoD = {
             circle = circleTemplate:Clone(),
             slot = slotTemplate:Clone(),
             line = lineTemplate:Clone(),
             offset = -1
-        }
+        },
+        initialSlotPosition = nil
     },
     Legs = {
-        threeD = wearableAreas:WaitForChild("LegsArea"),
+        threeD = clonedCharacter:FindFirstChild("Torso").CFrame * CFrame.new(0, -1.5, 0),
         twoD = {
             circle = circleTemplate:Clone(),
             slot = slotTemplate:Clone(),
             line = lineTemplate:Clone(),
             offset = 1
-        }
+        },
+        initialSlotPosition = nil
     },
     Feet = {
-        threeD = wearableAreas:WaitForChild("FeetArea"),
+        threeD = clonedCharacter:FindFirstChild("Torso").CFrame * CFrame.new(0, -2.5, 0),
         twoD = {
             circle = circleTemplate:Clone(),
             slot = slotTemplate:Clone(),
             line = lineTemplate:Clone(),
             offset = -1
-        }
+        },
+        initialSlotPosition = nil
     }
 }
 
@@ -56,15 +75,10 @@ for _, area in infoTable do
     end
 end
 
-local vpCamera = Instance.new("Camera")
-vpCamera.Parent = viewportFrame
-viewportFrame.CurrentCamera = vpCamera
-vpCamera.CFrame = CFrame.Angles(0, math.pi, 0) * CFrame.new(0, 0, 7)
-
 local function get2DPosition(Position: Vector3, camera : Camera) : UDim2
 	local ScreenPosition : Vector3, inView : boolean = camera:WorldToViewportPoint(Position)
 	local ScreenSize : Vector2 = camera.ViewportSize
-	
+
 	if inView then
         if camera == workspace.CurrentCamera then
             local Vector2Position = Vector2.new(math.clamp(ScreenPosition.X, 0, ScreenSize.X), math.clamp(ScreenPosition.Y, 0, ScreenSize.Y))
@@ -96,7 +110,15 @@ local function findHypotenuseAndTheta(point1: UDim2, point2 : UDim2) : number
     return hypotenuse, theta
 end
 
-RunService:BindToRenderStep(bindName, 200, function()
+warn("v3")
+local timeAccumulated = 0
+RunService:BindToRenderStep(bindName, 200, function(dt)
+    timeAccumulated += dt
+
+    local radiansPerSecond = math.pi/4
+    vpCamera.CFrame = CFrame.new() * CFrame.Angles(0, radiansPerSecond*timeAccumulated, 0) * CFrame.Angles(0, math.pi, 0) * CFrame.new(0, 0, vpCameraRadius)
+
+    --Positions the overlay gui
     for _, area in infoTable do
         local ui = area.twoD
         local screenPosition : UDim2 = get2DPosition(area.threeD.Position, vpCamera)
@@ -106,13 +128,16 @@ RunService:BindToRenderStep(bindName, 200, function()
         ui.circle.Position = circlePosition
 
         --positioning the slot
-        local slotPosition : UDim2 = circlePosition  + UDim2.fromOffset(75 * ui.offset, -slotTemplate.AbsoluteSize.Y)
-        ui.slot.Position = slotPosition
+        if area.intialSlotPosition == nil then
+            area.intialSlotPosition = circlePosition  + UDim2.fromOffset(125 * ui.offset, -slotTemplate.AbsoluteSize.Y)
+            ui.slot.Position = area.intialSlotPosition
+        end
+        
 
         --connecting a line between the circle and slot
-        local hypotenuse, theta = findHypotenuseAndTheta(slotPosition, circlePosition)
+        local hypotenuse, theta = findHypotenuseAndTheta(area.intialSlotPosition, circlePosition)
         ui.line.Size = UDim2.fromOffset(2, hypotenuse)
-        ui.line.Position = circlePosition:Lerp(slotPosition, 0.5)
+        ui.line.Position = circlePosition:Lerp(area.intialSlotPosition, 0.5)
         ui.line.Rotation = math.deg(theta) + 90
     end
 end)
