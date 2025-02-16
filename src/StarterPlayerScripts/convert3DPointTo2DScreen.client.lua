@@ -110,7 +110,6 @@ local function findHypotenuseAndTheta(point1: UDim2, point2 : UDim2) : number
     return hypotenuse, theta
 end
 
-warn("v3")
 local timeAccumulated = 0
 RunService:BindToRenderStep(bindName, 200, function(dt)
     timeAccumulated += dt

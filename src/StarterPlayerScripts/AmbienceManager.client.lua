@@ -38,7 +38,7 @@ end)
 vaultInteriorZones.localPlayerExited:Connect(function()
     isIndoor = false
     if isDayTime() then
-        changeCurrentAmbienceTo(ambientSounds.calmWind)
+        changeCurrentAmbienceTo(ambientSounds.desertWinds)
     else
         changeCurrentAmbienceTo(ambientSounds.night)
     end
