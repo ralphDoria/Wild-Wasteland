@@ -15,7 +15,7 @@ dependencies = []
 [[package]]
 name = "ralph-doria/project-rf-demo"
 version = "0.1.0"
-dependencies = [["GoodSignal", "stravant/goodsignal@0.2.1"], ["Promise", "evaera/promise@4.0.0"], ["RobloxStateMachine", "prooheckcp/robloxstatemachine@1.1.7"], ["Trove", "sleitnick/trove@1.5.0"]]
+dependencies = [["GoodSignal", "stravant/goodsignal@0.2.1"], ["Promise", "evaera/promise@4.0.0"], ["RobloxStateMachine", "prooheckcp/robloxstatemachine@1.1.7"], ["Trove", "sleitnick/trove@1.5.0"], ["shapecasthitbox", "teamswordphin/shapecasthitbox@0.1.5"]]
 
 [[package]]
 name = "sleitnick/trove"
@@ -25,4 +25,9 @@ dependencies = []
 [[package]]
 name = "stravant/goodsignal"
 version = "0.2.1"
+dependencies = []
+
+[[package]]
+name = "teamswordphin/shapecasthitbox"
+version = "0.1.5"
 dependencies = []

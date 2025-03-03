@@ -1,9 +1,9 @@
 local tag = "npc_mutantRoach"
-local targetPart = game.Workspace.npc_roach_test.targetLocation
+local targetPart = game.Workspace:FindFirstChild("npc_roach_test"):FindFirstChild("targetLocation")
 local CollectionService = game:GetService("CollectionService")
-local mutantRoach = require(script.Parent.mutantRoach)
+local mutantRoach = require("./mutantRoach")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Trove = require(ReplicatedStorage.Packages.Trove)
+local Trove = require("../../../../ReplicatedStorage/Packages/Trove") :: any
 
 local function mutantRoachTagHandler(taggedInstance)
     local roach = mutantRoach.new(taggedInstance)
@@ -22,8 +22,7 @@ end)
 --trying out Trove
 local trove = Trove.new()
 local part = trove:Add(Instance.new("Part"))
-warn(part.Parent)
-local baseplate = trove:Add(workspace.Baseplate)
+local baseplate = trove:Add(workspace:FindFirstChild("Baseplate"))
 trove:Add(function()
     warn("cleaning up")
     warn(part.Parent)

@@ -33,11 +33,11 @@ local ViewportModel = require(ReplicatedStorage:FindFirstChild("ViewportModel", 
 
 ----[[ GUI VARIABLES ]]----
 local gui : ScreenGui = player.PlayerGui:WaitForChild("InventoryAndHotbar")
-local forModal : Textbutton = gui:FindFirstChild("ForModal")
-local inventory : ScrollingFrame = gui:FindFirstChild("Inventory", true) -- the bag/inventory frame
+local forModal : TextButton = gui:FindFirstChild("ForModal") :: TextButton
+local inventory : ScrollingFrame = gui:FindFirstChild("Inventory", true) :: ScrollingFrame-- the bag/inventory frame
 local main : Frame = inventory.Parent
 
-local wearables : Frame = gui:FindFirstChild("Wearables", true)
+local wearables : Frame = gui:FindFirstChild("Wearables", true) :: Frame
 local _wearableSlots = wearables:FindFirstChild("WearableSlots", true)
 local wearableSlots = {
     ["Feet"] = _wearableSlots:FindFirstChild("Feet", true),

@@ -21,6 +21,7 @@ local function map<T, K>(tbl : {T}, mapping : (T) -> (K)) : {K}
     return newTbl
 end
 
+--[[
 print(map(
     {1, 2, 3}, 
     function(num)
@@ -34,6 +35,7 @@ print(map(
         return num * 10
     end
 ))
+]]
 
 
 type ExampleType = {

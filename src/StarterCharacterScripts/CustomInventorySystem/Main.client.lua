@@ -1,6 +1,7 @@
+--[[
 local KEY_BIND_INVENTORY = Enum.KeyCode.Tab
 
-----[[VARIABLES]]----
+
 local Players = game:GetService("Players") 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -148,3 +149,5 @@ else
 		end
 	end)
 end
+
+]]

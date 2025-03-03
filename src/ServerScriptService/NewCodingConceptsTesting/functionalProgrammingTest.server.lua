@@ -89,9 +89,11 @@ local function iterate<T>(array : {T}, a : (T) -> any?, index : number)
 end
 
 
+--[[
 iterate(people, function(person)
     print(person.FirstName)
 end, 1)
+]]
 
 --[[
 print(fullNamesOver24)
