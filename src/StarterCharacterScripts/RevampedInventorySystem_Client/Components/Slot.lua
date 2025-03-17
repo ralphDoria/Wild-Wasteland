@@ -1,5 +1,10 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Bindables : {[string] : BindableEvent} = {
+    toggleEquip = ReplicatedStorage.ToolSystem_Storage.Shared:FindFirstChild("toggleEquip", true)
+}
+
 export type SlotType = {
     _itself : Frame,
     _isEmpty : boolean,
@@ -27,7 +32,7 @@ function Slot.new(slot : Frame, slotType : "Hotbar" | "Inventory") : SlotType
         DropLabel = slot:FindFirstChild("DropLabel", true) :: TextLabel,
         HotbarNumber = slot:FindFirstChild("HotbarNumber", true) :: TextLabel,
         Quantity = slot:FindFirstChild("Quantity", true) :: TextLabel,
-        tool = nil
+        tool = nil 
     }
     self.HotbarNumber.Visible = if slotType == "Hotbar" then true else false
     self._itself.Visible = true
@@ -45,6 +50,9 @@ function Slot.FillSlot(self : SlotType, tool : Tool, itemType : string)
     self.tool = tool
     self.ImageButton.Visible = true
     self._isEmpty = false
+    self.ImageButton.MouseButton1Click:Connect(function()
+        Bindables.toggleEquip:Fire(self.tool)
+    end)
 end
 
 function Slot.EmptySlot(self : SlotType)

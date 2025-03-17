@@ -40,21 +40,21 @@ function InventorySystem.init()
 	HotbarManager.init(SlotTemplate, Hotbar)
 
 	ItemMovementTracker(
-		function(tool) --onAdd
+		function(tool) --onAdded
 			print("calling onadd")
 			local emptyHotbarslot : Slot.SlotType? =  HotbarManager.findMinimumEmptyHotbarSlot()
 			if emptyHotbarslot ~= nil then
 				Slot.FillSlot(emptyHotbarslot, tool, tool:GetAttribute("Type") :: string)
 			end
 		end,
-		function(tool) --onEquip
-			
+		function(tool) --onEquipping
+			--highlight slot
 		end,
-		function(tool) --onUnequip
-			
+		function(tool) --onUnequipped
+			--unhighlight slot
 		end,
-		function(tool) --onDrop
-
+		function(tool) --onDropped
+			--empty slot
 		end
 	)
 

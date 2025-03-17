@@ -1,5 +1,5 @@
-local AnimationManager = {}
-AnimationManager.__index = AnimationManager
+local AnimationController = {}
+AnimationController.__index = AnimationController
 
 --[[
     The animationObjectsTable has to be a dictionary with each key being the name of the animation and the value being the animation object.
@@ -12,12 +12,12 @@ AnimationManager.__index = AnimationManager
         reload = tool:WaitForChild("Anims"):WaitForChild("reload")
     }
 ]]
-function AnimationManager.new(animator : Animator, animationObjectsTable)
+function AnimationController.new(animator : Animator, animationObjectsTable)
     local self = setmetatable({
         animator = animator,
         animationTracks = {}
     },
-    AnimationManager)
+    AnimationController)
 
     for key, animObject in animationObjectsTable do
         self.animationTracks[key] = animator:LoadAnimation(animObject)
@@ -27,12 +27,12 @@ function AnimationManager.new(animator : Animator, animationObjectsTable)
     return self
 end
 
-function AnimationManager:destroy()
-    for _, v in pairs(self.animationTracks) do
+function AnimationController:Destroy()
+    for _, v in pairs(self.animationsTracks) do
         v:Destroy()
     end
     self = nil
 end
 
 
-return AnimationManager
+return AnimationController
