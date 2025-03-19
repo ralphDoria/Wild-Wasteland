@@ -56,7 +56,7 @@ function ViewmodelManager.AddTool(self: ViewmodelManager, tool: Tool, animations
     table.insert(
         self.connections,
         tool.Equipped:Connect(function()
-            ViewmodelManager._toggleViewmodelToolVisibility(self, tool)
+            ViewmodelManager.toggleViewmodelToolVisibility(self, tool)
             ViewmodelManager._toggleBobAndSway(self, true)
             vmTool.Parent = self.viewmodel
             local BodyAttachJoint = self.viewmodel:WaitForChild("Torso"):FindFirstChild("BodyAttachJoint") :: Motor6D
@@ -97,7 +97,7 @@ function ViewmodelManager._initialize(self : ViewmodelManager)
         Players.LocalPlayer.Character.Torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
             local equippedViewmodelTool = self.viewmodel:FindFirstChildOfClass("Tool")
             if equippedViewmodelTool then
-                ViewmodelManager._toggleViewmodelToolVisibility(self, findOriginalTool(self, equippedViewmodelTool) :: Tool) 
+                ViewmodelManager.toggleViewmodelToolVisibility(self, findOriginalTool(self, equippedViewmodelTool) :: Tool) 
             end
         end)
     )
@@ -146,12 +146,19 @@ end
 --[[
     This function toggles the visibility of the viewmodel tool and does the opposite for the visibility of the actual tool.
 ]]
-function ViewmodelManager._toggleViewmodelToolVisibility(self : ViewmodelManager, tool: Tool)
+function ViewmodelManager.toggleViewmodelToolVisibility(self : ViewmodelManager, tool: Tool, toggle: boolean?)
     local toolModel = tool:FindFirstChild("ToolModel") :: Model | MeshPart
     local vmToolModel = self.vmToolMap[tool]:FindFirstChild("ToolModel") :: Model | MeshPart
-    local isFirstPerson = Players.LocalPlayer.Character.Torso.LocalTransparencyModifier >= 1
-    local vmToolTransparency = if isFirstPerson then 0 else 1
-    local toolTransparency = if isFirstPerson then 1 else 0
+    local vmToolTransparency
+    local toolTransparency
+    if toggle == nil then
+        local isFirstPerson = Players.LocalPlayer.Character.Torso.LocalTransparencyModifier >= 1
+        vmToolTransparency = if isFirstPerson then 0 else 1
+        toolTransparency = if isFirstPerson then 1 else 0
+    else
+        vmToolTransparency = if toggle then 0 else 1
+        toolTransparency = if toggle then 1 else 0
+    end
     if vmToolModel:IsA("MeshPart") then
         vmToolModel.LocalTransparencyModifier = vmToolTransparency
     elseif vmToolModel:IsA("Model") then

@@ -3,8 +3,11 @@ local PlaySoundUtil = require(ReplicatedStorage:FindFirstChild("Utility", true).
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local remotes: {[string] : RemoteEvent} = {
     PlaySound = ToolSystem_Storage.Shared.Remotes.PlaySound,
-    ToggleToolCanCollide = ToolSystem_Storage.Shared.Remotes.ToggleToolCanCollide
+    ToggleToolCanCollide = ToolSystem_Storage.Shared.Remotes.ToggleToolCanCollide,
+    DropTool = ToolSystem_Storage.Shared.Remotes.DropTool,
+    PickUpTool = ToolSystem_Storage.Shared.Remotes.PickUpTool
 }
+local OnHitFloor = require("./OnHitFloor")
 
 return function()
     remotes.PlaySound.OnServerEvent:Connect(function(player: Player, sound : Sound, soundParent : any, delayCorrection : number)  
@@ -20,6 +23,13 @@ return function()
                 end
             end
         end
+    end)
+    remotes.DropTool.OnServerEvent:Connect(function(player: Player, tool: Tool)
+        tool.Parent = workspace
+        OnHitFloor(tool)
+    end)
+    remotes.PickUpTool.OnServerEvent:Connect(function(player: Player, tool: Tool)  
+        tool.Parent = player.Backpack
     end)
     --more to add later
 end

@@ -75,6 +75,7 @@ function BarbedBat.initialize(self : BarbedBatObject)
         self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].impact.flesh :: Sound, self.tool:FindFirstChild("BodyAttach"), 0.2)
         warn("hit ", humanoid.Parent.Name)
     end)
+    --The bound action below is for testing purposes; to demonstrate how a faster swing animation somehow inadvertently increases the range
     ContextActionService:BindAction("ChangeSwingSpeed", function(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?  
         if inputState == Enum.UserInputState.Begin then
             local newSpeed = if self.swingSpeed == 2 then 0.5 else 2

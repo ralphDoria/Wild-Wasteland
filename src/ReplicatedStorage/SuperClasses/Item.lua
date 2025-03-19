@@ -1,11 +1,13 @@
 --!strict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ContextActionService = game:GetService("ContextActionService")
 local player = game:GetService("Players").LocalPlayer
 --EXTERNAL CONTROLLERS
 local AnimationManager = require("../Components/AnimationManager")
 local SoundManager = require("../Components/SoundManager")
 local ViewmodelManager = require("../Components/ViewmodelManager")
+local ToolHighlightAndProxPromptManager = require("../Components/ToolHighlightAndProxPromptManager")
 local RobloxStateMachine = require(ReplicatedStorage.Packages.RobloxStateMachine)
 local ToolInfo = require("../ToolInfo")
 
@@ -14,7 +16,8 @@ local bindables : {[string] : BindableEvent} = {
     ToggleEquip = ToolSystem_Storage.Shared:FindFirstChild("ToggleEquip", true)
 }
 local remotes: {[string] : RemoteEvent} = {
-    ToggleToolCanCollide = ToolSystem_Storage.Shared.Remotes.ToggleToolCanCollide
+    ToggleToolCanCollide = ToolSystem_Storage.Shared.Remotes.ToggleToolCanCollide,
+    DropTool = ToolSystem_Storage.Shared.Remotes.DropTool
 }
 
 local currentCharacter = player.Character or player.CharacterAdded:Wait()
@@ -25,9 +28,10 @@ export type ItemType = {
     soundManager : SoundManager.SoundManager,
     animManager : AnimationManager.AnimationManager,
     ViewmodelManager : ViewmodelManager.ViewmodelManager,
+    ToolHighlightAndProxPromptManager : ToolHighlightAndProxPromptManager.ToolHighlightAndProxPromptManager,
     finiteStateMachine : ModuleScript?,
     connections : {[string] : RBXScriptConnection},
-    State : "Equipping" | "Idle" | "Unequipping" | "Unequipped" | "Activated"
+    State : "Equipping" | "Idle" | "Unequipping" | "Unequipped" | "Activated" | "Dropping" | "Dropped"
 }
 
 local currentAnimationManager = AnimationManager.new(currentCharacter)
@@ -45,6 +49,7 @@ function Item.new(tool : Tool, humanoid : Humanoid) : ItemType
         soundManager = SoundManager,
         animManager = currentAnimationManager,
         ViewmodelManager = currentViewmodelManager :: any, --viewmodelController will handle viewmodel instance reference
+        ToolHighlightAndProxPromptManager = ToolHighlightAndProxPromptManager.new(tool),
         finiteStateMachine = RobloxStateMachine :: any,
         connections = {},
         State = "Unequipped"
@@ -74,17 +79,21 @@ function Item.initialize(self : ItemType, equipping: () -> ()?, equipped: () -> 
             remotes.ToggleToolCanCollide:FireServer(self.tool:FindFirstChild("ToolModel"), false)
         else
             remotes.ToggleToolCanCollide:FireServer(self.tool:FindFirstChild("ToolModel"), true)
+            ViewmodelManager.toggleViewmodelToolVisibility(currentViewmodelManager, self.tool, false)
+            --Proximity Prompt and highlight
+            
         end
     end)
 end
 
 function Item.equip(self: ItemType, equipping: () -> ()?, equipped: () -> ()?)
     Item.ChangeState(self, "Equipping")
-    if equipping then equipping() end
     self.humanoid:EquipTool(self.tool)
     SoundManager.playSound("Server", SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach"), 0)
     local equipTrack : AnimationTrack = currentAnimationManager.animationTracks[self.tool.Name].equip
     local vmEquipTrack : AnimationTrack = currentViewmodelManager.animManager.animationTracks[self.tool.Name].equip
+    Item.toggleDropBind(self, true)
+    if equipping then equipping() end
     if equipTrack.IsPlaying then
         equipTrack:AdjustSpeed(1)
         vmEquipTrack:AdjustSpeed(1)
@@ -95,20 +104,20 @@ function Item.equip(self: ItemType, equipping: () -> ()?, equipped: () -> ()?)
     equipTrack.Stopped:Wait()
     if self.State == "Equipping" then
         Item.ChangeState(self, "Idle")
-        if equipped then equipped() end
         currentAnimationManager.animationTracks[self.tool.Name].idle:Play()
         currentViewmodelManager.animManager.animationTracks[self.tool.Name].idle:Play()
+        if equipped then equipped() end
     end
 end
 
 function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> ()?)
     Item.ChangeState(self, "Unequipping")
-    if unequipping then unequipping() end
     currentAnimationManager.animationTracks[self.tool.Name].idle:Stop()
     currentViewmodelManager.animManager.animationTracks[self.tool.Name].idle:Stop()
     SoundManager.playSound("Server", SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach"), 0)
     local equipTrack : AnimationTrack = currentAnimationManager.animationTracks[self.tool.Name].equip
     local vmEquipTrack : AnimationTrack = currentViewmodelManager.animManager.animationTracks[self.tool.Name].equip
+    if unequipping then unequipping() end
     if equipTrack.IsPlaying then
         equipTrack:AdjustSpeed(-1)
         vmEquipTrack:AdjustSpeed(-1)
@@ -117,19 +126,49 @@ function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> 
         vmEquipTrack:Play(0.1, 1, -1)
     end
     equipTrack.Stopped:Wait()
-    if self.State == "Unequipping" then
+    if self.State == "Unequipping" or self.State == "Dropping" then
         Item.ChangeState(self, "Unequipped")
-        if unequipped then unequipped() end
         self.humanoid:UnequipTools()
+        Item.toggleDropBind(self, false)
+        if unequipped then unequipped() end
     end
 end
 
-function Item.ChangeState(self: ItemType, state: "Equipping" | "Idle" | "Unequipping" | "Unequipped" | "Activated")
+function Item.ChangeState(self: ItemType, state: "Equipping" | "Idle" | "Unequipping" | "Unequipped" | "Activated" | "Dropping" | "Dropped")
     self.tool:SetAttribute("State", state)
     self.State = state
 end
 
 function Item.drop(self : ItemType)
+    Item.unequip(
+        self,
+        function()  
+            Item.ChangeState(self, "Dropping")
+        end,
+        function()  
+            Item.ChangeState(self, "Dropped")
+            --Dropped functionality goes here
+            remotes.DropTool:FireServer(self.tool)
+        end
+    )
+end
+
+function Item.toggleDropBind(self : ItemType, toggle : boolean)
+    local Keycodes = {
+        Enum.KeyCode.X,
+        Enum.KeyCode.ButtonX
+    }
+    local function handleAction(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?
+        if inputState == Enum.UserInputState.Begin then
+            Item.drop(self)
+        end
+        return Enum.ContextActionResult.Sink
+    end
+    if toggle then
+        ContextActionService:BindAction("DropTool", handleAction, true, unpack(Keycodes))
+    else
+        ContextActionService:UnbindAction("DropTool")
+    end
 end
 
 function Item.destroy(self : ItemType)
