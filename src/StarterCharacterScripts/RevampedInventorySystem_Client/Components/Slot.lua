@@ -1,9 +1,6 @@
 --!strict
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Bindables : {[string] : BindableEvent} = {
-    toggleEquip = ReplicatedStorage.ToolSystem_Storage.Shared:FindFirstChild("toggleEquip", true)
-}
+local EquipToolStateMachine = require("./EquipToolStateMachine")
 
 export type SlotType = {
     _itself : Frame,
@@ -51,7 +48,7 @@ function Slot.FillSlot(self : SlotType, tool : Tool, itemType : string)
     self.ImageButton.Visible = true
     self._isEmpty = false
     self.ImageButton.MouseButton1Click:Connect(function()
-        Bindables.toggleEquip:Fire(self.tool)
+        EquipToolStateMachine.SetTargetTool(self.tool :: Tool)
     end)
 end
 

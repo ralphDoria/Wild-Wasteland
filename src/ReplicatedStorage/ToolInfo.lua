@@ -2,7 +2,7 @@
 
 export type ToolInfo = {
     animObjects : {[string] : Animation},
-    soundObjects : {[string] : Sound | {[string] : Sound}}
+    soundObjects : {[string] : (Sound | {[string] : Sound})}
 }
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

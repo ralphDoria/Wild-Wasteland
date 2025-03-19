@@ -3,11 +3,22 @@ local Debris = game:GetService("Debris")
 local SoundService = game:GetService("SoundService")
 
 ------------------------------------------------------------------------<<<FUNCTION>>>
-return function(soundObject : Sound, soundParent, delayCorrection : number)
-    local soundClone = soundObject:Clone()
+local function playSound(soundObject : Sound, soundParent, delayCorrection : number)
     if delayCorrection then
-		soundClone.TimePosition = delayCorrection
+        if delayCorrection >= 0 then
+            soundObject.TimePosition = delayCorrection
+        else
+            task.delay(math.abs(delayCorrection), function()
+                playSound(soundObject, soundParent, 0)
+            end)
+            return
+        end
 	end
+    local soundClone = soundObject:Clone()
+    local pitch : PitchShiftSoundEffect? = soundClone:FindFirstChildOfClass("PitchShiftSoundEffect")
+    if pitch then
+        pitch.Octave = math.random(90, 110)/100
+    end
     if soundParent then
         if typeof(soundParent) == "Vector3" then
             local x = Instance.new("Part")
@@ -34,3 +45,5 @@ return function(soundObject : Sound, soundParent, delayCorrection : number)
     end
 	Debris:AddItem(soundClone, soundClone.TimeLength)
 end
+
+return playSound

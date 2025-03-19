@@ -9,8 +9,10 @@ local AnimationManager = {}
 function AnimationManager.new(character : Model?) : AnimationManager
     assert(character ~= nil, "AnimationManager.new failed because character argument is nil.")
 
+    local humanoid = character:FindFirstChildOfClass("Humanoid") :: Humanoid
+
     local self = {
-        animator = character:FindFirstChildOfClass("Humanoid"):FindFirstChildOfClass("Animator"),
+        animator = humanoid:FindFirstChildOfClass("Animator"),
         animationTracks = {}    
     }
 

@@ -1,7 +1,4 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Bindables : {[string] : BindableEvent} = {
-    toggleEquip = ReplicatedStorage.ToolSystem_Storage.Shared:FindFirstChild("toggleEquip", true)
-}
+local EquipToolStateMachine = require("./EquipToolStateMachine")
 
 local Slot = require("./Slot")
 local UserInputService = game:GetService("UserInputService")
@@ -49,7 +46,7 @@ function HotbarManager.toggleKeybindToHotbarSlot(toggle : boolean)
             if slotIndex then
                 local associatedHotbarSlot : Slot.SlotType= hotbarNumberToSlot[slotIndex]
                 if not associatedHotbarSlot._isEmpty then
-                    Bindables.toggleEquip:Fire(associatedHotbarSlot.tool)
+                    EquipToolStateMachine.SetTargetTool(associatedHotbarSlot.tool :: Tool)
                 end
             end
         end)
