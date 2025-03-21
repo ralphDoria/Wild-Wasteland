@@ -7,7 +7,7 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
 local AnimationManager = require("./AnimationManager")
-local SpringModule = require("../SpringModule")
+local SpringModule = require("../../SpringModule")
 local stride = 0
 local bobbing = 0
 

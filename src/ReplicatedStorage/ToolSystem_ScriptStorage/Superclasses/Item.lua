@@ -38,6 +38,7 @@ export type ItemType = {
 
 local currentAnimationManager = AnimationManager.new(currentCharacter)
 local currentViewmodelManager = ViewmodelManager.new(workspace.CurrentCamera:WaitForChild("viewModel"))
+local currentToolGuiManager = ToolGuiManager.new()
 
 local Item = {}
 
@@ -51,6 +52,7 @@ function Item.new(tool : Tool, humanoid : Humanoid) : ItemType
         soundManager = SoundManager,
         animManager = currentAnimationManager,
         ViewmodelManager = currentViewmodelManager :: any, --viewmodelController will handle viewmodel instance reference
+        ToolGuiManager = currentToolGuiManager,
         ToolHighlightAndProxPromptManager = ToolHighlightAndProxPromptManager.new(tool),
         finiteStateMachine = RobloxStateMachine :: any,
         connections = {},

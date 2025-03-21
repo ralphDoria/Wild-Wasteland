@@ -64,14 +64,12 @@ function ToolHighlightAndProxPromptManager._initialize(self : ToolHighlightAndPr
     table.insert(
         self.connections,
         self.pp.PromptShown:Connect(function(a0: Enum.ProximityPromptInputType)
-            warn("enabling highlight") 
             self.highlight.Enabled = true
         end)
     )
     table.insert(
         self.connections,
-        self.pp.PromptHidden:Connect(function(a0: Enum.ProximityPromptInputType)  
-            warn("disabling highlight")
+        self.pp.PromptHidden:Connect(function(a0: Enum.ProximityPromptInputType)
             self.highlight.Enabled = false
         end)
     )
