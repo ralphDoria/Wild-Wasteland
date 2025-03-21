@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local PlaySoundUtil = require(ReplicatedStorage:FindFirstChild("Utility", true).PlaySoundUtil)
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local PlaySoundUtil = require(ReplicatedStorage:FindFirstChild("Utility", true).PlaySoundUtil)
 local remotes: {[string] : RemoteEvent} = {
     PlaySound = ToolSystem_Storage.Shared.Remotes.PlaySound,
     ToggleToolCanCollide = ToolSystem_Storage.Shared.Remotes.ToggleToolCanCollide,

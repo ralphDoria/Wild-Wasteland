@@ -5,6 +5,10 @@ local Melee = require("../Interfaces/Melee")
 local Item = require("../SuperClasses/Item")
 local RaycastHitbox = require(ReplicatedStorage.Packages.RaycastHitbox)
 
+local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local remotes: {[string] : RemoteEvent} = {
+    Hit = ToolSystem_Storage.Melee.Remotes.Hit
+}
 
 export type BarbedBatObject = Item.ItemType & {
     damage : number,
@@ -16,7 +20,7 @@ local BarbedBat =  {}
 
 function BarbedBat.new(tool : Tool, humanoid : Humanoid) : BarbedBatObject
     local self = Item.new(tool, humanoid)
-    self.damage = 10
+    self.damage = 50
     self.swingSpeed = 1
     self.hitbox = RaycastHitbox.new(self.tool:FindFirstChild("BodyAttach"))
     
@@ -72,8 +76,9 @@ function BarbedBat.initialize(self : BarbedBatObject)
     params.FilterType = Enum.RaycastFilterType.Exclude
     self.hitbox.RaycastParams = params
     self.connections.OnHit = self.hitbox.OnHit:Connect(function(hit, humanoid)
-        self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].impact.flesh :: Sound, self.tool:FindFirstChild("BodyAttach"), 0.2)
+        self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].impact.flesh :: Sound, self.tool:FindFirstChild("BodyAttach"), 0)
         warn("hit ", humanoid.Parent.Name)
+        remotes.Hit:FireServer(humanoid, self.damage)
     end)
     --The bound action below is for testing purposes; to demonstrate how a faster swing animation somehow inadvertently increases the range
     ContextActionService:BindAction("ChangeSwingSpeed", function(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?  

@@ -8,8 +8,9 @@ local AnimationManager = require("../Components/AnimationManager")
 local SoundManager = require("../Components/SoundManager")
 local ViewmodelManager = require("../Components/ViewmodelManager")
 local ToolHighlightAndProxPromptManager = require("../Components/ToolHighlightAndProxPromptManager")
+local ToolGuiManager = require("../Components/ToolGuiManager")
 local RobloxStateMachine = require(ReplicatedStorage.Packages.RobloxStateMachine)
-local ToolInfo = require("../ToolInfo")
+local ToolInfo = require("../Data/ToolInfo")
 
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local bindables : {[string] : BindableEvent} = {
@@ -28,6 +29,7 @@ export type ItemType = {
     soundManager : SoundManager.SoundManager,
     animManager : AnimationManager.AnimationManager,
     ViewmodelManager : ViewmodelManager.ViewmodelManager,
+    ToolGuiManager : ToolGuiManager.ToolGuiManager,
     ToolHighlightAndProxPromptManager : ToolHighlightAndProxPromptManager.ToolHighlightAndProxPromptManager,
     finiteStateMachine : ModuleScript?,
     connections : {[string] : RBXScriptConnection},
@@ -140,17 +142,13 @@ function Item.ChangeState(self: ItemType, state: "Equipping" | "Idle" | "Unequip
 end
 
 function Item.drop(self : ItemType)
-    Item.unequip(
-        self,
-        function()  
-            Item.ChangeState(self, "Dropping")
-        end,
-        function()  
-            Item.ChangeState(self, "Dropped")
-            --Dropped functionality goes here
-            remotes.DropTool:FireServer(self.tool)
-        end
-    )
+    if self.State == "Idle" or self.State == "Equipping" then
+        Item.ChangeState(self, "Dropping")
+        AnimationManager.StopAllAnimsForTool(currentAnimationManager, self.tool)
+        AnimationManager.StopAllAnimsForTool(self.ViewmodelManager.animManager, self.tool)
+        remotes.DropTool:FireServer(self.tool)
+        Item.ChangeState(self, "Dropped")
+    end
 end
 
 function Item.toggleDropBind(self : ItemType, toggle : boolean)

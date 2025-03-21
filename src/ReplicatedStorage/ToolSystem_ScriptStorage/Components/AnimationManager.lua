@@ -29,6 +29,14 @@ function AnimationManager.LoadAnimations(self : AnimationManager, toolName : str
     end
 end
 
+function AnimationManager.StopAllAnimsForTool(self: AnimationManager, tool: Tool)
+    for _, v: AnimationTrack in self.animationTracks[tool.Name] do
+        if v.IsPlaying then
+            v:Stop()
+        end
+    end
+end
+
 function AnimationManager.destroy(self : AnimationManager)
     self = nil :: any
 end
