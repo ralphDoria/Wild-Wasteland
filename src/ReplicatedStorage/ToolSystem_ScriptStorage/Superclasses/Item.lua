@@ -59,6 +59,7 @@ function Item.new(tool : Tool, humanoid : Humanoid) : ItemType
         State = "Unequipped"
     }
 
+    ToolGuiManager.CreateInputGui(currentToolGuiManager, "Swing", {Enum.UserInputType.MouseButton1, Enum.KeyCode.ButtonR2})
     Item.ChangeState(self, "Unequipped")
     SoundManager.storeSounds(tool.Name, ToolInfo.get(tool.Name).soundObjects)
     local toolAnims = ToolInfo.get(tool.Name).animObjects

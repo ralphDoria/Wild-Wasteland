@@ -1,5 +1,6 @@
 local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local remotes: {[string] : RemoteEvent} = {
@@ -11,6 +12,11 @@ local particles : {[string] : ParticleEmitter} = {
 
 local Item = require("../Superclasses/Item")
 local HitboxManager = require("../Components/HitboxManager")
+local CameraShaker = require(ReplicatedStorage.Packages.CameraShaker)
+local currentCamera = workspace.CurrentCamera
+local camShake = CameraShaker.new(Enum.RenderPriority.Last.Value, function(shakeCF)
+    currentCamera.CFrame *= shakeCF
+end)
 
 export type MeleeObject = Item.ItemType & {
     damage : number,
@@ -68,8 +74,11 @@ function Melee.initialize(self : MeleeObject)
             if status == "start" then
                 self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].swing :: Sound, self.tool:FindFirstChild("BodyAttach"), 0)
                 self.HitboxManager.RaycastHitbox:HitStart()
+                camShake:Start()
+                camShake:StartShake(3, 10, 0.2)
             elseif status == "end" then
                 self.HitboxManager.RaycastHitbox:HitStop()
+                camShake:Stop()
             end 
         end
     end)

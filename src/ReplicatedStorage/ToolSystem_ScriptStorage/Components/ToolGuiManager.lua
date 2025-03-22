@@ -124,21 +124,34 @@ function ToolGuiManager.CreateInputGui(self: ToolGuiManager, actionName: string,
     local clone = InputTemplate:Clone()
     local inputGui : InputGuiObject = {
         Instance = clone,
-        ActionLabel = clone:FindFirstChild("ActionName")
+        ActionLabel = clone:FindFirstChild("ActionLabel")
     }
     self.InputGuis[actionName] = inputGui
     clone.Visible = true
     clone.Parent = Controls
     inputGui.ActionLabel.Text = actionName
 
-	local icon = clone.InputFrame.Frame.ButtonTextImage
+	local icon = clone.InputFrame.Frame.ButtonTextImage -- 
 	local buttonText = clone.InputFrame.Frame.ButtonText
 	local buttonImage = clone.InputFrame.Frame.ButtonImage
+    local progressBar = clone.InputFrame.Frame.ProgressBar
+
+    local leftGradient = progressBar.LeftGradient.ProgressBarImage.UIGradient
+    local rightGradient = progressBar.RightGradient.ProgressBarImage.UIGradient
+
+    local progress = progressBar.Progress
+    table.insert(
+        self.connections,
+        progress.Changed:Connect(function(value)
+            local angle = math.clamp(value * 360, 0, 360)
+            leftGradient.Rotation = math.clamp(angle, 180, 360)
+            rightGradient.Rotation = math.clamp(angle, 0, 180)
+        end)
+    )
 
     if self.Device == "Gamepad" then
 		for _, v in keycodes do
 			if GamepadButtonImage[v] then
-				setupIconTweens()
 				icon.Size = UDim2.fromOffset(24, 24)
 				icon.Image = GamepadButtonImage[v]
 	
@@ -149,7 +162,6 @@ function ToolGuiManager.CreateInputGui(self: ToolGuiManager, actionName: string,
 			end
 		end
 	elseif self.Device == "Mobile" then
-		setupButtonImageTweens()
 		buttonImage.Size = UDim2.fromOffset(25, 31)
 		buttonImage.Image = "rbxasset://textures/ui/Controls/TouchTapIcon.png"
 
@@ -165,49 +177,53 @@ function ToolGuiManager.CreateInputGui(self: ToolGuiManager, actionName: string,
 				continue
 			end
 			if MouseImage[v] then
-				
+				icon.Size = UDim2.fromOffset(24, 24)
+				icon.Image = MouseImage[v]
+	
+				-- Hide ButtonText and ButtonImage, show ButtonTextImage
+				buttonText.Visible = false
+				buttonImage.Visible = false
+				icon.Visible = true
+            else
+                buttonImage.Size = UDim2.fromOffset(28, 30)
+
+                -- Show ButtonImage
+                buttonImage.Visible = true
+
+                local buttonTextString : string = UserInputService:GetStringForKeyCode(v)
+
+                local buttonTextImage : string? = KeyboardButtonImage[v]
+                if buttonTextImage == nil then
+                    buttonTextImage = KeyboardButtonIconMapping[buttonTextString]
+                end
+
+                if buttonTextImage == nil then
+                    local keyCodeMappedText = KeyCodeToTextMapping[v]
+                    if keyCodeMappedText then
+                        buttonTextString = keyCodeMappedText
+                    end
+                end
+
+                if buttonTextImage then
+                    icon.Size = UDim2.fromOffset(36, 36)
+                    icon.Image = buttonTextImage
+
+                    --  Hide ButtonText, show ButtonTextImage
+                    buttonText.Visible = false
+                    icon.Visible = true
+                elseif buttonTextString ~= nil and buttonTextString ~= '' then
+                    if string.len(buttonTextString) > 2 then
+                        buttonText.TextSize = math.round(buttonText.TextSize * 6/7)
+                    end
+                    buttonText.Text = buttonTextString
+
+                    -- Hide ButtonTextImage, show ButtonText
+                    icon.Visible = false
+                    buttonText.Visible = true
+                else
+                    error("Keycodes parameter has an unsupported keycode for rendering UI: " .. tostring(keycodes))
+                end
 			end
-		end
-		setupButtonImageTweens()
-		buttonImage.Size = UDim2.fromOffset(28, 30)
-
-		-- Show ButtonImage
-		buttonImage.Visible = true
-
-		local buttonTextString : string? = UserInputService:GetStringForKeyCode(prompt.KeyboardKeyCode)
-
-		local buttonTextImage : Enum.KeyCode? = KeyboardButtonImage[prompt.KeyboardKeyCode]
-		if buttonTextImage == nil then
-			buttonTextImage = KeyboardButtonIconMapping[buttonTextString]
-		end
-
-		if buttonTextImage == nil then
-			local keyCodeMappedText = KeyCodeToTextMapping[prompt.KeyboardKeyCode]
-			if keyCodeMappedText then
-				buttonTextString = keyCodeMappedText
-			end
-		end
-
-		if buttonTextImage then
-			setupIconTweens()
-			icon.Size = UDim2.fromOffset(36, 36)
-			icon.Image = buttonTextImage
-
-			--  Hide ButtonText, show ButtonTextImage
-			buttonText.Visible = false
-			icon.Visible = true
-		elseif buttonTextString ~= nil and buttonTextString ~= '' then
-			if string.len(buttonTextString) > 2 then
-				buttonText.TextSize = math.round(buttonText.TextSize * 6/7)
-			end
-			setupButtonTextTweens()
-			buttonText.Text = buttonTextString
-
-			-- Hide ButtonTextImage, show ButtonText
-			icon.Visible = false
-			buttonText.Visible = true
-		else
-			error("ProximityPrompt '" .. prompt.Name .. "' has an unsupported keycode for rendering UI: " .. tostring(prompt.KeyboardKeyCode))
 		end
 	end
 
