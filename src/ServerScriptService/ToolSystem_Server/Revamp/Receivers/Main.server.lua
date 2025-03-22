@@ -1,8 +1,8 @@
-local Shared = require("./Components/Shared")
-local Consumable = require("./Components/Consumable")
-local Gun = require("./Components/Gun")
-local Melee = require("./Components/Melee")
-local Wearable = require("./Components/Wearable")
+local Shared = require("./Components/SharedReceiver")
+local Consumable = require("./Components/ConsumableReceiver")
+local Gun = require("./Components/GunReceiver")
+local Melee = require("./Components/MeleeReceiver")
+local Wearable = require("./Components/WearableReceiver")
 
 Shared()
 Consumable()

@@ -9,30 +9,29 @@ local particles : {[string] : ParticleEmitter} = {
     blood = ToolSystem_Storage.Melee.Instances.Blood
 }
 
-local Melee = require("../Interfaces/Melee")
 local Item = require("../Superclasses/Item")
 local HitboxManager = require("../Components/HitboxManager")
 
-export type BarbedBatObject = Item.ItemType & {
+export type MeleeObject = Item.ItemType & {
     damage : number,
     swingSpeed : number,
     HitboxManager : HitboxManager.HitboxManager
 }
 
-local BarbedBat =  {}
+local Melee =  {}
 
-function BarbedBat.new(tool : Tool, humanoid : Humanoid) : BarbedBatObject
+function Melee.new(tool : Tool, humanoid : Humanoid) : MeleeObject
     local self = Item.new(tool, humanoid)
     self.damage = 50
     self.swingSpeed = 1
     self.HitboxManager = HitboxManager.new(tool)
 
-    BarbedBat.initialize(self)
+    Melee.initialize(self)
 
     return self
 end
 
-local function toggleSwingBind(self : BarbedBatObject, toggle : boolean)
+local function toggleSwingBind(self : MeleeObject, toggle : boolean)
     local Keycodes = {
         Enum.UserInputType.MouseButton1,
         Enum.KeyCode.ButtonR2
@@ -40,7 +39,7 @@ local function toggleSwingBind(self : BarbedBatObject, toggle : boolean)
 
     local function foo(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?
         if inputState == Enum.UserInputState.Begin then
-            BarbedBat.swing(self)
+            Melee.swing(self)
         end
         return Enum.ContextActionResult.Sink
     end
@@ -52,7 +51,7 @@ local function toggleSwingBind(self : BarbedBatObject, toggle : boolean)
 
 end
 
-function BarbedBat.initialize(self : BarbedBatObject)
+function Melee.initialize(self : MeleeObject)
     Item.initialize(
         self,
         nil,
@@ -93,7 +92,7 @@ function BarbedBat.initialize(self : BarbedBatObject)
     end, true, Enum.KeyCode.P)
 end
 
-function BarbedBat.swing(self : BarbedBatObject)
+function Melee.swing(self : MeleeObject)
     if self.State == "Idle" then
         Item.ChangeState(self, "Activated")
         local swingTrack = self.animManager.animationTracks[self.tool.Name].swing
@@ -111,4 +110,4 @@ function BarbedBat.swing(self : BarbedBatObject)
     end
 end
 
-return BarbedBat :: Melee.MeleeType<BarbedBatObject>
+return Melee

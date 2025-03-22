@@ -1,10 +1,10 @@
 local CollectionService = game:GetService("CollectionService")
-local RS = game:GetService("ReplicatedStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local humanoid = player.Character:FindFirstChildOfClass("Humanoid", true) or player.CharacterAdded:Wait():FindFirstChildOfClass("Humanoid", true)
 local toolTags = {
-     ["Barbed Bat"] = require(RS:FindFirstChild("BarbedBat", true)),--the tool tag is just going to be the name of the tool
+     ["Melee"] = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage:FindFirstChild("Melee", true)),--the tool tag is just going to be the name of the tool
 }
 
 return function()

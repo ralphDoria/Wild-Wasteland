@@ -11,7 +11,6 @@ local function foo(toolName : string, parent : Instance)
     else
         local tool = folder:FindFirstChildOfClass("Tool")
         local newTool = tool:Clone()
-        newTool:AddTag(folder.Name)
         newTool.Parent = parent
     end
 end
