@@ -5,7 +5,7 @@ export type SoundManager = {
 }
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local PlaySoundUtil = require("../../Utility/PlaySoundUtil")
+local PlaySoundUtil = require("../../../Utility/PlaySoundUtil")
 local remotes: {[string] : RemoteEvent} = {
     PlaySound = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true).Shared.Remotes.PlaySound
 }

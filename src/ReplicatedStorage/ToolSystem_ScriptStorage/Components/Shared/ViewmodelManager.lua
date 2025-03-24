@@ -1,19 +1,20 @@
 --!strict
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
 local AnimationManager = require("./AnimationManager")
-local SpringModule = require("../../SpringModule")
+local Spring = require(ReplicatedStorage.Packages.Spring)
 local stride = 0
 local bobbing = 0
 
 export type ViewmodelManager = {
     viewmodel : Model,
-    vmToolMap : { [Tool] : Tool },
+    ToolToVMToolMapping : { [Tool] : Tool },
     animManager : AnimationManager.AnimationManager,
     connections : {RBXScriptConnection?},
     mouseSway : any
@@ -24,10 +25,10 @@ local ViewmodelManager = {}
 function ViewmodelManager.new(viewmodel: Model) : ViewmodelManager
     local self : ViewmodelManager = {
         viewmodel = viewmodel,
-        vmToolMap = {},
+        ToolToVMToolMapping = {},
         animManager = AnimationManager.new(viewmodel),
         connections = {},
-        mouseSway = SpringModule.new(Vector3.new())
+        mouseSway = Spring.new(Vector3.new())
     }
 
     self.mouseSway.Speed = 10
@@ -51,7 +52,7 @@ function ViewmodelManager.AddTool(self: ViewmodelManager, tool: Tool, animations
         end
     end
     vmTool.Parent = nil
-    self.vmToolMap[tool] = vmTool
+    self.ToolToVMToolMapping[tool] = vmTool
     AnimationManager.LoadAnimations(self.animManager, tool.Name, animations)
     table.insert(
         self.connections,
@@ -78,8 +79,8 @@ function ViewmodelManager.AddTool(self: ViewmodelManager, tool: Tool, animations
     )
 end
 
-local function findOriginalTool(self: ViewmodelManager,vmTool: Tool): Tool?
-    for key, v in self.vmToolMap do
+function ViewmodelManager.findOriginalTool(self: ViewmodelManager,vmTool: Tool): Tool?
+    for key, v in self.ToolToVMToolMapping do
         if v == vmTool then
             return key
         end
@@ -97,7 +98,7 @@ function ViewmodelManager._initialize(self : ViewmodelManager)
         Players.LocalPlayer.Character.Torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
             local equippedViewmodelTool = self.viewmodel:FindFirstChildOfClass("Tool")
             if equippedViewmodelTool then
-                ViewmodelManager.toggleViewmodelToolVisibility(self, findOriginalTool(self, equippedViewmodelTool) :: Tool) 
+                ViewmodelManager.toggleViewmodelToolVisibility(self, ViewmodelManager.findOriginalTool(self, equippedViewmodelTool) :: Tool) 
             end
         end)
     )
@@ -148,7 +149,7 @@ end
 ]]
 function ViewmodelManager.toggleViewmodelToolVisibility(self : ViewmodelManager, tool: Tool, toggle: boolean?)
     local toolModel = tool:FindFirstChild("ToolModel") :: Model | MeshPart
-    local vmToolModel = self.vmToolMap[tool]:FindFirstChild("ToolModel") :: Model | MeshPart
+    local vmToolModel = self.ToolToVMToolMapping[tool]:FindFirstChild("ToolModel") :: Model | MeshPart
     local vmToolTransparency
     local toolTransparency
     if toggle == nil then

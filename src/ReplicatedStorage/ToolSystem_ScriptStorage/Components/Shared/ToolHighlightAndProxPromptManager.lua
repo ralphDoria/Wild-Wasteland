@@ -4,6 +4,9 @@ local player = game:GetService("Players").LocalPlayer
 local ToolSystem_Storage = ReplicatedStorage.ToolSystem_Storage
 local highlight: Highlight = ToolSystem_Storage.Shared.Instances.Highlight
 
+local bindables : {[string] : BindableEvent} = {
+    OnPickUp = ToolSystem_Storage.Shared.Bindables.OnPickUp
+}
 local remotes: {[string] : RemoteEvent} = {
     PickUpTool = ToolSystem_Storage.Shared.Remotes.PickUpTool
 }
@@ -57,6 +60,7 @@ function ToolHighlightAndProxPromptManager._initialize(self : ToolHighlightAndPr
             if thisPlayer == player then
                 self.pp.Enabled = false
                 remotes.PickUpTool:FireServer(self.tool)
+                bindables.OnPickUp:Fire()
             end
         end)
     )

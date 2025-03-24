@@ -4,17 +4,18 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ContextActionService = game:GetService("ContextActionService")
 local player = game:GetService("Players").LocalPlayer
 --EXTERNAL CONTROLLERS
-local AnimationManager = require("../Components/AnimationManager")
-local SoundManager = require("../Components/SoundManager")
-local ViewmodelManager = require("../Components/ViewmodelManager")
-local ToolHighlightAndProxPromptManager = require("../Components/ToolHighlightAndProxPromptManager")
-local ToolGuiManager = require("../Components/ToolGuiManager")
+local AnimationManager = require("../Components/Shared/AnimationManager")
+local SoundManager = require("../Components/Shared/SoundManager")
+local ViewmodelManager = require("../Components/Shared/ViewmodelManager")
+local ToolHighlightAndProxPromptManager = require("../Components/Shared/ToolHighlightAndProxPromptManager")
+local ToolGuiManager = require("../Components/Shared/ToolGuiManager")
 local RobloxStateMachine = require(ReplicatedStorage.Packages.RobloxStateMachine)
 local ToolInfo = require("../Data/ToolInfo")
 
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local bindables : {[string] : BindableEvent} = {
-    ToggleEquip = ToolSystem_Storage.Shared:FindFirstChild("ToggleEquip", true)
+    ToggleEquip = ToolSystem_Storage.Shared:FindFirstChild("ToggleEquip", true),
+    OnPickUp = ToolSystem_Storage.Shared.Bindables.OnPickUp
 }
 local remotes: {[string] : RemoteEvent} = {
     ToggleToolCanCollide = ToolSystem_Storage.Shared.Remotes.ToggleToolCanCollide,
@@ -40,6 +41,17 @@ local currentAnimationManager = AnimationManager.new(currentCharacter)
 local currentViewmodelManager = ViewmodelManager.new(workspace.CurrentCamera:WaitForChild("viewModel"))
 local currentToolGuiManager = ToolGuiManager.new()
 
+local ActionNameToKeycodesMapping : {[string] : {Enum.UserInputType | Enum.KeyCode}} = {
+    ["Drop"] = {
+        Enum.KeyCode.X,
+        Enum.KeyCode.ButtonX
+    }
+}
+
+local ActionNameToLayoutOrderMapping : {[string] : number} = {
+    ["Drop"] = 0
+}
+
 local Item = {}
 
 --[[
@@ -59,7 +71,9 @@ function Item.new(tool : Tool, humanoid : Humanoid) : ItemType
         State = "Unequipped"
     }
 
-    ToolGuiManager.CreateInputGui(currentToolGuiManager, "Swing", {Enum.UserInputType.MouseButton1, Enum.KeyCode.ButtonR2})
+    for actionName, keycodes in ActionNameToKeycodesMapping do
+        ToolGuiManager.CreateInputGui(currentToolGuiManager, tool, actionName, ActionNameToKeycodesMapping[actionName], ActionNameToLayoutOrderMapping[actionName])
+    end 
     Item.ChangeState(self, "Unequipped")
     SoundManager.storeSounds(tool.Name, ToolInfo.get(tool.Name).soundObjects)
     local toolAnims = ToolInfo.get(tool.Name).animObjects
@@ -70,6 +84,7 @@ function Item.new(tool : Tool, humanoid : Humanoid) : ItemType
 end
 
 function Item.initialize(self : ItemType, equipping: () -> ()?, equipped: () -> ()?, unequipping: () -> ()?, unequipped: () -> ()?)
+
     self.connections.ToggleEquip = bindables.ToggleEquip.Event:Connect(function(key : Tool, toggle: boolean)
         if key == self.tool then
             if toggle then
@@ -86,13 +101,16 @@ function Item.initialize(self : ItemType, equipping: () -> ()?, equipped: () -> 
             remotes.ToggleToolCanCollide:FireServer(self.tool:FindFirstChild("ToolModel"), true)
             ViewmodelManager.toggleViewmodelToolVisibility(currentViewmodelManager, self.tool, false)
             --Proximity Prompt and highlight
-            
         end
+    end)
+    self.connections.OnPickUp = bindables.OnPickUp.Event:Connect(function()  
+        Item.ChangeState(self, "Unequipped")
     end)
 end
 
 function Item.equip(self: ItemType, equipping: () -> ()?, equipped: () -> ()?)
     Item.ChangeState(self, "Equipping")
+    ToolGuiManager.toggleToolGuiVisibility(currentToolGuiManager, self.tool, true)
     self.humanoid:EquipTool(self.tool)
     SoundManager.playSound("Server", SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach"), 0)
     local equipTrack : AnimationTrack = currentAnimationManager.animationTracks[self.tool.Name].equip
@@ -117,6 +135,7 @@ end
 
 function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> ()?)
     Item.ChangeState(self, "Unequipping")
+    ToolGuiManager.toggleToolGuiVisibility(currentToolGuiManager, self.tool, false)
     currentAnimationManager.animationTracks[self.tool.Name].idle:Stop()
     currentViewmodelManager.animManager.animationTracks[self.tool.Name].idle:Stop()
     SoundManager.playSound("Server", SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach"), 0)
@@ -151,14 +170,11 @@ function Item.drop(self : ItemType)
         AnimationManager.StopAllAnimsForTool(self.ViewmodelManager.animManager, self.tool)
         remotes.DropTool:FireServer(self.tool)
         Item.ChangeState(self, "Dropped")
+        ToolGuiManager.toggleToolGuiVisibility(currentToolGuiManager, self.tool, false)
     end
 end
 
 function Item.toggleDropBind(self : ItemType, toggle : boolean)
-    local Keycodes = {
-        Enum.KeyCode.X,
-        Enum.KeyCode.ButtonX
-    }
     local function handleAction(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?
         if inputState == Enum.UserInputState.Begin then
             Item.drop(self)
@@ -166,9 +182,9 @@ function Item.toggleDropBind(self : ItemType, toggle : boolean)
         return Enum.ContextActionResult.Sink
     end
     if toggle then
-        ContextActionService:BindAction("DropTool", handleAction, true, unpack(Keycodes))
+        ContextActionService:BindAction("Drop", handleAction, true, unpack(ActionNameToKeycodesMapping["Drop"]))
     else
-        ContextActionService:UnbindAction("DropTool")
+        ContextActionService:UnbindAction("Drop")
     end
 end
 

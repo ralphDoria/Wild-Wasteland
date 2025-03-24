@@ -10,11 +10,13 @@ export type SlotType = {
     DropLabel : TextLabel,
     HotbarNumber : TextLabel,
     Quantity : TextLabel,
-    tool : Tool?
+    tool : Tool?,
+    equipByClickConnection : RBXScriptConnection?
 }
 
-local Slot = {}
+local FilledSlots : {SlotType} = {}
 
+local Slot = {}
 ----    Local Functions
 
 ----    Methods
@@ -47,14 +49,31 @@ function Slot.FillSlot(self : SlotType, tool : Tool, itemType : string)
     self.tool = tool
     self.ImageButton.Visible = true
     self._isEmpty = false
-    self.ImageButton.MouseButton1Click:Connect(function()
+    self.equipByClickConnection = self.ImageButton.MouseButton1Click:Connect(function()
         EquipToolStateMachine.SetTargetTool(self.tool :: Tool)
     end)
+    table.insert(FilledSlots, self)
 end
 
 function Slot.EmptySlot(self : SlotType)
     self.Quantity.Visible = false
+    self.ImageButton.Image = ""
+    self.tool = nil
+    self.ImageButton.Visible = false
     self._isEmpty = true
+    if self.equipByClickConnection then
+        self.equipByClickConnection:Disconnect()
+    end
+    table.remove(FilledSlots, table.find(FilledSlots, self))
+end
+
+function Slot.GetSlotFromTool(tool : Tool) : SlotType?
+    for _, v in FilledSlots do
+        if v.tool == tool then
+            return v
+        end
+    end
+    return nil
 end
 
 function Slot.destroy(self : SlotType)

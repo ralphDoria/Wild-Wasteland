@@ -52,7 +52,7 @@ return function
 		if child.Parent == workspace then
 			--print(child.Name .. " dropped from equip")
             updateCacheditems()
-            onEquip(child)
+            onDrop(child)
 		end
 	end)
 end
