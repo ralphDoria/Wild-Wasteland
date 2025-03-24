@@ -83,12 +83,12 @@ function Item.new(tool : Tool, humanoid : Humanoid) : ItemType
     return self
 end
 
-function Item.initialize(self : ItemType, equipping: () -> ()?, equipped: () -> ()?, unequipping: () -> ()?, unequipped: () -> ()?)
+function Item.initialize(self : ItemType, equipping: () -> ()?, equipped: () -> ()?, unequipping: () -> ()?, unequipped: () -> ()?, onDropped : () -> ()?)
 
     self.connections.ToggleEquip = bindables.ToggleEquip.Event:Connect(function(key : Tool, toggle: boolean)
         if key == self.tool then
             if toggle then
-                Item.equip(self, equipping, equipped)
+                Item.equip(self, equipping, equipped, onDropped)
             else
                 Item.unequip(self, unequipping, unequipped) 
             end 
@@ -108,14 +108,14 @@ function Item.initialize(self : ItemType, equipping: () -> ()?, equipped: () -> 
     end)
 end
 
-function Item.equip(self: ItemType, equipping: () -> ()?, equipped: () -> ()?)
+function Item.equip(self: ItemType, equipping: () -> ()?, equipped: () -> ()?, onDropped : () -> ()?)
     Item.ChangeState(self, "Equipping")
     ToolGuiManager.toggleToolGuiVisibility(currentToolGuiManager, self.tool, true)
     self.humanoid:EquipTool(self.tool)
     SoundManager.playSound("Server", SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach"), 0)
     local equipTrack : AnimationTrack = currentAnimationManager.animationTracks[self.tool.Name].equip
     local vmEquipTrack : AnimationTrack = currentViewmodelManager.animManager.animationTracks[self.tool.Name].equip
-    Item.toggleDropBind(self, true)
+    Item.toggleDropBind(self, true, onDropped)
     if equipping then equipping() end
     if equipTrack.IsPlaying then
         equipTrack:AdjustSpeed(1)
@@ -163,21 +163,24 @@ function Item.ChangeState(self: ItemType, state: "Equipping" | "Idle" | "Unequip
     self.State = state
 end
 
-function Item.drop(self : ItemType)
+function Item.drop(self : ItemType, onDropped : () -> ()?)
     if self.State == "Idle" or self.State == "Equipping" then
         Item.ChangeState(self, "Dropping")
         AnimationManager.StopAllAnimsForTool(currentAnimationManager, self.tool)
         AnimationManager.StopAllAnimsForTool(self.ViewmodelManager.animManager, self.tool)
         remotes.DropTool:FireServer(self.tool)
         Item.ChangeState(self, "Dropped")
+        if onDropped then
+            onDropped()
+        end
         ToolGuiManager.toggleToolGuiVisibility(currentToolGuiManager, self.tool, false)
     end
 end
 
-function Item.toggleDropBind(self : ItemType, toggle : boolean)
+function Item.toggleDropBind(self : ItemType, toggle : boolean, onDropped : () -> ()?)
     local function handleAction(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?
         if inputState == Enum.UserInputState.Begin then
-            Item.drop(self)
+            Item.drop(self, onDropped)
         end
         return Enum.ContextActionResult.Sink
     end

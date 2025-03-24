@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local hitmarkerSound : Sound = ToolSystem_Storage.Melee.Instances.hitmarker
 local remotes: {[string] : RemoteEvent} = {
     Hit = ToolSystem_Storage.Melee.Remotes.Hit,
     ToggleSwingTrail = ToolSystem_Storage.Melee.Remotes.ToggleSwingTrail
@@ -16,6 +17,7 @@ local Item = require("../Superclasses/Item")
 local HitboxManager = require("../Components/Shared/HitboxManager")
 local ToolGuiManager = require("../Components/Shared/ToolGuiManager")
 local MeleeVMM = require("../Components/Melee/MeleeVMM")
+local CrosshairGuiManager = require("../Components/Shared/CrosshairManager")
 local CameraShaker = require(ReplicatedStorage.Packages.CameraShaker)
 local currentCamera = workspace.CurrentCamera
 local camShake = CameraShaker.new(Enum.RenderPriority.Last.Value, function(shakeCF)
@@ -29,6 +31,7 @@ export type MeleeObject = Item.ItemType & {
     damage : number,
     swingSpeed : number,
     HitboxManager : HitboxManager.HitboxManager,
+    CrosshairGuiObject : CrosshairGuiManager.CrosshairObject,
     trail : Trail
 }
 
@@ -50,6 +53,7 @@ function Melee.new(tool : Tool, humanoid : Humanoid) : MeleeObject
     self.damage = 50
     self.swingSpeed = 1
     self.HitboxManager = HitboxManager.new(tool)
+    self.CrosshairGuiObject = CrosshairGuiManager.new()
     self.trail = tool:FindFirstChildWhichIsA("Trail", true)
 
     Melee.toggleSwingTrail(self, false)
@@ -80,16 +84,22 @@ end
 function Melee.initialize(self : MeleeObject)
     Item.initialize(
         self,
-        nil,
-        function()
-            UserInputService.MouseIcon = crosshairID
+        function()  --onEquipping
+            CrosshairGuiManager.toggleEnable(self.CrosshairGuiObject)
+        end, 
+        function() --onEquipped
             toggleSwingBind(self, true)
         end,
-        function()
+        function() --onUnequipping
             toggleSwingBind(self, false) 
-            UserInputService.MouseIcon = ""
         end,
-        nil)
+        function() --onUnequipped()
+            CrosshairGuiManager.ForceDisable(self.CrosshairGuiObject)
+        end, 
+        function() --onDropped()
+            CrosshairGuiManager.ForceDisable(self.CrosshairGuiObject)
+        end
+    )
     MeleeVMM.ConnectTrailsTransparencyUpdater(self.ViewmodelManager, self.tool)
     local swingTrack = self.animManager.animationTracks[self.tool.Name].swing
     swingTrack:GetMarkerReachedSignal("swing"):Connect(function(status : "start" | "end")
@@ -104,12 +114,16 @@ function Melee.initialize(self : MeleeObject)
             end 
         end
     end)
-    HitboxManager.ConnectOnHit(self.HitboxManager, function(hit: BasePart, humanoid: Humanoid, raycastResult: RaycastResult)  
+    HitboxManager.ConnectOnHit(self.HitboxManager, function(hit: BasePart, humanoid: Humanoid, raycastResult: RaycastResult)
+
         local character = humanoid.Parent :: Model
         warn("hit ", character.Name)
         local impactSounds = self.soundManager.Sounds[self.tool.Name].impact :: {[string] : Sound}
         local fleshSound = impactSounds.flesh
         self.soundManager.playSound("Server", fleshSound, self.tool:FindFirstChild("BodyAttach"), 0)
+        CrosshairGuiManager.showHitmarker(self.CrosshairGuiObject, function()  
+            self.soundManager.playSound("Client", hitmarkerSound, self.tool:FindFirstChild("BodyAttach"), 0)
+        end)
         camShake:ShakeOnce(3, 5, 0.2, 0.2)
         remotes.Hit:FireServer(humanoid, self.damage, particles.blood, raycastResult.Position, raycastResult.Normal)
     end)
@@ -122,6 +136,8 @@ function Melee.initialize(self : MeleeObject)
         end
         return Enum.ContextActionResult.Sink
     end, true, Enum.KeyCode.P)
+
+    CrosshairGuiManager.toggleCrosshairLines(self.CrosshairGuiObject, false)
 end
 
 function Melee.swing(self : MeleeObject)
