@@ -7,6 +7,7 @@ local remotes: {[string] : RemoteEvent} = {
     DropTool = ToolSystem_Storage.Shared.Remotes.DropTool,
     PickUpTool = ToolSystem_Storage.Shared.Remotes.PickUpTool
 }
+local pickUp : Sound = ToolSystem_Storage.Shared.Sounds.pickUp
 local OnHitFloor = require("./OnHitFloor")
 
 return function()
@@ -28,7 +29,9 @@ return function()
         tool.Parent = workspace
         OnHitFloor(tool)
     end)
-    remotes.PickUpTool.OnServerEvent:Connect(function(player: Player, tool: Tool)  
+    remotes.PickUpTool.OnServerEvent:Connect(function(player: Player, tool: Tool)
+        local BodyAttach = tool.PrimaryPart :: BasePart
+        PlaySoundUtil(pickUp, BodyAttach.Position) 
         tool.Parent = player.Backpack
     end)
     --more to add later

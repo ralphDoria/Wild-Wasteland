@@ -1,3 +1,4 @@
+local InputCategorizer = 
 
 ------------------------------------------------------------------------<<<PLAYER SPECIFICS>>>
 local player = game.Players.LocalPlayer --Because of this line, this module must be required in a LocalScript, else there will be an error.

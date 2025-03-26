@@ -3,7 +3,14 @@ local Debris = game:GetService("Debris")
 local SoundService = game:GetService("SoundService")
 
 ------------------------------------------------------------------------<<<FUNCTION>>>
-local function playSound(soundObject : Sound, soundParent, delayCorrection : number)
+local function playSound(soundObject : Sound, soundParent : any, delayCorrection : number?)
+    if delayCorrection == nil then
+        local numValue : NumberValue? = soundObject:FindFirstChildOfClass("NumberValue")
+        if numValue then
+            warn("num value found")
+            delayCorrection = numValue.Value
+        end
+    end
     if delayCorrection then
         if delayCorrection >= 0 then
             soundObject.TimePosition = delayCorrection
@@ -28,6 +35,7 @@ local function playSound(soundObject : Sound, soundParent, delayCorrection : num
 
             x.CanCollide = false
             x.CanQuery = false
+            x.CanTouch = false
             x.Size = Vector3.new(0.1, 0.1, 0.1)
             x.Position = soundParent
             x.Parent = workspace
