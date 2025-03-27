@@ -1,4 +1,5 @@
 local RunService = game:GetService("RunService")
+local TouchDisplay = 
 
 local TouchDisplayManager = {
     _initialized = false

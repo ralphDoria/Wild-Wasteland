@@ -7,11 +7,13 @@ local RunService = game:GetService("RunService")
 
 local InputCategorizer = require("./Components/InputCategorizer")
 local InputMetadata = require("./Components/InputMetadata")
+local TouchDisplayerManager = require("./Components/TouchDisplayManager")
 
 local player = Players.LocalPlayer :: Player
 local playerGui = player:WaitForChild("PlayerGui")
-local instances = script.Instances :: any
-local actionGui = instances.ActionGui
+local actionGui = playerGui:WaitForChild("ActionGui2")
+local instances = actionGui:FindFirstChild("Instances") :: any
+
 
 local HORIZONTAL_PADDING = 40
 local VERTICAL_PADDING = 40
@@ -56,7 +58,7 @@ function ActionManager.bindAction(
 	local actionFrame = instances.ActionFrame:Clone()
 	actionFrame.ContentFrame.ActionLabel.Text = actionName
 	actionFrame.LayoutOrder = displayOrder or 0
-	actionFrame.Parent = actionGui.ListFrame
+	actionFrame.Parent = actionGui:FindFirstChild("ListFrame")
 
 	binding.frame = actionFrame
 	ActionManager._updateInputDisplay(binding, InputCategorizer.getLastInputCategory())
