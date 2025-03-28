@@ -1,24 +1,35 @@
---!strict
-
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local InputCategorizer = require("./Components/InputCategorizer")
 local InputMetadata = require("./Components/InputMetadata")
 local TouchDisplayerManager = require("./Components/TouchDisplayManager")
+local CircularProgressBarManager = require("../Utility/CircularProgressBarManager")
 
 local player = Players.LocalPlayer :: Player
 local playerGui = player:WaitForChild("PlayerGui")
 local actionGui = playerGui:WaitForChild("ActionGui2")
 local instances = actionGui:FindFirstChild("Instances") :: any
+local nonTouchDisplay = actionGui.NonTouchDisplay
 
 
 local HORIZONTAL_PADDING = 40
 local VERTICAL_PADDING = 40
 
 type ActionCallback = (string, Enum.UserInputState, InputObject) -> ...any
+type binding = {
+	connections: {RBXScriptConnection},
+	keyboardAndMouseInput: Enum.KeyCode | Enum.UserInputType,
+	gamepadInput: Enum.KeyCode | Enum.UserInputType,
+	frame: Frame,
+	touchButton: ImageButton,
+	progressBarConnection: RBXScriptConnection?,
+	fadeOutTweens: {Tween},
+	fadeInTweens: {Tween}
+}
 
 local InputCategory = {
 	KeyboardAndMouse = "KeyboardAndMouse",
@@ -30,17 +41,18 @@ local InputCategory = {
 local ActionManager = {
 	InputCategory = InputCategory,
 	_initialized = false,
-	_bindings = {} :: { [string]: any },
+	_bindings = {} :: { [string]: binding },
 }
 
 function ActionManager.bindAction(
 	actionName: string,
 	callback: ActionCallback,
-    toggleOrHold: "Toggle" | "Hold",
-    cooldown: number?,
 	keyboardAndMouseInput: Enum.KeyCode | Enum.UserInputType,
 	gamepadInput: Enum.KeyCode | Enum.UserInputType,
-	displayOrder: number?
+	displayOrder: number,
+	toggle: boolean?,
+    cooldownTime: number?,
+	touchButtonImageId: string
 )
 	-- Make sure action binds aren't overwritten
 	if ActionManager._bindings[actionName] then
@@ -58,41 +70,134 @@ function ActionManager.bindAction(
 	local actionFrame = instances.ActionFrame:Clone()
 	actionFrame.ContentFrame.ActionLabel.Text = actionName
 	actionFrame.LayoutOrder = displayOrder or 0
-	actionFrame.Parent = actionGui:FindFirstChild("ListFrame")
+	actionFrame.Parent = nonTouchDisplay:FindFirstChild("ListFrame")
 
 	binding.frame = actionFrame
 	ActionManager._updateInputDisplay(binding, InputCategorizer.getLastInputCategory())
 
+	-- Create TouchButton
+	binding.touchButton = TouchDisplayerManager.CreateTouchButton(binding, displayOrder, toggle, cooldownTime, touchButtonImageId)
+
+	-- Initializing progress bar
+	local onCooldown: boolean = false
+	if cooldownTime then
+		table.insert(
+			binding.connections,
+			CircularProgressBarManager.CreateProgressBar(actionFrame.ContentFrame.InputFrame, Color3.new(1, 1, 1))
+		)
+	end
+
+	-- Initializing fadeOutTweens and fadeInTweens
+	local tweenInfo = TweenInfo.new(0.2)
+	local inputFrame: CanvasGroup = binding.frame.ContentFrame.InputFrame
+	local inputFrameUiStroke = inputFrame:FindFirstChildOfClass("UIStroke")::UIStroke
+	local actionLabel: TextLabel = binding.frame.ContentFrame.ActionLabel
+	local actionLabelUiStroke = actionLabel:FindFirstChildOfClass("UIStroke")::UIStroke
+	binding.fadeInTweens = {
+		-- TouchDisplay
+		TweenService:Create(binding.touchButton, tweenInfo, {ImageTransparency = binding.touchButton.ImageTransparency}),
+		-- NonTouchDisplay
+		TweenService:Create(inputFrame, tweenInfo, {GroupTransparency = inputFrame.GroupTransparency}),
+		TweenService:Create(inputFrameUiStroke, tweenInfo, {Transparency = inputFrameUiStroke.Transparency}),
+		TweenService:Create(actionLabel, tweenInfo, {BackgroundTransparency = actionLabel.BackgroundTransparency}),
+		TweenService:Create(actionLabel, tweenInfo, {TextTransparency = actionLabel.TextTransparency}),
+		TweenService:Create(actionLabelUiStroke, tweenInfo, {Transparency = actionLabelUiStroke.Transparency})
+	}
+	local fadedValue = 0.5
+	binding.fadeOutTweens = {
+		-- TouchDisplay
+		TweenService:Create(binding.touchButton, tweenInfo, {ImageTransparency = fadedValue}),
+		-- NonTouchDisplay
+		TweenService:Create(inputFrame, tweenInfo, {GroupTransparency = fadedValue}),
+		TweenService:Create(inputFrameUiStroke, tweenInfo, {Transparency = fadedValue}),
+		TweenService:Create(actionLabel, tweenInfo, {BackgroundTransparency = fadedValue}),
+		TweenService:Create(actionLabel, tweenInfo, {TextTransparency = fadedValue}),
+		TweenService:Create(actionLabelUiStroke, tweenInfo, {Transparency = fadedValue})
+	}
+
+	local function startCooldown()
+		if cooldownTime then
+			local actionFrameProgressBar = binding.frame:FindFirstChild("ProgressBar", true)
+			local touchButtonProgressBar = binding.touchButton:FindFirstChild("ProgressBar")
+			CircularProgressBarManager.PlayProgressBar(actionFrameProgressBar, "Drain", cooldownTime)
+			local completed: RBXScriptSignal = CircularProgressBarManager.PlayProgressBar(touchButtonProgressBar, "Drain", cooldownTime)
+			onCooldown = true
+			for _, v in binding.fadeOutTweens do
+				v:Play()
+			end
+			completed:Once(function()
+				onCooldown = false
+				for _, v in binding.fadeInTweens do
+					v:Play()
+				end
+			end)
+		end
+	end
+
+	local function toggleGuiDisplays(thisToggle: boolean)
+		TouchDisplayerManager.toggleButtonImage(binding.touchButton, thisToggle)
+		if thisToggle then
+			actionFrame.ContentFrame.ActionLabel.BackgroundColor3 = Color3.new(1, 1, 1)
+			actionFrame.ContentFrame.ActionLabel.TextColor3 = Color3.new(0, 0, 0)
+		else
+			actionFrame.ContentFrame.ActionLabel.BackgroundColor3 = Color3.fromRGB(103, 69, 0)
+			actionFrame.ContentFrame.ActionLabel.TextColor3 = Color3.new(1, 1, 1)
+		end
+	end
+
 	-- Create a wrapper for the callback function so the UI can be updated in sync with the action
 	local callbackWrapper = function(...)
 		local action, inputState = ...
-
 		if action == actionName then
-			if inputState == Enum.UserInputState.Begin then
-				actionFrame.ContentFrame.ActionLabel.BackgroundColor3 = Color3.new(1, 1, 1)
-				actionFrame.ContentFrame.ActionLabel.TextColor3 = Color3.new(0, 0, 0)
-			elseif inputState == Enum.UserInputState.End then
-				actionFrame.ContentFrame.ActionLabel.BackgroundColor3 = Color3.fromRGB(103, 69, 0)
-				actionFrame.ContentFrame.ActionLabel.TextColor3 = Color3.new(1, 1, 1)
+			if toggle == nil then
+				if inputState == Enum.UserInputState.Begin then
+					if cooldownTime then
+						if onCooldown then
+							warn("still on cooldown")
+							return
+						end
+					end
+					toggleGuiDisplays(true)
+					startCooldown()
+				elseif inputState == Enum.UserInputState.End then
+					toggleGuiDisplays(false)
+				end
+				callback(...)
+			else
+				--toggle button is active
+				if inputState == Enum.UserInputState.Begin then
+					if toggle then
+						toggle = false
+					else
+						if cooldownTime then
+							if onCooldown then
+								warn("still on cooldown")
+								return
+							end
+						end
+						toggle = true
+						startCooldown()
+					end
+					toggleGuiDisplays(toggle)
+					callback(...)
+				end
 			end
-		end
 
-		callback(...)
+		end
 	end
 
 	-- Touch button connections
 	table.insert(
 		binding.connections,
-		actionFrame.TouchButton.InputBegan:Connect(function(inputObject)
+		binding.touchButton.InputBegan:Connect(function(inputObject)
 			if inputObject.UserInputType == Enum.UserInputType.Touch then
 				callbackWrapper(actionName, Enum.UserInputState.Begin, inputObject)
 			end
 		end)
 	)
-
 	table.insert(
 		binding.connections,
-		actionFrame.TouchButton.InputEnded:Connect(function(inputObject)
+		binding.touchButton.InputEnded:Connect(function(inputObject)
 			if inputObject.UserInputType == Enum.UserInputType.Touch then
 				callbackWrapper(actionName, Enum.UserInputState.End, inputObject)
 			end
@@ -114,6 +219,9 @@ function ActionManager.unbindAction(actionName: string)
 		end
 		-- Destroy the UI element for the binding
 		binding.frame:Destroy()
+		binding.touchButton:Destroy()
+		binding.fadeInTweens = nil
+		binding.fadeOutTweens = nil
 		ActionManager._bindings[actionName] = nil
 	end
 
@@ -128,19 +236,21 @@ function ActionManager._updateInputDisplay(binding, inputCategory)
 		oldButtonDisplay:Destroy()
 	end
 
-	-- Get a new button display
-	local buttonDisplay: Instance
-	if inputCategory == InputCategory.KeyboardAndMouse then
-		buttonDisplay = ActionManager._getButtonDisplayForInput(binding.keyboardAndMouseInput)
-	elseif inputCategory == InputCategory.Gamepad then
-		buttonDisplay = ActionManager._getButtonDisplayForInput(binding.gamepadInput)
-	elseif inputCategory == InputCategory.Touch then
-		buttonDisplay = ActionManager._getButtonDisplayForInput(Enum.UserInputType.Touch)
+	if inputCategory == InputCategory.Touch then
+		nonTouchDisplay.Visible = false
+		TouchDisplayerManager.getTouchDisplay().Visible = true
+	else
+		nonTouchDisplay.Visible = true
+		TouchDisplayerManager.getTouchDisplay().Visible = false
+		-- Get a new button display
+		local buttonDisplay: Instance
+		if inputCategory == InputCategory.KeyboardAndMouse then
+			buttonDisplay = ActionManager._getButtonDisplayForInput(binding.keyboardAndMouseInput)
+		elseif inputCategory == InputCategory.Gamepad then
+			buttonDisplay = ActionManager._getButtonDisplayForInput(binding.gamepadInput)
+		end
+		buttonDisplay.Parent = binding.frame.ContentFrame.InputFrame
 	end
-	buttonDisplay.Parent = binding.frame.ContentFrame.InputFrame
-
-	-- Set the touch button to enabled/disabled depending on if the input category is touch
-	binding.frame.TouchButton.Visible = inputCategory == InputCategory.Touch
 end
 
 -- Create a new button display frame based on the provided KeyCode or UserInputType
@@ -234,14 +344,15 @@ function ActionManager._updatePositionAndScale()
 
 	local verticalPadding = VERTICAL_PADDING
 	if touchControlsEnabled and InputCategorizer.getLastInputCategory() == InputCategory.Touch then
-		-- Offset the vertical padding to account for the jump button
-		-- Note that the jump button can be two sizes depending on if the screen is considered small or not
-		verticalPadding += if isSmallScreen then 70 else 210
+		TouchDisplayerManager.updatePositionAndScale()
+	else
+		-- Offset the vertical padding to account for the ToolGui
+		-- Note that the ToolGui will be in the bottom right corner when NonTouchDisplay is visible.
+		verticalPadding += if isSmallScreen then 70 else 210 --@warning adjust these numbers
+		-- If the screen is considered 'small', scale the action list down
+		nonTouchDisplay.ListFrame.UIScale.Scale = if isSmallScreen then 0.85 else 1
+		nonTouchDisplay.ListFrame.Position = UDim2.new(1, -HORIZONTAL_PADDING, 1, -verticalPadding)
 	end
-
-	-- If the screen is considered 'small', scale the action list down
-	actionGui.ListFrame.UIScale.Scale = if isSmallScreen then 0.85 else 1
-	actionGui.ListFrame.Position = UDim2.new(1, -HORIZONTAL_PADDING, 1, -verticalPadding)
 end
 
 function ActionManager._initialize()
@@ -273,6 +384,7 @@ function ActionManager._initialize()
 	InputCategorizer.lastInputCategoryChanged:Connect(ActionManager._updatePositionAndScale)
 
 	-- Parent the UI to the player gui and update its position and scale
+	actionGui.Enabled = true
 	actionGui.Parent = playerGui
 	ActionManager._updatePositionAndScale()
 

@@ -19,6 +19,15 @@ return {
 		[Enum.UserInputType.MouseButton1] = "rbxassetid://13489692470",
 		[Enum.UserInputType.MouseButton2] = "rbxassetid://13489693292",
 		[Enum.UserInputType.MouseButton3] = "rbxassetid://13489694025",
+		--[[
+		Below are MouseButtonImage alternatives that I uploaded to Roblox from Google (processed through paint.net). I want to give the default
+		images a chance first.
+
+		[Enum.UserInputType.MouseButton1] = "rbxassetid://123442724209547",
+		[Enum.UserInputType.MouseButton2] = "rbxassetid://83756052331840",
+		[Enum.UserInputType.MouseButton3] = "rbxassetid://108433885610198",
+
+		]]
 	} :: InputToStringMapping,
 	KeyboardButtonIconMapping = {
 		["'"] = "rbxassetid://13471372204",

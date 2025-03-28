@@ -3,42 +3,69 @@ local character = player.Character or player.CharacterAdded:Wait()
 
 export type CustomState = "Sprint" | "Crouch" | "None"
 
-local MovementStateMachine = {}
+local MovementStateMachine = {
+    _initialized = false,
+    connections = {}
+}
 
-MovementStateMachine.CurrentState = "None" :: CustomState
-MovementStateMachine.tower = {}
-MovementStateMachine.TargetState = "None" :: CustomState
-MovementStateMachine.towerUpdatedEvent = Instance.new("BindableEvent").Event
+local currentState: CustomState = "None"
+local tower: {CustomState} = {}
+local currentStateChangedEvent: BindableEvent = Instance.new("BindableEvent")
+MovementStateMachine.currentStateChanged = currentStateChangedEvent.Event
 
 function MovementStateMachine.SetState(state : CustomState)
-    MovementStateMachine.CurrentState = state
+    currentState = state
     character:SetAttribute("State", state)
 end
 
 function MovementStateMachine.RemoveFromTower(state: CustomState)
-    local index = table.find(MovementStateMachine.tower, state)
+    local index = table.find(tower, state)
     if index then
-        table.remove(MovementStateMachine.tower, index)
+        table.remove(tower, index)
+        if currentState ~= MovementStateMachine.getTopOfTower() then
+            currentState = MovementStateMachine.getTopOfTower()
+            currentStateChangedEvent:Fire(currentState)
+        end
     end
-    MovementStateMachine.TargetState = MovementStateMachine.getTopOfTower()
 end
 
 function MovementStateMachine.AddToTower(state : CustomState)
-    MovementStateMachine.RemoveFromTower(state) --if state is already in tower, then remove it and add it to the top (may be redundant if state is already at the top)
-    table.insert(MovementStateMachine.tower, state)
-    MovementStateMachine.TargetState = MovementStateMachine.getTopOfTower()
+    -- If state is already in tower and isn't at the top, then remove it and add it to the top.
+    local index = table.find(tower, state)
+    if index and index ~= #tower then
+        table.remove(tower, index)
+        table.insert(tower, state)
+        currentState = MovementStateMachine.getTopOfTower()
+        currentStateChangedEvent:Fire(currentState)
+    elseif index == #tower then
+        return
+    else
+        table.insert(tower, state)
+        currentState = MovementStateMachine.getTopOfTower()
+        currentStateChangedEvent:Fire(currentState)
+    end
 end
 
 function MovementStateMachine.towerIsEmpty()
-    return #MovementStateMachine.tower == 0
+    return #tower == 0
 end
 
 function MovementStateMachine.getTopOfTower()
-    return if MovementStateMachine.towerIsEmpty() then "None" else MovementStateMachine.tower[#MovementStateMachine.tower]
+    return if MovementStateMachine.towerIsEmpty() then "None" else tower[#tower]
 end
 
 function MovementStateMachine.GetState()
-    return MovementStateMachine.CurrentState
+    return currentState
 end
+
+function MovementStateMachine.getTower()
+    return tower
+end
+
+function MovementStateMachine._initialize()
+    MovementStateMachine._initialized = true
+end
+
+MovementStateMachine._initialize()
 
 return MovementStateMachine

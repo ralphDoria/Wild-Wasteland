@@ -54,12 +54,12 @@ local function updateViewBobbing()
     local bobbleX = math.cos(currentTime * (baseSpeed * scale)) * (baseMagnitude * scale)
     local bobbleY = (if character:GetAttribute("Crouching") then CONSTANTS.CROUCH_CAMERA_OFFSET.Y else 0) 
         + math.abs(math.sin(currentTime * (baseSpeed * scale)) * (baseMagnitude * scale))
-    local bobble = Vector3.new(bobbleX,  bobbleY, 0)
+    local bobble = Vector3.new(bobbleX,  bobbleY - if character:GetAttribute("Crouch") == true then 1.5 else 0, 0)
+
     character.Humanoid.CameraOffset = character.Humanoid.CameraOffset:Lerp(bobble, 0.25)
 end
 
 RunService:BindToRenderStep("CameraSway", Enum.RenderPriority.Camera.Value + 1, function(deltaTime)
     updateCameraSway(deltaTime)
-
     updateViewBobbing()
 end)

@@ -1,47 +1,69 @@
-local InputCategorizer = 
+local player = game:GetService("Players").LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid: Humanoid = character:WaitForChild("Humanoid")
+local Config = require("./Config")
+local ZMovementDirectionUtility = require("./ZMovementDirectionUtility")
 
-------------------------------------------------------------------------<<<PLAYER SPECIFICS>>>
-local player = game.Players.LocalPlayer --Because of this line, this module must be required in a LocalScript, else there will be an error.
-local humanoid = player.Character:WaitForChild("Humanoid")
-local PlayerGui = player:WaitForChild("PlayerGui")
-local CharacterStatusGui = PlayerGui:WaitForChild("CharacterStatusGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local MovementAndStaminaSystem_Storage = ReplicatedStorage.MovementAndStaminaSystem_Storage
+local remotes: {[string]: RemoteEvent} = {
+    ChangeHumanoidWalkSpeed = MovementAndStaminaSystem_Storage.Remotes.ChangeHumanoidWalkSpeed
+}
 
-------------------------------------------------------------------------<<<ROBLOX LIBRARIES>>>
-local UserInputService = game:GetService("UserInputService")
+local connections: {RBXScriptConnection} = {}
 
-------------------------------------------------------------------------<<<LOCAL VARIABLES>>>
-local SPRINT_KEY = Enum.KeyCode.LeftShift
-local isMoving
+local Sprint = {
+    active = false
+}
 
-------------------------------------------------------------------------<<<MODULES>>>
-local CharacterSpeedInfo = require(script.Parent.CharacterSpeedInfo)
-local StaminaManager = require(script.Parent.StaminaManager)
+--[[
+@note:
+Don't have to worry about animations here because the forked Animate script in StarterCharacterScripts handles sprint animation 
+(as well as footstep sounds).
+]]
 
-------------------------------------------------------------------------<<<MODULE SCRIPT>>>
-local Sprint = {SPRINT_KEY = SPRINT_KEY}
-
-function Sprint.sprintKeyDown()
-	local isMoving = humanoid.MoveDirection.Magnitude > 0.01
-	if not isMoving then return end
-	if StaminaManager.getCurrentStamina()/StaminaManager.MAX_STAMINA < StaminaManager.MIN_REQUIRED_STAMINA/100 then 
-        StaminaManager.indicateInsufficientStaminaForSprint()
-        return 
+local function sprintIfMovingForward()
+    if ZMovementDirectionUtility.getZDirectionOfMovement() == "Forward" then
+        remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Sprint"])
+    else
+        remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
     end
-    local checkIfPlayerStopsMoving
-    checkIfPlayerStopsMoving = humanoid.Running:Connect(function(speed)
-        if speed <= 0 then
-            checkIfPlayerStopsMoving:Disconnect()
-            humanoid.WalkSpeed = CharacterSpeedInfo.walkSpeed
-            StaminaManager.fillStaminaBar()
-        end
-    end)
-    humanoid.WalkSpeed = CharacterSpeedInfo.sprintSpeed
-    StaminaManager.drainStaminaBar()
 end
 
-function Sprint.sprintKeyUp()
-    humanoid.WalkSpeed = CharacterSpeedInfo.walkSpeed
-    StaminaManager.fillStaminaBar()
+
+function Sprint.activate()
+    if connections then
+        for _, v in connections do
+            v:Disconnect()
+            v = nil
+        end
+    end
+
+    -- Initial check
+    sprintIfMovingForward()
+
+    -- When zMovementDirection changes
+    table.insert(
+        connections,
+        ZMovementDirectionUtility.zMovementDirectionChanged:Connect(function()  
+            sprintIfMovingForward()
+        end)
+    )
+
+    Sprint.active = true
+    character:SetAttribute("Sprint", true)
+end
+
+function Sprint.deactivate()
+    if connections then
+        for _, v in connections do
+            v:Disconnect()
+            v = nil
+        end
+    end
+    remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
+    Sprint.active = false
+    character:SetAttribute("Sprint", false)
 end
 
 return Sprint
