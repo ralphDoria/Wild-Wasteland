@@ -14,6 +14,7 @@ local particles : {[string] : ParticleEmitter} = {
 local Item = require("../Superclasses/Item")
 local HitboxManager = require("../Components/Shared/HitboxManager")
 local ToolGuiManager = require("../Components/Shared/ToolGuiManager")
+local ActionManager = require("../../ActionManagerSystem/ActionManager")
 local MeleeVMM = require("../Components/Melee/MeleeVMM")
 local CrosshairGuiManager = require("../Components/Shared/CrosshairManager")
 local CameraShaker = require(ReplicatedStorage.Packages.CameraShaker)
@@ -33,17 +34,6 @@ export type MeleeObject = Item.ItemType & {
     trail : Trail
 }
 
-local ActionNameToKeycodesMapping : {[string] : {Enum.UserInputType | Enum.KeyCode}} = {
-    ["Swing"] = {
-        Enum.UserInputType.MouseButton1,
-        Enum.KeyCode.ButtonR2
-    }
-}
-
-local ActionNameToLayoutOrderMapping : {[string] : number} = {
-    ["Swing"] = -1
-}
-
 local Melee =  {}
 
 function Melee.new(tool : Tool, humanoid : Humanoid) : MeleeObject
@@ -55,9 +45,7 @@ function Melee.new(tool : Tool, humanoid : Humanoid) : MeleeObject
     self.trail = tool:FindFirstChildWhichIsA("Trail", true)
 
     Melee.toggleSwingTrail(self, false)
-    for actionName, keycodes in ActionNameToKeycodesMapping do
-        ToolGuiManager.CreateInputGui(self.ToolGuiManager, tool, actionName, ActionNameToKeycodesMapping[actionName], ActionNameToLayoutOrderMapping[actionName])
-    end 
+    
 
     Melee.initialize(self)
 
@@ -65,18 +53,28 @@ function Melee.new(tool : Tool, humanoid : Humanoid) : MeleeObject
 end
 
 local function toggleSwingBind(self : MeleeObject, toggle : boolean)
-    local function foo(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?
-        if inputState == Enum.UserInputState.Begin then
-            Melee.swing(self)
-        end
+    local function functionToBind(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?
+        ActionManager.callbackWrapper2(nil, inputState, 
+            function()
+                Melee.swing(self)
+            end, 
+            function()  
+            end)
         return Enum.ContextActionResult.Sink
     end
     if toggle then
-        ContextActionService:BindAction("Swing", foo, true, unpack(ActionNameToKeycodesMapping["Swing"]))
+        ActionManager.bindAction(
+            "Swing", 
+            functionToBind, 
+            Enum.UserInputType.MouseButton1,
+            Enum.KeyCode.ButtonR2, 
+            3, 
+            nil, 
+            self.animManager.animationTracks[self.tool.Name].swing.Length, 
+            "rbxassetid://115384682565092")
     else
-        ContextActionService:UnbindAction("Swing")
+        ActionManager.unbindAction("Swing")
     end
-
 end
 
 function Melee.initialize(self : MeleeObject)
@@ -94,8 +92,11 @@ function Melee.initialize(self : MeleeObject)
         function() --onUnequipped()
             CrosshairGuiManager.ForceDisable(self.CrosshairGuiObject)
         end, 
+        function() --onDropping()
+            toggleSwingBind(self, false)
+        end,
         function() --onDropped()
-            CrosshairGuiManager.ForceDisable(self.CrosshairGuiObject)
+            CrosshairGuiManager.ForceDisable(self.CrosshairGuiObject) 
         end
     )
     MeleeVMM.ConnectTrailsTransparencyUpdater(self.ViewmodelManager, self.tool)
@@ -126,14 +127,14 @@ function Melee.initialize(self : MeleeObject)
         remotes.Hit:FireServer(humanoid, self.damage, particles.blood, raycastResult.Position, raycastResult.Normal)
     end)
     --The bound action below is for testing purposes; to demonstrate how a faster swing animation somehow inadvertently increases the range
-    ContextActionService:BindAction("ChangeSwingSpeed", function(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?  
-        if inputState == Enum.UserInputState.Begin then
-            local newSpeed = if self.swingSpeed == 2 then 0.5 else 2
-            self.swingSpeed = newSpeed
-            warn("Changing swingSpeed to ", newSpeed)
-        end
-        return Enum.ContextActionResult.Sink
-    end, true, Enum.KeyCode.P)
+    -- ContextActionService:BindAction("ChangeSwingSpeed", function(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?  
+    --     if inputState == Enum.UserInputState.Begin then
+    --         local newSpeed = if self.swingSpeed == 2 then 0.5 else 2
+    --         self.swingSpeed = newSpeed
+    --         warn("Changing swingSpeed to ", newSpeed)
+    --     end
+    --     return Enum.ContextActionResult.Sink
+    -- end, true, Enum.KeyCode.P)
 
     CrosshairGuiManager.toggleCrosshairLines(self.CrosshairGuiObject, false)
 end
@@ -141,7 +142,6 @@ end
 function Melee.swing(self : MeleeObject)
     if self.State == "Idle" then
         Item.ChangeState(self, "Activated")
-        ToolGuiManager.cooldown(self.ToolGuiManager, "Swing", self.tool, self.animManager.animationTracks[self.tool.Name].swing.Length)
         local swingTrack = self.animManager.animationTracks[self.tool.Name].swing
         local vmSwingTrack = self.ViewmodelManager.animManager.animationTracks[self.tool.Name].swing
         local idleTrack = self.animManager.animationTracks[self.tool.Name].idle

@@ -68,7 +68,7 @@ function InventorySystem.init()
 			end
 			return Enum.ContextActionResult.Sink
 		end,
-		true,
+		false,
 		Enum.KeyCode.Tab
 	)
 end

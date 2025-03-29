@@ -12,6 +12,13 @@ local Toolinfo: Frame = frame:FindFirstChild("ToolInfo"):: Frame
 local name: TextLabel = Toolinfo:FindFirstChild("Name"):: TextLabel
 local image: ImageLabel = Toolinfo:FindFirstChild("Image"):: ImageLabel
 
+local InputCategory = {
+	KeyboardAndMouse = "KeyboardAndMouse",
+	Gamepad = "Gamepad",
+	Touch = "Touch",
+	Unknown = "Unknown",
+}
+
 export type ToolGuiManager = {
     connections : {RBXScriptConnection}
     --Probably should create gui instances first in Roblox Studio before trying to code in their functionality.
@@ -21,11 +28,9 @@ local ToolGuiManager = {
     _initialized = false
 }
 
-function ToolGuiManager.toggleToolGuiVisibility(self : ToolGuiManager, tool : Tool, toggle : boolean)
-    ToolGui.Enabled = toggle
-end
-
 function ToolGuiManager.setTool(tool: Tool)
+    name.Text = tool.Name
+    image.Image = tool:GetAttribute("ToolGuiImageId"):: string
     if tool:HasTag("Gun") then
         AmmoInfo.Visible = true
         loaded.Text = tostring(tool:GetAttribute("Loaded"))::string
@@ -33,22 +38,38 @@ function ToolGuiManager.setTool(tool: Tool)
         -- Set loaded and unloaded labels here
     else
         AmmoInfo.Visible = false
-        name.Text = tool.Name
-        image.Image = tool:GetAttribute("ImageId"):: string -- This right here is a place holder
     end
+end
+
+--[[
+    @note: The two functions below are whole functions just in case in the future I decide to animate the frame in/out.
+]]
+function ToolGuiManager.show()
+    ToolGui.Enabled = true
+end
+
+function ToolGuiManager.hide()
+    ToolGui.Enabled = false
 end
 
 function ToolGuiManager._updatePositionAndScale()
-    if InputCategorizer.getLastInputCategory() == "Touch" then
-        -- Position gui in upper right corner
-        ToolGui
-    else
-        -- Position gui in bottom right corner
+    local touchControlsEnabled = playerGui:FindFirstChild("TouchGui") ~= nil
+	-- This is the same calculation used by the TouchGui for sizing the jump button
+	local minScreenSize = math.min(ToolGui.AbsoluteSize.X, ToolGui.AbsoluteSize.Y)
+	local isSmallScreen = minScreenSize < 500
 
-    end
+	if touchControlsEnabled and InputCategorizer.getLastInputCategory() == InputCategory.Touch then
+		-- Position gui in upper right corner
+        frame.AnchorPoint = Vector2.new(1, 0)
+        frame.Position = UDim2.fromScale(0.98, 0.02)
+	else
+         -- Position gui in bottom right corner
+         frame.AnchorPoint = Vector2.new(1, 1)
+         frame.Position = UDim2.fromScale(0.98, 0.98)
+	end
 end
 
-function ToolGuiManager.initialize(self: ToolGuiManager)
+function ToolGuiManager._initialize()
     -- Update the position and scale of the list if the TouchGui is added/removed
 	playerGui.ChildAdded:Connect(function(child)
 		if child.Name == "TouchGui" then
@@ -62,14 +83,13 @@ function ToolGuiManager.initialize(self: ToolGuiManager)
 		end
 	end)
 
-	-- Update the displayed buttons when the input category changes
-	InputCategorizer.lastInputCategoryChanged:Connect(function(inputCategory)
-		ToolGuiManager._updatePositionAndScale()
-	end)
-
 	-- Update the position and scale of the list when the screen size changes or last input category changes
 	ToolGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(ToolGuiManager._updatePositionAndScale)
 	InputCategorizer.lastInputCategoryChanged:Connect(ToolGuiManager._updatePositionAndScale)
+
+    ToolGuiManager.hide()
 end
+
+ToolGuiManager._initialize()
 
 return ToolGuiManager

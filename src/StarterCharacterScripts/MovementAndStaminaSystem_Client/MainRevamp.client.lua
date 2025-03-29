@@ -24,32 +24,10 @@ type stuff = {
     }
 }
 
-local function callbackWrapper2(actionName: string, inputState: Enum.UserInputState, onActivated: () -> (), onDeactivated: () -> ())
-    local toggle = Config.toggle[actionName]
-    if toggle == nil then
-        --hold
-        if inputState == Enum.UserInputState.Begin then
-            onActivated()
-        elseif inputState == Enum.UserInputState.End then
-            onDeactivated()
-        end
-    else
-        if inputState == Enum.UserInputState.Begin then
-            if toggle then
-                Config.toggle[actionName] = false
-                onDeactivated()
-            else
-                Config.toggle[actionName] = true
-                onActivated()
-            end
-        end
-    end
-end
-
 local stuff: stuff = {
     ["Jump"] = {
         functionToBind = function(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject) : Enum.ContextActionResult
-            callbackWrapper2(actionName, inputState, 
+            Config.toggle[actionName] = ActionManager.callbackWrapper2(Config.toggle[actionName], inputState, 
                 function()  --onActivated
                     if humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and humanoid:GetState() ~= Enum.HumanoidStateType.Landed then
                         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -68,7 +46,7 @@ local stuff: stuff = {
     },
     ["Sprint"] = {
         functionToBind = function(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject) : Enum.ContextActionResult
-            callbackWrapper2(actionName, inputState, 
+            Config.toggle[actionName] = ActionManager.callbackWrapper2(Config.toggle[actionName], inputState, 
                 function()  --onActivated
                     MovementStateMachine.AddToTower("Sprint")
                 end, 
@@ -90,7 +68,7 @@ local stuff: stuff = {
             Enum.KeyCode.ButtonB
         },
         functionToBind = function(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject) : Enum.ContextActionResult
-            callbackWrapper2(actionName, inputState, 
+            Config.toggle[actionName] = ActionManager.callbackWrapper2(Config.toggle[actionName], inputState, 
                 function()  --onActivated
                     MovementStateMachine.AddToTower("Crouch")
                 end, 
@@ -161,7 +139,7 @@ local function disableDefaultJump()
         end
     end
 
-    local TouchGui: ScreenGui? = playerGui.TouchGui
+    local TouchGui: ScreenGui? = playerGui:FindFirstChild("TouchGui")
     if TouchGui then
         destroyJumpButton(TouchGui)
     else

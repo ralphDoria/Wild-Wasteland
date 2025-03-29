@@ -69,7 +69,7 @@ function ActionManager.bindAction(
 	-- Create a new UI element
 	local actionFrame = instances.ActionFrame:Clone()
 	actionFrame.ContentFrame.ActionLabel.Text = actionName
-	actionFrame.LayoutOrder = displayOrder or 0
+	actionFrame.LayoutOrder = 999 - displayOrder
 	actionFrame.Parent = nonTouchDisplay:FindFirstChild("ListFrame")
 
 	binding.frame = actionFrame
@@ -223,10 +223,9 @@ function ActionManager.unbindAction(actionName: string)
 		binding.fadeInTweens = nil
 		binding.fadeOutTweens = nil
 		ActionManager._bindings[actionName] = nil
+		-- Unbind the action from ContextActionService
+		ContextActionService:UnbindAction(actionName)
 	end
-
-	-- Unbind the action from ContextActionService
-	ContextActionService:UnbindAction(actionName)
 end
 
 function ActionManager._updateInputDisplay(binding, inputCategory)
@@ -389,6 +388,29 @@ function ActionManager._initialize()
 	ActionManager._updatePositionAndScale()
 
 	ActionManager._initialized = true
+end
+
+function ActionManager.callbackWrapper2(toggle: boolean?, inputState: Enum.UserInputState, onActivated: () -> (), onDeactivated: () -> ()): boolean?
+    local newToggle: boolean?
+	if toggle == nil then
+        --hold
+        if inputState == Enum.UserInputState.Begin then
+            onActivated()
+        elseif inputState == Enum.UserInputState.End then
+            onDeactivated()
+        end
+    else
+        if inputState == Enum.UserInputState.Begin then
+            if toggle then
+                newToggle = false
+                onDeactivated()
+            else
+                newToggle = true
+                onActivated()
+            end
+        end
+    end
+	return newToggle
 end
 
 ActionManager._initialize()
