@@ -25,17 +25,20 @@ local Crouch = {
     active = false
 }
 
-local function crouchWalkIfMoving()
-    local direction: ZMovementDirectionUtility.zMovementDirection = ZMovementDirectionUtility.getZDirectionOfMovement()
-    if direction == "Stationary" then
-        crouchAnimTrack.walk:Stop(0.5)
+local function crouchWalkIfMoving(speed: number)
+    if math.floor(speed) == 0 then
+        crouchAnimTrack.walk:Stop()
     else
-        crouchAnimTrack.walk:Play(0.5)
-        if direction == "Forward" then
-            crouchAnimTrack.walk:AdjustSpeed(1)
-        elseif direction == "Backward" then
-            crouchAnimTrack.walk:AdjustSpeed(-1)
-        end
+        crouchAnimTrack.walk:Play()
+    end
+end
+
+local function updateCrouchWalkSpeed()
+    local direction: ZMovementDirectionUtility.zMovementDirection = ZMovementDirectionUtility.getZDirectionOfMovement()
+    if direction == "Forward" then
+        crouchAnimTrack.walk:AdjustSpeed(1)
+    elseif direction == "Backward" then
+        crouchAnimTrack.walk:AdjustSpeed(-1)
     end
 end
 
@@ -46,13 +49,22 @@ function Crouch.activate()
         remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Crouch"])
 
         -- Initial check
-        crouchWalkIfMoving()
+        crouchWalkIfMoving(character.HumanoidRootPart.AssemblyLinearVelocity.Magnitude)
+        updateCrouchWalkSpeed()
+
+        -- When speed changes
+        table.insert(
+            connections,
+            humanoid.Running:Connect(function(speed: number)  
+                crouchWalkIfMoving(speed)
+            end)
+        )
 
         -- When zMovementDirection changes
         table.insert(
             connections,
             ZMovementDirectionUtility.zMovementDirectionChanged:Connect(function()  
-                crouchWalkIfMoving()
+                updateCrouchWalkSpeed()
             end)
         )
     end

@@ -17,7 +17,7 @@ local nonTouchDisplay = actionGui.NonTouchDisplay
 
 
 local HORIZONTAL_PADDING = 40
-local VERTICAL_PADDING = 40
+local VERTICAL_PADDING = 70
 
 type ActionCallback = (string, Enum.UserInputState, InputObject) -> ...any
 type binding = {
@@ -31,15 +31,8 @@ type binding = {
 	fadeInTweens: {Tween}
 }
 
-local InputCategory = {
-	KeyboardAndMouse = "KeyboardAndMouse",
-	Gamepad = "Gamepad",
-	Touch = "Touch",
-	Unknown = "Unknown",
-}
-
 local ActionManager = {
-	InputCategory = InputCategory,
+	InputCategory = InputCategorizer.InputCategory,
 	_initialized = false,
 	_bindings = {} :: { [string]: binding },
 }
@@ -235,7 +228,7 @@ function ActionManager._updateInputDisplay(binding, inputCategory)
 		oldButtonDisplay:Destroy()
 	end
 
-	if inputCategory == InputCategory.Touch then
+	if inputCategory == InputCategorizer.InputCategory.Touch then
 		nonTouchDisplay.Visible = false
 		TouchDisplayerManager.getTouchDisplay().Visible = true
 	else
@@ -243,9 +236,9 @@ function ActionManager._updateInputDisplay(binding, inputCategory)
 		TouchDisplayerManager.getTouchDisplay().Visible = false
 		-- Get a new button display
 		local buttonDisplay: Instance
-		if inputCategory == InputCategory.KeyboardAndMouse then
+		if inputCategory == InputCategorizer.InputCategory.KeyboardAndMouse then
 			buttonDisplay = ActionManager._getButtonDisplayForInput(binding.keyboardAndMouseInput)
-		elseif inputCategory == InputCategory.Gamepad then
+		elseif inputCategory == InputCategorizer.InputCategory.Gamepad then
 			buttonDisplay = ActionManager._getButtonDisplayForInput(binding.gamepadInput)
 		end
 		buttonDisplay.Parent = binding.frame.ContentFrame.InputFrame
@@ -311,26 +304,26 @@ end
 -- Return an InputCategory based on the UserInputType
 function ActionManager._getCategoryOfInputType(inputType: Enum.UserInputType)
 	if string.find(inputType.Name, "Gamepad") then
-		return InputCategory.Gamepad
+		return InputCategorizer.InputCategory.Gamepad
 	elseif inputType == Enum.UserInputType.Keyboard or string.find(inputType.Name, "Mouse") then
-		return InputCategory.KeyboardAndMouse
+		return InputCategorizer.InputCategory.KeyboardAndMouse
 	elseif inputType == Enum.UserInputType.Touch then
-		return InputCategory.Touch
+		return InputCategorizer.InputCategory.Touch
 	else
-		return InputCategory.Unknown
+		return InputCategorizer.InputCategory.Unknown
 	end
 end
 
 -- Return a default input category based on the current peripherals
 function ActionManager._getDefaultInputCategory()
 	if UserInputService.KeyboardEnabled and UserInputService.MouseEnabled then
-		return InputCategory.KeyboardAndMouse
+		return InputCategorizer.InputCategory.KeyboardAndMouse
 	elseif UserInputService.TouchEnabled then
-		return InputCategory.Touch
+		return InputCategorizer.InputCategory.Touch
 	elseif UserInputService.GamepadEnabled then
-		return InputCategory.Gamepad
+		return InputCategorizer.InputCategory.Gamepad
 	else
-		return InputCategory.Unknown
+		return InputCategorizer.InputCategory.Unknown
 	end
 end
 
@@ -339,15 +332,15 @@ function ActionManager._updatePositionAndScale()
 	local touchControlsEnabled = playerGui:FindFirstChild("TouchGui") ~= nil
 	-- This is the same calculation used by the TouchGui for sizing the jump button
 	local minScreenSize = math.min(actionGui.AbsoluteSize.X, actionGui.AbsoluteSize.Y)
-	local isSmallScreen = minScreenSize < 500
+	local isSmallScreen = minScreenSize < 500 -- This may be implemented if ToolGuiManager with the ToolSystem implements it.
 
 	local verticalPadding = VERTICAL_PADDING
-	if touchControlsEnabled and InputCategorizer.getLastInputCategory() == InputCategory.Touch then
+	if touchControlsEnabled and InputCategorizer.getLastInputCategory() == InputCategorizer.InputCategory.Touch then
 		TouchDisplayerManager.updatePositionAndScale()
 	else
 		-- Offset the vertical padding to account for the ToolGui
 		-- Note that the ToolGui will be in the bottom right corner when NonTouchDisplay is visible.
-		verticalPadding += if isSmallScreen then 70 else 210 --@warning adjust these numbers
+		verticalPadding += 10 + 10
 		-- If the screen is considered 'small', scale the action list down
 		nonTouchDisplay.ListFrame.UIScale.Scale = if isSmallScreen then 0.85 else 1
 		nonTouchDisplay.ListFrame.Position = UDim2.new(1, -HORIZONTAL_PADDING, 1, -verticalPadding)

@@ -85,8 +85,8 @@ local music = {
 }
 local masterSG : SoundGroup = SoundService:WaitForChild("0 - Master")
 local musicSG : SoundGroup = masterSG:WaitForChild("Music")
-local ambienceSG : SoundGroup = masterSG:WaitForChild("Ambience")
 local gameSG : SoundGroup = masterSG:WaitForChild("Game")
+local ambienceSG : SoundGroup = gameSG:WaitForChild("Ambience")
 local interfaceSG : SoundGroup = masterSG:WaitForChild("Interface")
 local menuSG : SoundGroup = masterSG:WaitForChild("Menu")
 local soundGroups = {

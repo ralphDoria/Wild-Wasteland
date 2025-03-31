@@ -29,6 +29,30 @@ function CircularProgressBarManager.CreateProgressBar(parent: Instance, color: C
     end)
 end
 
+--[[
+    This is a nearly identical function to CreateProgressBar, but the use case for this is when
+    there is already a progress bar created.
+]]
+function CircularProgressBarManager.InitializeProgressBar(progressBar): RBXScriptConnection
+    completedEvents[progressBar] = Instance.new("BindableEvent")
+    local progress: NumberValue = progressBar.Progress
+    local leftProgressBarImage: ImageLabel = progressBar.LeftGradient.ProgressBarImage
+    local rightProgressBarImage: ImageLabel = progressBar.RightGradient.ProgressBarImage
+    local leftGradient: UIGradient = leftProgressBarImage:FindFirstChildOfClass("UIGradient"):: UIGradient
+    local rightGradient: UIGradient = rightProgressBarImage:FindFirstChildOfClass("UIGradient"):: UIGradient
+    progressBar.Destroying:Connect(function()  
+        if completedEvents[progressBar] then
+            completedEvents[progressBar]:Destroy()
+            completedEvents[progressBar] = nil
+        end
+    end)
+    return progress.Changed:Connect(function(value)
+        local angle = math.clamp(value * 360, 0, 360)
+        leftGradient.Rotation = math.clamp(angle, 180, 360)
+        rightGradient.Rotation = math.clamp(angle, 0, 180)
+    end)
+end
+
 function CircularProgressBarManager.ResetProgressBar(progressBar: Frame)
     local progress: NumberValue = progressBar:FindFirstChild("Progress") :: NumberValue
     local connection: RBXScriptConnection? = connections[progressBar]

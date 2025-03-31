@@ -12,13 +12,6 @@ local Toolinfo: Frame = frame:FindFirstChild("ToolInfo"):: Frame
 local name: TextLabel = Toolinfo:FindFirstChild("Name"):: TextLabel
 local image: ImageLabel = Toolinfo:FindFirstChild("Image"):: ImageLabel
 
-local InputCategory = {
-	KeyboardAndMouse = "KeyboardAndMouse",
-	Gamepad = "Gamepad",
-	Touch = "Touch",
-	Unknown = "Unknown",
-}
-
 export type ToolGuiManager = {
     connections : {RBXScriptConnection}
     --Probably should create gui instances first in Roblox Studio before trying to code in their functionality.
@@ -56,16 +49,16 @@ function ToolGuiManager._updatePositionAndScale()
     local touchControlsEnabled = playerGui:FindFirstChild("TouchGui") ~= nil
 	-- This is the same calculation used by the TouchGui for sizing the jump button
 	local minScreenSize = math.min(ToolGui.AbsoluteSize.X, ToolGui.AbsoluteSize.Y)
-	local isSmallScreen = minScreenSize < 500
+	local isSmallScreen = minScreenSize < 500 -- This may be incorporated later
 
-	if touchControlsEnabled and InputCategorizer.getLastInputCategory() == InputCategory.Touch then
+	if touchControlsEnabled and InputCategorizer.getLastInputCategory() == InputCategorizer.InputCategory.Touch then
 		-- Position gui in upper right corner
         frame.AnchorPoint = Vector2.new(1, 0)
-        frame.Position = UDim2.fromScale(0.98, 0.02)
+        frame.Position = UDim2.fromScale(1, 0)
 	else
          -- Position gui in bottom right corner
          frame.AnchorPoint = Vector2.new(1, 1)
-         frame.Position = UDim2.fromScale(0.98, 0.98)
+         frame.Position = UDim2.fromScale(1, 1)
 	end
 end
 

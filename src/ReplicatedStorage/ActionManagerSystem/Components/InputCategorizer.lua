@@ -29,6 +29,8 @@ function InputCategorizer.getLastInputCategory()
 	return InputCategorizer._lastInputCategory
 end
 
+InputCategorizer.InputCategory = InputCategory
+
 -- If _lastInputCategory and inputCategory are different, set _lastInputCategory and fire lastInputCategoryChanged
 function InputCategorizer._setLastInputCategory(inputCategory: string)
 	if InputCategorizer._lastInputCategory ~= inputCategory then

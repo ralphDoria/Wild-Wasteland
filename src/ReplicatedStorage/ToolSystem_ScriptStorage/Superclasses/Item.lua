@@ -170,9 +170,9 @@ function Item.toggleDropBind(self : ItemType, toggle : boolean, onDropping: () -
     local function functionToBind(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?
         ActionManager.callbackWrapper2(nil, inputState, 
             function()
-                Item.drop(self, onDropping, onDropped)
             end, 
-            function()  
+            function()
+                Item.drop(self, onDropping, onDropped)
             end)
         return Enum.ContextActionResult.Sink
     end
