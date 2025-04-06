@@ -1,8 +1,8 @@
 local References = require("./References")
-References.update()
 local TweenService = game:GetService("TweenService")
 local statGui: CanvasGroup = References.CharacterStatsGui.Frame.health
 local statGuiObject = References.StatGuiManager.new(statGui, "Health", Color3.fromRGB(255, 0, 0))
+local RunService = game:GetService("RunService")
 
 --Sounds
 local sounds: {[string]: Sound} = {
@@ -21,14 +21,17 @@ effectsOverlay.Enabled = true
 local bloodUi: CanvasGroup = effectsOverlay.Blood
 local dyingColorCorrection: ColorCorrectionEffect = game:GetService("Lighting"):FindFirstChild("DyingColorCorrection")
 
-local function tweenHeartbeatSpeedTo(value: number)
+local connections = {}
+
+local function tweenHeartbeatSpeedTo(value: number, transitionTime: number): Tween?
     if sounds.heartbeat.PlaybackSpeed == value then return end
     value = math.clamp(value, 0, 2)
-    local ti = TweenInfo.new(1)
+    local ti = TweenInfo.new(transitionTime, Enum.EasingStyle.Linear)
     local speedTween = TweenService:Create(sounds.heartbeat, ti, {PlaybackSpeed = value})
     local pitchTween = TweenService:Create(heartbeatPitch, ti, {Octave = 1/value})
     speedTween:Play()
     pitchTween:Play()
+    return speedTween
 end
 
 local function tweenSoundVolume(sound: Sound, newVolume: number, transitionTime: number)
@@ -86,78 +89,100 @@ local function tweenGameAudioVolumeTo(value: number, transitionTime: number)
 end
 
 local proportionMarkers = {
-    [1] = 0.5, -- heartbeat can be heard. Starts at playback speed = 1 and maxes out at 2 when proportion reaches 0.1
-    [2] = 0.2, -- ear ringing starts
-    [3] = 0.1, -- heartbeat is at its fastest, anything lower than this an the heart beat will slow to playbackspeed = 0.5
-    [4] = 0 -- last heartbeat is heard, ear ringing fades to 0
+    startHeartbeat = 0.5, -- also when color correction starts
+    startEarRinging = 0.2, -- also when reverb starts
+    dead = 0
 }
 
+local baseHeartbeatSpeed = 1
+local maxHeartbeatSpeed = 2
+
 local function updateHeartbeatSoundProperties(healthProportion: number)
-    if healthProportion > proportionMarkers[1] then -- possible healthProportion values here: (0.5, inf)
-            tweenSoundVolume(sounds.heartbeat, 0, 0.5)
-        elseif healthProportion > proportionMarkers[3] then -- possible healthProportion values here: (0.1, 0.5]
-            local heartbeatSpeed = math.clamp(
-                1 + (1 - (healthProportion - proportionMarkers[3])/(proportionMarkers[1]-proportionMarkers[3])), -- Makes heartbeat faster as healthProportion decreases in this interval
-                1, 
-                2)
-            --warn("Hearbeat Speed: ", heartbeatSpeed)
-            tweenHeartbeatSpeedTo(heartbeatSpeed)
-            tweenSoundVolume(sounds.heartbeat, 1, 0.5)
-        elseif healthProportion > proportionMarkers[4] then -- possible healthProportion values here: (0, 0.1]
-            local heartbeatSpeed = math.lerp(
-                0.2, 
-                0.5, 
-                (healthProportion - proportionMarkers[4])/(proportionMarkers[3]-proportionMarkers[4])) -- Makes heartbeat slower as healthProportion decreases in this interval
-            --warn("Hearbeat Speed: ", heartbeatSpeed)
-            tweenHeartbeatSpeedTo(heartbeatSpeed)
-            tweenSoundVolume(sounds.heartbeat, 2, 0.5)
-        else -- possible healthProportion values here: (-inf, 0]
-            --final heartbeat
-            if sounds.heartbeat.IsPlaying then
-                sounds.heartbeat.DidLoop:Once(function(a0: string, a1: number)
-                    sounds.heartbeat:Stop()
-                end)
-            end
-        end
+    if healthProportion > proportionMarkers.startHeartbeat then
+        tweenHeartbeatSpeedTo(baseHeartbeatSpeed, 1)
+        tweenSoundVolume(sounds.heartbeat, 0, 0.5)
+    elseif healthProportion > proportionMarkers.dead then
+        local heartbeatSpeed = math.clamp(math.map(healthProportion, proportionMarkers.startHeartbeat, proportionMarkers.dead, baseHeartbeatSpeed, maxHeartbeatSpeed), baseHeartbeatSpeed, maxHeartbeatSpeed)
+        --print(heartbeatSpeed)
+        tweenHeartbeatSpeedTo(heartbeatSpeed, 0.5)
+        tweenSoundVolume(sounds.heartbeat, 1, 0.5)
+        tweenDyingColorCorrectionTo(
+            math.clamp(math.map(healthProportion, proportionMarkers.startHeartbeat, proportionMarkers.dead, 0, -1), -1, 0), 
+            0.5)
+        tweenGameAudioVolumeTo(
+            math.clamp(math.map(healthProportion, proportionMarkers.startHeartbeat, proportionMarkers.dead, 1, 0.2), 0.2, 1), 
+            0.5)
+    elseif healthProportion <= proportionMarkers.dead then
+        local tween = tweenHeartbeatSpeedTo(0.3, 3)
+        tween.Completed:Once(function(a0: Enum.PlaybackState)
+            tweenSoundVolume(sounds.heartbeat, 0, 5)
+            -- warn("last heartbeat")--tween Heratbeat volume to 0 rather than one last heartbeat
+            -- sounds.heartbeat.DidLoop:Once(function(a0: string, a1: number)
+            --     warn("stopping heartbeat")
+            --     sounds.heartbeat:Stop()
+            -- end)
+        end)
+    end
 end
 
 local function updateEarRingingSoundProperties(healthProportion: number)
-    if healthProportion > proportionMarkers[2] then -- possible healthProportion values here: (0.2, inf)
+    if healthProportion > proportionMarkers.startEarRinging then -- possible healthProportion values here: (0.2, inf)
         tweenSoundVolume(sounds.earsRinging, 0, 0.5)
-    elseif healthProportion <= proportionMarkers[2] and healthProportion > proportionMarkers[4] then -- possible healthProportion values here: (0, 0.2]
+    elseif healthProportion > proportionMarkers.dead then -- possible healthProportion values here: (0, 0.2]
         tweenSoundVolume(sounds.earsRinging, 0.5, 0.5)
-
-    elseif healthProportion <= proportionMarkers[4] then -- possible healthProportion values here: (-inf, 0]
-        tweenSoundVolume(sounds.earsRinging, 0, 4)
-    end
-
-    if sounds.earsRinging.IsPlaying then
         tweenDyingReverbTo(
-            math.clamp(
-                math.lerp(-30, 20, 1 - (healthProportion - proportionMarkers[4])/(proportionMarkers[2]-proportionMarkers[4])),
-                -30,
-                20), 
+            math.clamp(math.map(healthProportion, proportionMarkers.startEarRinging, proportionMarkers.dead, -30, 20), -30, 20), 
             0.5)
-        tweenDyingColorCorrectionTo(
-            math.clamp(
-                math.lerp(-1, 0, (healthProportion - proportionMarkers[4])/(proportionMarkers[2]-proportionMarkers[4])),
-                -1,
-                0),
-            0.5)
-        tweenGameAudioVolumeTo(
-            math.clamp(
-                math.lerp(0.1, 1, (healthProportion - proportionMarkers[4])/(proportionMarkers[2]-proportionMarkers[4])),
-                0.1,
-                1),
-            0.5)
+    elseif healthProportion <= proportionMarkers.dead then -- possible healthProportion values here: (-inf, 0]
+        tweenSoundVolume(sounds.earsRinging, 0, 4)
     end
 end
 
 local Health = {}
 
-sounds.heartbeat:GetPropertyChangedSignal("TimePosition"):Connect(function()  
-        print(sounds.heartbeat.TimePosition)
-end)
+local function toggleBloodGuiHeartbeatSync(toggle: boolean)
+
+    local heartbeatMarkers = {
+        0,
+        0.04348,
+        0.36863,
+        1.05158,
+        1.37572,
+        sounds.heartbeat.TimeLength
+    }
+
+    local lowerTransparency = 0.2
+    local higherTransparency = 0.8
+
+    if toggle then
+        RunService:BindToRenderStep("BloodUi", 200, function(delta: number)  
+            local currentTimePosition = sounds.heartbeat.TimePosition
+            for i = 1, #heartbeatMarkers - 1, 1 do
+                if heartbeatMarkers[i] <= currentTimePosition and currentTimePosition < heartbeatMarkers[i + 1] then
+                    local transparencyValue
+                    local colorValue
+                    if i % 2 == 0 then
+                        transparencyValue = math.map(currentTimePosition, heartbeatMarkers[i], heartbeatMarkers[i + 1], lowerTransparency, higherTransparency)
+                        local x = math.map(currentTimePosition, heartbeatMarkers[i], heartbeatMarkers[i + 1], 0, 255) 
+                        colorValue = Color3.fromRGB(255, x, x)
+                    else
+                        transparencyValue = math.map(currentTimePosition, heartbeatMarkers[i], heartbeatMarkers[i + 1], higherTransparency, lowerTransparency)
+                        local x = math.map(currentTimePosition, heartbeatMarkers[i], heartbeatMarkers[i + 1], 255, 0) 
+                        colorValue = Color3.fromRGB(255, x, x)
+                    end
+                    bloodUi.GroupTransparency = transparencyValue
+                    References.StatGuiManager.getCanvasGroup(statGuiObject).GroupColor3 = colorValue
+                    --warn(i)
+                    return
+                end
+            end
+        end)
+    else 
+        RunService:UnbindFromRenderStep("BloodUi")
+        local ti = TweenInfo.new(1)
+        TweenService:Create(bloodUi, ti, {GroupTransparency = 1}):Play()
+    end
+end
 
 function Health.initialize()
 
@@ -181,6 +206,15 @@ function Health.initialize()
         savedHealthValue = health
         References.StatGuiManager.SetStatValue(statGuiObject, healthProportion)
     end)
+
+    table.insert(
+        connections,
+        sounds.heartbeat:GetPropertyChangedSignal("Playing"):Connect(function(...: any)  
+            warn(sounds.heartbeat.IsPlaying)
+            toggleBloodGuiHeartbeatSync(sounds.heartbeat.IsPlaying)
+        end)
+    )
+
 end
 
 return Health

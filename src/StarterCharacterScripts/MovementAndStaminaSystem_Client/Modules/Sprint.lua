@@ -3,6 +3,9 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid: Humanoid = character:WaitForChild("Humanoid")
 local Config = require("./Config")
 local ZMovementDirectionUtility = require("./ZMovementDirectionUtility")
+local StaminaManager = require("./StaminaManager")
+local Trove = require(game:GetService("ReplicatedStorage").Packages.Trove)
+local trove = Trove.new()
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MovementAndStaminaSystem_Storage = ReplicatedStorage.MovementAndStaminaSystem_Storage
@@ -13,6 +16,7 @@ local remotes: {[string]: RemoteEvent} = {
 local connections: {RBXScriptConnection} = {}
 
 local Sprint = {
+    _initialized = false,
     active = false
 }
 
@@ -22,22 +26,29 @@ Don't have to worry about animations here because the forked Animate script in S
 (as well as footstep sounds).
 ]]
 
-local function sprintIfMovingForward()
-    if ZMovementDirectionUtility.getZDirectionOfMovement() == "Forward" then
-        remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Sprint"])
-    else
-        remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
-    end
-end
-
-
-function Sprint.activate()
+local function disconnectAllConnections()
     if connections then
         for _, v in connections do
             v:Disconnect()
             v = nil
         end
     end
+end
+
+local function sprintIfMovingForward()
+    if ZMovementDirectionUtility.getZDirectionOfMovement() == "Forward" then
+        remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Sprint"])
+        StaminaManager.drainStaminaBar()
+    else
+        remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
+        StaminaManager.fillStaminaBar()
+    end
+end
+
+
+function Sprint.activate()
+    if StaminaManager.getCurrentStamina() <= 0 then return end
+    disconnectAllConnections()
 
     -- Initial check
     sprintIfMovingForward()
@@ -55,15 +66,32 @@ function Sprint.activate()
 end
 
 function Sprint.deactivate()
-    if connections then
-        for _, v in connections do
-            v:Disconnect()
-            v = nil
-        end
-    end
+    disconnectAllConnections()
     remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
+    StaminaManager.fillStaminaBar()
     Sprint.active = false
     character:SetAttribute("Sprint", false)
+end
+
+function Sprint.initialize()
+    if Sprint._initialized then
+        warn("Sprint is already initialized")
+        return
+    end
+
+    warn("connecting zeroStamina receiver")
+    trove:Connect(StaminaManager.zeroStamina, function(...: any): ...any
+        warn("receiving zeroStamina fire signal")
+        remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
+    end)
+
+    humanoid.Died:Once(function(...: any)
+        disconnectAllConnections()
+        trove:Destroy()
+        Sprint._initialized = false
+    end)
+
+    Sprint._initialized = true
 end
 
 return Sprint

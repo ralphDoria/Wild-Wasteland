@@ -1,131 +1,120 @@
-------------------------------------------------------------------------<<<PLAYER SPECIFICS>>>
-local player = game.Players.LocalPlayer
-local character = player.Character
-local humanoid = character:WaitForChild("Humanoid")
-local PlayerGui = player:WaitForChild("PlayerGui")
-local CharacterStatusGui = PlayerGui:WaitForChild("CharacterStatusGui")
-
-------------------------------------------------------------------------<<<MODULES>>>
-local CharacterSpeedInfo = require(script.Parent.CharacterSpeedInfo)
-
-------------------------------------------------------------------------<<<LOCAL VARIABLES>>>
-local MAX_STAMINA = 100
-local JUMP_STAMINA_COST = MAX_STAMINA * 0.3
-local SLIDE_STAMINA_COST
-local currentStamina = MAX_STAMINA
-local MIN_REQUIRED_STAMINA = 15 --this is a percentage
-local staminaFrame = CharacterStatusGui:FindFirstChild("stamina", true)
-local staminaBar = staminaFrame.bar.fill
-local minRequiredStaminaBar = staminaBar:Clone()
-minRequiredStaminaBar.Size = UDim2.new(1*(MIN_REQUIRED_STAMINA/100), 0, 1, 0)
-minRequiredStaminaBar.Name = "minimumRequiredStaminaForSprintBar"
-minRequiredStaminaBar.ZIndex = 2
-minRequiredStaminaBar.BackgroundColor3 = Color3.new(0, 0, 0)
-minRequiredStaminaBar.BackgroundTransparency = 0.8
-minRequiredStaminaBar.Parent = staminaBar.Parent
-local insufficientStaminaForJumpBar = staminaBar:Clone()
-insufficientStaminaForJumpBar.Size = UDim2.new(JUMP_STAMINA_COST/100, 0, 1, 0)
-insufficientStaminaForJumpBar.Name = "insufficientStaminaForJumpIndicator"
-insufficientStaminaForJumpBar.ZIndex = 3
-insufficientStaminaForJumpBar.BackgroundColor3 = Color3.new(1, 0, 0)
-insufficientStaminaForJumpBar.BackgroundTransparency = 1
-insufficientStaminaForJumpBar.Parent = staminaBar.Parent
-local staminaLabel = CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForChild("bgFrame"):WaitForChild("staminaLabel")
-local drainConnection
-local fillConnection
-
-------------------------------------------------------------------------<<<ROBLOX LIBRARIES>>>
+local Config = require("./Config")
+local References = require("../../CharacterStatsGuiSystem_Client/Components/References")
 local RunService = game:GetService("RunService")
+local sounds: {[string]: Sound} = {
+    maleBreathing = References.SoundService:FindFirstChild("MaleBreathing"),
+    femaleBreathing = References.SoundService:FindFirstChild("FemaleBreathing")
+}
+
+local statGui: CanvasGroup = References.CharacterStatsGui.Frame.stamina
+local statGuiObject = References.StatGuiManager.new(statGui, "Stamina", Color3.fromRGB(0, 150, 255))
+
+local MAX_STAMINA = 100
+local staminaDrainSpeed = 10
+local staminaRegenSpeed = 10
+local currentStamina = MAX_STAMINA
+References.StatGuiManager.SetStatValue(statGuiObject, currentStamina/MAX_STAMINA)
+
+local connections: {RBXScriptConnection} = {}
+local drainActive = false
+local fillActive = false
+local MAX_FILL_COOLDOWN: number = 1.5
+local currentFillCooldown: number = MAX_FILL_COOLDOWN
 
 ------------------------------------------------------------------------<<<MODULE SCRIPT>>>
-local StaminaManager = {
-    MAX_STAMINA = MAX_STAMINA,
-    MIN_REQUIRED_STAMINA = MIN_REQUIRED_STAMINA,
-    JUMP_STAMINA_COST = JUMP_STAMINA_COST
-}
+local StaminaManager = {_initialized = false}
+
+StaminaManager.JUMP_STAMINA_COST = MAX_STAMINA * 0.1
+
+local zeroStaminaEvent: BindableEvent = Instance.new("BindableEvent")
+StaminaManager.zeroStamina = zeroStaminaEvent.Event :: RBXScriptSignal
+local cachedStamina: number = MAX_STAMINA
 
 function StaminaManager.getCurrentStamina()
     return currentStamina
 end
 
-function StaminaManager.updateStaminaBar(newStaminaValue : number)
-    currentStamina = math.clamp(newStaminaValue, 0, MAX_STAMINA) --math.clamp ensures currentStamina doesn't go below 0
-    staminaLabel.Text = "Stamina: ".. math.round(currentStamina/MAX_STAMINA*100) .. "%" --displays the percent of stamina remaining rounded to the nearest whole #
-    staminaBar:TweenSize(UDim2.new(currentStamina/MAX_STAMINA, 0, 1, 0), "Out", "Linear", 0)
+function StaminaManager._setStaminaBar(value: number)
+    currentStamina = value
+    local proportion = currentStamina/MAX_STAMINA
+    References.StatGuiManager.SetStatValue(statGuiObject, proportion)
 end
 
-function StaminaManager.indicateInsufficientStaminaForJump()
-    if insufficientStaminaForJumpBar.BackgroundTransparency == 1 then
-        insufficientStaminaForJumpBar.BackgroundTransparency = 0.8
-        task.wait(0.2)
-        insufficientStaminaForJumpBar.BackgroundTransparency = 1
-    end
-end
-
-function StaminaManager.indicateInsufficientStaminaForSprint()
-    if minRequiredStaminaBar.BackgroundColor3 == Color3.new(0, 0, 0) then
-        minRequiredStaminaBar.BackgroundColor3 = Color3.new(1, 0, 0)
-        task.wait(0.2)
-        minRequiredStaminaBar.BackgroundColor3 = Color3.new(0, 0, 0)
-    end
+function StaminaManager.setStaminaBar(value: number)
+    currentFillCooldown = MAX_FILL_COOLDOWN
+    currentStamina = value
+    local proportion = currentStamina/MAX_STAMINA
+    References.StatGuiManager.SetStatValue(statGuiObject, proportion)
 end
 
 function StaminaManager.drainStaminaBar()
-    --If the stamina bar is regenerating, then stop it
-    if fillConnection then
-        fillConnection:Disconnect()
-        fillConnection = nil
-    end
-
-    --drains the stamina bar
-    if drainConnection == nil then
-        drainConnection = RunService.RenderStepped:Connect(function(dt)
-            --print(currentStamina .. "-drain")
-            --while the player has more than 0 stamina, the player will be able to sprint, but their stamina bar will deplete
-            if currentStamina > 0 then
-                StaminaManager.updateStaminaBar(currentStamina - 10*dt)
-            else
-                --When the player reaches 0 stamina, the stamina bar will no longer deplete and the player will be set back to walking speed
-                print("Player reached 0 stamina while sprinting")
-                drainConnection:Disconnect()
-                drainConnection = nil
-                humanoid.WalkSpeed = CharacterSpeedInfo.walkSpeed
-                if CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForChild("bgFrame").BackgroundColor3 == Color3.fromRGB(97, 0, 176) then
-                    CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForChild("bgFrame").BackgroundColor3 = Color3.new(1, 0, 0)
-                    task.wait(0.2)
-                    CharacterStatusGui:WaitForChild("staminaDisplay"):WaitForChild("bgFrame").BackgroundColor3 = Color3.fromRGB(97, 0, 176)
-                end
-            end
-        end)
-    end
+    drainActive = true
+    fillActive = false
 end
 
 function StaminaManager.fillStaminaBar()
-    --If the stamina bar is depleting, then stop it
-    if drainConnection then
-        drainConnection:Disconnect()
-        drainConnection = nil
-    end
-    
-    if fillConnection == nil then
-        --Regenerates the stamina bar
-        fillConnection = RunService.RenderStepped:Connect(function(dt)
-            --print(currentStamina .. "-fill")
-            --If the player's stamina is less than their stamina cap, then their stamina bar will regenerate
-            if currentStamina >= JUMP_STAMINA_COST then
-                humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+    fillActive = true
+    drainActive = false
+end
+
+local function disconnectAllConnections()
+    if #connections ~= 0 then
+        for _, v in connections do
+            if v ~= nil then
+                v:Disconnect()
+                v = nil
             end
-            if currentStamina < MAX_STAMINA then
-                StaminaManager.updateStaminaBar(currentStamina + 10*dt)
-            else
-                --the stamina bar will stop regenerating once it's reached max stamina
-                if fillConnection then
-                    fillConnection:Disconnect()
-                    fillConnection = nil
-                end
-            end
-        end)
+        end
     end
 end
+
+function StaminaManager.initialize()
+    if StaminaManager._initialized then
+        warn("Already initialized")
+        return
+    end
+    table.insert(
+        connections,
+        RunService.RenderStepped:Connect(function(dt: number)  
+            if currentFillCooldown > 0 then
+                currentFillCooldown = math.clamp(currentFillCooldown - dt, 0, MAX_FILL_COOLDOWN)
+            end
+
+            if drainActive and not fillActive then
+                if 0 < currentStamina then
+                    -- Drain Stamina
+                    StaminaManager._setStaminaBar(math.clamp(currentStamina - staminaDrainSpeed*dt, 0, MAX_STAMINA))
+                    currentFillCooldown = MAX_FILL_COOLDOWN
+                else
+                    drainActive = false
+                end
+            elseif fillActive and not drainActive then
+                if currentFillCooldown == 0 then
+                    if currentStamina < MAX_STAMINA then
+                        -- fill stamina
+                        StaminaManager._setStaminaBar(math.clamp(currentStamina + staminaRegenSpeed*dt, 0, MAX_STAMINA))
+                    else
+                        fillActive = false
+                    end
+                end
+            end
+
+            if cachedStamina ~= currentStamina then
+                cachedStamina = currentStamina
+                if currentStamina == 0 then
+                    warn("firing zero stamina event")
+                    zeroStaminaEvent:Fire()
+                end
+            end
+            --warn("drainActive", drainActive, "| fillActive", fillActive)
+        end)
+    )
+    References.humanoid.Died:Once(function(...: any)  
+        disconnectAllConnections()
+        StaminaManager._initialized = false
+    end)
+    StaminaManager._initialized = true
+end
+
 
 return StaminaManager

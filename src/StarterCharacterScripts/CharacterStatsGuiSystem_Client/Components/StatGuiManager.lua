@@ -38,6 +38,10 @@ function StatGuiManager.new(StatGui, statName: string, color: Color3)
     return self
 end
 
+function StatGuiManager.getCanvasGroup(self: StatGui): CanvasGroup
+    return self.statGui
+end
+
 function StatGuiManager.SetStatValue(self: StatGui, proportion: number)
     local currentProportion: number = self.progress.Value
     if currentProportion == proportion then
@@ -45,9 +49,10 @@ function StatGuiManager.SetStatValue(self: StatGui, proportion: number)
         return
     end
     local valueTween = TweenService:Create(self.progress, TweenInfo.new(0.2), {Value = proportion})
+    self.statGui.GroupColor3 = Color3.fromRGB(255, 255, 255)
     local colorTween = TweenService:Create(
         self.statGui, 
-        TweenInfo.new(0.1, Enum.EasingStyle.Circular, Enum.EasingDirection.Out, 0, true), 
+        TweenInfo.new(0.1, Enum.EasingStyle.Circular, Enum.EasingDirection.In, 0, true), 
         {GroupColor3 = self.color})
     colorTween:Play()
     valueTween:Play()
@@ -68,6 +73,10 @@ function StatGuiManager.SetStatValue(self: StatGui, proportion: number)
         end
         self.percentageChangeEffect = nil
     end)
+end
+
+function StatGuiManager.getValue(self: StatGui): number
+    return self.progress.Value
 end
 
 return StatGuiManager

@@ -7,10 +7,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ActionManager = require(ReplicatedStorage.RojoManaged_RS.ActionManagerSystem.ActionManager)
 local MovementStateMachine = require("./Modules/MovementStateMachine")
 local Config = require("./Modules/Config")
+local StaminaManager = require("./Modules/StaminaManager")
 local movementManagers = {
     ["Sprint"] = require("./Modules/Sprint"),
     ["Crouch"] = require("./Modules/Crouch")
 }
+
+movementManagers.Sprint.initialize()
 
 type stuff = {
     [string]: {
@@ -30,7 +33,10 @@ local stuff: stuff = {
             Config.toggle[actionName] = ActionManager.callbackWrapper2(Config.toggle[actionName], inputState, 
                 function()  --onActivated
                     if humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and humanoid:GetState() ~= Enum.HumanoidStateType.Landed then
-                        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                        if StaminaManager.getCurrentStamina() > StaminaManager.JUMP_STAMINA_COST then
+                            StaminaManager.setStaminaBar(StaminaManager.getCurrentStamina() - StaminaManager.JUMP_STAMINA_COST)
+                            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                        end
                     end
                 end, 
                 function()   --onDeactivated
@@ -169,3 +175,7 @@ for actionName, info in stuff do
         ActionManager.unbindAction(actionName)
     end)
 end
+
+
+
+

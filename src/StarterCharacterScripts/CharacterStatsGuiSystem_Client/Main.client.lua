@@ -1,5 +1,6 @@
 local References = require("./Components/References")
 local Health = require("./Components/Health")
+local Stamina = require("../MovementAndStaminaSystem_Client/Modules/StaminaManager")
 
 local Config: {[string]: Color3} = {
     ["Health"] = Color3.fromRGB(255, 0, 0),
@@ -9,7 +10,9 @@ local Config: {[string]: Color3} = {
 }
 
 local function initialize()
+	References.update()
 	Health.initialize()
+	Stamina.initialize()
 
 	local function updatePositionAndScale()
 		local touchControlsEnabled = References.playerGui:FindFirstChild("TouchGui") ~= nil
