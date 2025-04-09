@@ -53,19 +53,20 @@ function Melee.new(tool : Tool, humanoid : Humanoid) : MeleeObject
 end
 
 local function toggleSwingBind(self : MeleeObject, toggle : boolean)
-    local function functionToBind(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?
-        ActionManager.callbackWrapper2(nil, inputState, 
-            function()
-                Melee.swing(self)
-            end, 
-            function()  
-            end)
-        return Enum.ContextActionResult.Sink
-    end
     if toggle then
         ActionManager.bindAction(
             "Swing", 
-            functionToBind, 
+            function(): (() -> (), () -> ())  
+                local function onActivated()
+                    Melee.swing(self)
+                end
+
+                local function onDeactivated()
+                    
+                end
+
+                return onActivated, onDeactivated
+            end, 
             Enum.UserInputType.MouseButton1,
             Enum.KeyCode.ButtonR2, 
             3, 

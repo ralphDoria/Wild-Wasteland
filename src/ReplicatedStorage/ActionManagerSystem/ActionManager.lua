@@ -20,6 +20,9 @@ local HORIZONTAL_PADDING = 40
 local VERTICAL_PADDING = 70
 
 type ActionCallback = (string, Enum.UserInputState, InputObject) -> ...any
+
+export type GetCallbacks = () -> (()->(), ()->())
+
 type binding = {
 	connections: {RBXScriptConnection},
 	keyboardAndMouseInput: Enum.KeyCode | Enum.UserInputType,
@@ -27,8 +30,12 @@ type binding = {
 	frame: Frame,
 	touchButton: ImageButton,
 	progressBarConnection: RBXScriptConnection?,
-	fadeOutTweens: {Tween},
-	fadeInTweens: {Tween}
+	onActivated: () -> (),
+	onDeactivated: () -> (),
+	startCooldown: () -> (),
+	onCooldown: boolean,
+	toggleData: boolean?,
+	toggleGuiDisplays: (boolean) -> ()
 }
 
 local ActionManager = {
@@ -39,11 +46,11 @@ local ActionManager = {
 
 function ActionManager.bindAction(
 	actionName: string,
-	callback: ActionCallback,
+	getCallbacks: GetCallbacks,
 	keyboardAndMouseInput: Enum.KeyCode | Enum.UserInputType,
 	gamepadInput: Enum.KeyCode | Enum.UserInputType,
 	displayOrder: number,
-	toggle: boolean?,
+	initialToggleData: boolean?,
     cooldownTime: number?,
 	touchButtonImageId: string
 )
@@ -57,6 +64,7 @@ function ActionManager.bindAction(
 		connections = {},
 		keyboardAndMouseInput = keyboardAndMouseInput,
 		gamepadInput = gamepadInput,
+		toggleData = initialToggleData
 	}
 
 	-- Create a new UI element
@@ -69,65 +77,63 @@ function ActionManager.bindAction(
 	ActionManager._updateInputDisplay(binding, InputCategorizer.getLastInputCategory())
 
 	-- Create TouchButton
-	binding.touchButton = TouchDisplayerManager.CreateTouchButton(binding, displayOrder, toggle, cooldownTime, touchButtonImageId)
+	binding.touchButton = TouchDisplayerManager.CreateTouchButton(binding, displayOrder, binding.toggleData, cooldownTime, touchButtonImageId)
 
 	-- Initializing progress bar
-	local onCooldown: boolean = false
+	binding.onCooldown = false
 	if cooldownTime then
 		table.insert(
 			binding.connections,
 			CircularProgressBarManager.CreateProgressBar(actionFrame.ContentFrame.InputFrame, Color3.new(1, 1, 1))
 		)
-	end
 
-	-- Initializing fadeOutTweens and fadeInTweens
-	local tweenInfo = TweenInfo.new(0.2)
-	local inputFrame: CanvasGroup = binding.frame.ContentFrame.InputFrame
-	local inputFrameUiStroke = inputFrame:FindFirstChildOfClass("UIStroke")::UIStroke
-	local actionLabel: TextLabel = binding.frame.ContentFrame.ActionLabel
-	local actionLabelUiStroke = actionLabel:FindFirstChildOfClass("UIStroke")::UIStroke
-	binding.fadeInTweens = {
-		-- TouchDisplay
-		TweenService:Create(binding.touchButton, tweenInfo, {ImageTransparency = binding.touchButton.ImageTransparency}),
-		-- NonTouchDisplay
-		TweenService:Create(inputFrame, tweenInfo, {GroupTransparency = inputFrame.GroupTransparency}),
-		TweenService:Create(inputFrameUiStroke, tweenInfo, {Transparency = inputFrameUiStroke.Transparency}),
-		TweenService:Create(actionLabel, tweenInfo, {BackgroundTransparency = actionLabel.BackgroundTransparency}),
-		TweenService:Create(actionLabel, tweenInfo, {TextTransparency = actionLabel.TextTransparency}),
-		TweenService:Create(actionLabelUiStroke, tweenInfo, {Transparency = actionLabelUiStroke.Transparency})
-	}
-	local fadedValue = 0.5
-	binding.fadeOutTweens = {
-		-- TouchDisplay
-		TweenService:Create(binding.touchButton, tweenInfo, {ImageTransparency = fadedValue}),
-		-- NonTouchDisplay
-		TweenService:Create(inputFrame, tweenInfo, {GroupTransparency = fadedValue}),
-		TweenService:Create(inputFrameUiStroke, tweenInfo, {Transparency = fadedValue}),
-		TweenService:Create(actionLabel, tweenInfo, {BackgroundTransparency = fadedValue}),
-		TweenService:Create(actionLabel, tweenInfo, {TextTransparency = fadedValue}),
-		TweenService:Create(actionLabelUiStroke, tweenInfo, {Transparency = fadedValue})
-	}
+		-- Initializing fadeOutTweens and fadeInTweens
+		local tweenInfo = TweenInfo.new(0.2)
+		local inputFrame: CanvasGroup = binding.frame.ContentFrame.InputFrame
+		local inputFrameUiStroke = inputFrame:FindFirstChildOfClass("UIStroke")::UIStroke
+		local actionLabel: TextLabel = binding.frame.ContentFrame.ActionLabel
+		local actionLabelUiStroke = actionLabel:FindFirstChildOfClass("UIStroke")::UIStroke
+		local fadeInTweens = {
+			-- TouchDisplay
+			TweenService:Create(binding.touchButton, tweenInfo, {ImageTransparency = binding.touchButton.ImageTransparency}),
+			-- NonTouchDisplay
+			TweenService:Create(inputFrame, tweenInfo, {GroupTransparency = inputFrame.GroupTransparency}),
+			TweenService:Create(inputFrameUiStroke, tweenInfo, {Transparency = inputFrameUiStroke.Transparency}),
+			TweenService:Create(actionLabel, tweenInfo, {BackgroundTransparency = actionLabel.BackgroundTransparency}),
+			TweenService:Create(actionLabel, tweenInfo, {TextTransparency = actionLabel.TextTransparency}),
+			TweenService:Create(actionLabelUiStroke, tweenInfo, {Transparency = actionLabelUiStroke.Transparency})
+		}
+		local fadedValue = 0.5
+		local fadeOutTweens = {
+			-- TouchDisplay
+			TweenService:Create(binding.touchButton, tweenInfo, {ImageTransparency = fadedValue}),
+			-- NonTouchDisplay
+			TweenService:Create(inputFrame, tweenInfo, {GroupTransparency = fadedValue}),
+			TweenService:Create(inputFrameUiStroke, tweenInfo, {Transparency = fadedValue}),
+			TweenService:Create(actionLabel, tweenInfo, {BackgroundTransparency = fadedValue}),
+			TweenService:Create(actionLabel, tweenInfo, {TextTransparency = fadedValue}),
+			TweenService:Create(actionLabelUiStroke, tweenInfo, {Transparency = fadedValue})
+		}
 
-	local function startCooldown()
-		if cooldownTime then
+		function binding.startCooldown()
 			local actionFrameProgressBar = binding.frame:FindFirstChild("ProgressBar", true)
 			local touchButtonProgressBar = binding.touchButton:FindFirstChild("ProgressBar")
 			CircularProgressBarManager.PlayProgressBar(actionFrameProgressBar, "Drain", cooldownTime)
 			local completed: RBXScriptSignal = CircularProgressBarManager.PlayProgressBar(touchButtonProgressBar, "Drain", cooldownTime)
-			onCooldown = true
-			for _, v in binding.fadeOutTweens do
+			binding.onCooldown = true
+			for _, v in fadeOutTweens do
 				v:Play()
 			end
 			completed:Once(function()
-				onCooldown = false
-				for _, v in binding.fadeInTweens do
+				binding.onCooldown = false
+				for _, v in fadeInTweens do
 					v:Play()
 				end
 			end)
 		end
 	end
 
-	local function toggleGuiDisplays(thisToggle: boolean)
+	function binding.toggleGuiDisplays(thisToggle: boolean)
 		TouchDisplayerManager.toggleButtonImage(binding.touchButton, thisToggle)
 		if thisToggle then
 			actionFrame.ContentFrame.ActionLabel.BackgroundColor3 = Color3.new(1, 1, 1)
@@ -139,40 +145,46 @@ function ActionManager.bindAction(
 	end
 
 	-- Create a wrapper for the callback function so the UI can be updated in sync with the action
+	binding.onActivated, binding.onDeactivated = getCallbacks()
 	local callbackWrapper = function(...)
 		local action, inputState = ...
 		if action == actionName then
-			if toggle == nil then
+			if binding.toggleData == nil then
 				if inputState == Enum.UserInputState.Begin then
 					if cooldownTime then
-						if onCooldown then
+						if binding.onCooldown then
 							warn("still on cooldown")
 							return
+						else
+							binding.startCooldown()
 						end
 					end
-					toggleGuiDisplays(true)
-					startCooldown()
+					binding.toggleGuiDisplays(true)
+					binding.onActivated()
 				elseif inputState == Enum.UserInputState.End then
-					toggleGuiDisplays(false)
+					binding.toggleGuiDisplays(false)
+					binding.onDeactivated()
 				end
-				callback(...)
 			else
 				--toggle button is active
 				if inputState == Enum.UserInputState.Begin then
-					if toggle then
-						toggle = false
+					if binding.toggleData then
+						binding.toggleData = false
+						binding.onDeactivated()
+						binding.toggleGuiDisplays(false)
 					else
 						if cooldownTime then
-							if onCooldown then
+							if binding.onCooldown then
 								warn("still on cooldown")
 								return
+							else
+								binding.startCooldown()
 							end
 						end
-						toggle = true
-						startCooldown()
+						binding.toggleData = true
+						binding.onActivated()
+						binding.toggleGuiDisplays(true)
 					end
-					toggleGuiDisplays(toggle)
-					callback(...)
 				end
 			end
 
@@ -218,6 +230,59 @@ function ActionManager.unbindAction(actionName: string)
 		ActionManager._bindings[actionName] = nil
 		-- Unbind the action from ContextActionService
 		ContextActionService:UnbindAction(actionName)
+	end
+end
+
+function ActionManager.setToggle(actionName: string, toggle: boolean?)
+	local binding = ActionManager._bindings[actionName]
+	binding.toggleData = toggle
+end
+
+function ActionManager.getToggle(actionName: string): boolean?
+	local binding = ActionManager._bindings[actionName]
+	return binding.toggleData
+end
+
+function ActionManager.forceToggle(actionName: string, targetToggle: boolean?)
+	local binding = ActionManager._bindings[actionName]
+	local currentToggle = binding.toggleData
+	if currentToggle == nil then
+		if targetToggle then
+			if binding.startCooldown then
+				if binding.onCooldown then
+					warn("still on cooldown")
+					return
+				else
+					binding.startCooldown()
+				end
+			end
+			binding.toggleGuiDisplays(true)
+			binding.onActivated()
+		else
+			binding.toggleGuiDisplays(false)
+			binding.onDeactivated()
+		end
+	else
+		--toggle button is active
+		if currentToggle == targetToggle then return end
+
+		if not targetToggle then
+			binding.toggleData = false
+			binding.onDeactivated()
+			binding.toggleGuiDisplays(false)
+		else
+			if binding.startCooldown then
+				if binding.onCooldown then
+					warn("still on cooldown")
+					return
+				else
+					binding.startCooldown()
+				end
+			end
+			binding.toggleData = true
+			binding.onActivated()
+			binding.toggleGuiDisplays(true)
+		end
 	end
 end
 
