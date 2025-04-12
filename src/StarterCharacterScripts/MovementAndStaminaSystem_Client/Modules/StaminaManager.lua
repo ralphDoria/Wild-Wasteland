@@ -18,7 +18,7 @@ References.StatGuiManager.SetStatValue(statGuiObject, currentStamina/MAX_STAMINA
 local connections: {RBXScriptConnection} = {}
 local drainActive = false
 local fillActive = false
-local MAX_FILL_COOLDOWN: number = 1.5
+local MAX_FILL_COOLDOWN: number = 0.5
 local currentFillCooldown: number = MAX_FILL_COOLDOWN
 
 ------------------------------------------------------------------------<<<MODULE SCRIPT>>>
@@ -29,11 +29,15 @@ StaminaManager.JUMP_STAMINA_COST = MAX_STAMINA * 0.1
 local staminaChangedEvent: BindableEvent = Instance.new("BindableEvent")
 StaminaManager.staminaChanged = staminaChangedEvent.Event :: RBXScriptSignal
 
+StaminaManager.changeStaminaEvent = Instance.new("BindableEvent")
+StaminaManager.changeStamina = StaminaManager.changeStaminaEvent.Event :: RBXScriptSignal
+
 local cachedStamina: number = MAX_STAMINA
 
-function StaminaManager.getCurrentStamina()
-    return currentStamina
-end
+local proportionMarkers = {
+    startBreathing = 0.5,
+    fastestBreathing = 0
+}
 
 function StaminaManager._setStaminaBar(value: number)
     currentStamina = value
@@ -41,12 +45,17 @@ function StaminaManager._setStaminaBar(value: number)
     References.StatGuiManager.SetStatValue(statGuiObject, proportion)
 end
 
-function StaminaManager.setStaminaBar(value: number)
-    currentFillCooldown = MAX_FILL_COOLDOWN
-    currentStamina = value
+function StaminaManager.getStamina()
+    return currentStamina
+end
+
+function StaminaManager.changeStaminaBarBy(delta: number)
+    if not drainActive then
+        currentFillCooldown = MAX_FILL_COOLDOWN 
+    end
+    currentStamina = currentStamina - delta
     local proportion = currentStamina/MAX_STAMINA
     References.StatGuiManager.SetStatValue(statGuiObject, proportion)
-    StaminaManager.fillStaminaBar()
 end
 
 function StaminaManager.drainStaminaBar()
@@ -87,9 +96,15 @@ function StaminaManager.initialize()
     end
     table.insert(
         connections,
-        RunService.RenderStepped:Connect(function(dt: number)  
+        RunService.RenderStepped:Connect(function(dt: number)
             if currentFillCooldown > 0 then
                 currentFillCooldown = math.clamp(currentFillCooldown - dt, 0, MAX_FILL_COOLDOWN)
+            else
+                if currentStamina < MAX_STAMINA and not drainActive then
+                    if not fillActive then
+                        StaminaManager.fillStaminaBar()
+                    end
+                end
             end
 
             if drainActive and not fillActive then
@@ -109,6 +124,7 @@ function StaminaManager.initialize()
                         fillActive = false
                     end
                 end
+
             end
 
             if cachedStamina ~= currentStamina then
@@ -129,6 +145,14 @@ function StaminaManager.initialize()
                     ActionManager.toggleEnabled(actionName, false)
                 end
             end
+        end)
+    )
+    --Use this method if the other method of changing stamina (stop using getStamina) doesn't work
+    --The purpose of this event is to use the currentStamina value from this thread
+    table.insert(
+        connections,
+        StaminaManager.changeStamina:Connect(function(delta: number)  
+            StaminaManager.changeStaminaBarBy(delta)
         end)
     )
     References.humanoid.Died:Once(function(...: any)  

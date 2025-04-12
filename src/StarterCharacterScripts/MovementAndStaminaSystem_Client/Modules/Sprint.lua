@@ -3,7 +3,7 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid: Humanoid = character:WaitForChild("Humanoid")
 local Config = require("./Config")
 local ZMovementDirectionUtility = require("./ZMovementDirectionUtility")
-local StaminaManager = require("./StaminaManager")
+local StaminaManager = require(game:GetService("StarterPlayer").StarterCharacterScripts.RojoManaged_SCS.MovementAndStaminaSystem_Client.Modules.StaminaManager)
 local Trove = require(game:GetService("ReplicatedStorage").Packages.Trove)
 local trove = Trove.new()
 
@@ -47,7 +47,6 @@ end
 
 
 function Sprint.activate()
-    if StaminaManager.getCurrentStamina() <= 0 then return end
     disconnectAllConnections()
 
     -- Initial check

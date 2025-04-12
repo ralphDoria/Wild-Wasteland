@@ -64,7 +64,7 @@ local function toggleSwingBind(self : MeleeObject, toggle : boolean)
                 StaminaManager.addBoundAction("Swing", self.staminaCost)
 
                 local function onActivated()
-                    StaminaManager.setStaminaBar(StaminaManager.getCurrentStamina() - self.staminaCost)
+                    StaminaManager.changeStaminaEvent:Fire(self.staminaCost)
                     Melee.swing(self)
                 end
 
@@ -128,7 +128,7 @@ function Melee.initialize(self : MeleeObject)
     HitboxManager.ConnectOnHit(self.HitboxManager, function(hit: BasePart, humanoid: Humanoid, raycastResult: RaycastResult)
 
         local character = humanoid.Parent :: Model
-        warn("hit ", character.Name)
+        -- warn("hit ", character.Name)
         local impactSounds = self.soundManager.Sounds[self.tool.Name].impact :: {[string] : Sound}
         local fleshSound = impactSounds.flesh
         self.soundManager.playSound("Server", fleshSound, self.tool:FindFirstChild("BodyAttach"), 0)

@@ -157,7 +157,7 @@ function ActionManager.bindAction(
 				if inputState == Enum.UserInputState.Begin then
 					if cooldownTime then
 						if binding.onCooldown then
-							warn("still on cooldown")
+							--warn("still on cooldown")
 							return
 						else
 							binding.startCooldown()
@@ -241,7 +241,7 @@ end
 function ActionManager.toggleEnabled(actionName: string, enabledState: boolean)
 	local binding = ActionManager._bindings[actionName]
 	if binding.enabled ~= enabledState then
-		warn("toggling enabled for", actionName, "to", enabledState)
+		-- warn("toggling enabled for", actionName, "to", enabledState)
 		binding.enabled = enabledState
 	end
 end
