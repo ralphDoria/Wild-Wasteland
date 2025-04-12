@@ -15,6 +15,7 @@ local Item = require("../Superclasses/Item")
 local HitboxManager = require("../Components/Shared/HitboxManager")
 local ToolGuiManager = require("../Components/Shared/ToolGuiManager")
 local ActionManager = require("../../ActionManagerSystem/ActionManager")
+local StaminaManager = require(game:GetService("StarterPlayer").StarterCharacterScripts.RojoManaged_SCS.MovementAndStaminaSystem_Client.Modules.StaminaManager)
 local MeleeVMM = require("../Components/Melee/MeleeVMM")
 local CrosshairGuiManager = require("../Components/Shared/CrosshairManager")
 local CameraShaker = require(ReplicatedStorage.Packages.CameraShaker)
@@ -28,6 +29,7 @@ local crosshairID : string = "rbxassetid://122059927774494"
 
 export type MeleeObject = Item.ItemType & {
     damage : number,
+    staminaCost: number,
     swingSpeed : number,
     HitboxManager : HitboxManager.HitboxManager,
     CrosshairGuiObject : CrosshairGuiManager.CrosshairObject,
@@ -39,6 +41,7 @@ local Melee =  {}
 function Melee.new(tool : Tool, humanoid : Humanoid) : MeleeObject
     local self = Item.new(tool, humanoid)
     self.damage = 50
+    self.staminaCost = 10
     self.swingSpeed = 1
     self.HitboxManager = HitboxManager.new(tool)
     self.CrosshairGuiObject = CrosshairGuiManager.new()
@@ -56,8 +59,12 @@ local function toggleSwingBind(self : MeleeObject, toggle : boolean)
     if toggle then
         ActionManager.bindAction(
             "Swing", 
-            function(): (() -> (), () -> ())  
+            function(): (() -> (), () -> (), () -> ())  
+
+                StaminaManager.addBoundAction("Swing", self.staminaCost)
+
                 local function onActivated()
+                    StaminaManager.setStaminaBar(StaminaManager.getCurrentStamina() - self.staminaCost)
                     Melee.swing(self)
                 end
 
@@ -65,7 +72,11 @@ local function toggleSwingBind(self : MeleeObject, toggle : boolean)
                     
                 end
 
-                return onActivated, onDeactivated
+                local function onUnbind()
+                    StaminaManager.removeBoundAction("Swing")
+                end
+
+                return onActivated, onDeactivated, onUnbind
             end, 
             Enum.UserInputType.MouseButton1,
             Enum.KeyCode.ButtonR2, 

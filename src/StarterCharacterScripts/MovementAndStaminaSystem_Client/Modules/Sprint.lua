@@ -79,12 +79,6 @@ function Sprint.initialize()
         return
     end
 
-    warn("connecting zeroStamina receiver")
-    trove:Connect(StaminaManager.zeroStamina, function(...: any): ...any
-        warn("receiving zeroStamina fire signal")
-        remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
-    end)
-
     humanoid.Died:Once(function(...: any)
         disconnectAllConnections()
         trove:Destroy()

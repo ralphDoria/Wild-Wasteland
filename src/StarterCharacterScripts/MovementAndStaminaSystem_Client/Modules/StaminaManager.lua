@@ -8,7 +8,7 @@ local sounds: {[string]: Sound} = {
 
 local statGui: CanvasGroup = References.CharacterStatsGui.Frame.stamina
 local statGuiObject = References.StatGuiManager.new(statGui, "Stamina", Color3.fromRGB(0, 150, 255))
-
+local ActionManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ActionManagerSystem.ActionManager)
 local MAX_STAMINA = 100
 local staminaDrainSpeed = 10
 local staminaRegenSpeed = 10
@@ -26,8 +26,9 @@ local StaminaManager = {_initialized = false}
 
 StaminaManager.JUMP_STAMINA_COST = MAX_STAMINA * 0.1
 
-local zeroStaminaEvent: BindableEvent = Instance.new("BindableEvent")
-StaminaManager.zeroStamina = zeroStaminaEvent.Event :: RBXScriptSignal
+local staminaChangedEvent: BindableEvent = Instance.new("BindableEvent")
+StaminaManager.staminaChanged = staminaChangedEvent.Event :: RBXScriptSignal
+
 local cachedStamina: number = MAX_STAMINA
 
 function StaminaManager.getCurrentStamina()
@@ -45,6 +46,7 @@ function StaminaManager.setStaminaBar(value: number)
     currentStamina = value
     local proportion = currentStamina/MAX_STAMINA
     References.StatGuiManager.SetStatValue(statGuiObject, proportion)
+    StaminaManager.fillStaminaBar()
 end
 
 function StaminaManager.drainStaminaBar()
@@ -66,6 +68,16 @@ local function disconnectAllConnections()
             end
         end
     end
+end
+
+StaminaManager._boundActions = {}
+
+function StaminaManager.addBoundAction(actionName: string, staminaThreshold: number)
+    StaminaManager._boundActions[actionName] = staminaThreshold
+end
+
+function StaminaManager.removeBoundAction(actionName: string)
+    StaminaManager._boundActions[actionName] = nil
 end
 
 function StaminaManager.initialize()
@@ -100,13 +112,23 @@ function StaminaManager.initialize()
             end
 
             if cachedStamina ~= currentStamina then
+                staminaChangedEvent:Fire(cachedStamina, currentStamina)
                 cachedStamina = currentStamina
-                if currentStamina == 0 then
-                    warn("firing zero stamina event")
-                    zeroStaminaEvent:Fire()
-                end
             end
             --warn("drainActive", drainActive, "| fillActive", fillActive)
+        end)
+    )
+    table.insert(
+        connections,
+        StaminaManager.staminaChanged:Connect(function(cachedStamina: number, currentStamina: number)  
+            for actionName, staminaThreshold in StaminaManager._boundActions do
+                if currentStamina > staminaThreshold then
+                    ActionManager.toggleEnabled(actionName, true)
+                else
+                    ActionManager.forceToggle(actionName, false) 
+                    ActionManager.toggleEnabled(actionName, false)
+                end
+            end
         end)
     )
     References.humanoid.Died:Once(function(...: any)  
@@ -116,5 +138,6 @@ function StaminaManager.initialize()
     StaminaManager._initialized = true
 end
 
+StaminaManager.initialize()
 
 return StaminaManager

@@ -19,9 +19,7 @@ local nonTouchDisplay = actionGui.NonTouchDisplay
 local HORIZONTAL_PADDING = 40
 local VERTICAL_PADDING = 70
 
-type ActionCallback = (string, Enum.UserInputState, InputObject) -> ...any
-
-export type GetCallbacks = () -> (()->(), ()->())
+export type GetCallbacks = () -> (()->(), ()->(), () -> ())
 
 type binding = {
 	connections: {RBXScriptConnection},
@@ -32,10 +30,12 @@ type binding = {
 	progressBarConnection: RBXScriptConnection?,
 	onActivated: () -> (),
 	onDeactivated: () -> (),
+	onUnbind: () -> (),
 	startCooldown: () -> (),
 	onCooldown: boolean,
 	toggleData: boolean?,
-	toggleGuiDisplays: (boolean) -> ()
+	toggleGuiDisplays: (boolean) -> (),
+	enabled: boolean
 }
 
 local ActionManager = {
@@ -64,7 +64,8 @@ function ActionManager.bindAction(
 		connections = {},
 		keyboardAndMouseInput = keyboardAndMouseInput,
 		gamepadInput = gamepadInput,
-		toggleData = initialToggleData
+		toggleData = initialToggleData,
+		enabled = true
 	}
 
 	-- Create a new UI element
@@ -145,10 +146,13 @@ function ActionManager.bindAction(
 	end
 
 	-- Create a wrapper for the callback function so the UI can be updated in sync with the action
-	binding.onActivated, binding.onDeactivated = getCallbacks()
+	binding.onActivated, binding.onDeactivated, binding.onUnbind = getCallbacks()
 	local callbackWrapper = function(...)
 		local action, inputState = ...
 		if action == actionName then
+
+			if not binding.enabled then return end
+
 			if binding.toggleData == nil then
 				if inputState == Enum.UserInputState.Begin then
 					if cooldownTime then
@@ -230,21 +234,23 @@ function ActionManager.unbindAction(actionName: string)
 		ActionManager._bindings[actionName] = nil
 		-- Unbind the action from ContextActionService
 		ContextActionService:UnbindAction(actionName)
+		binding.onUnbind() 
 	end
 end
 
-function ActionManager.setToggle(actionName: string, toggle: boolean?)
+function ActionManager.toggleEnabled(actionName: string, enabledState: boolean)
 	local binding = ActionManager._bindings[actionName]
-	binding.toggleData = toggle
-end
-
-function ActionManager.getToggle(actionName: string): boolean?
-	local binding = ActionManager._bindings[actionName]
-	return binding.toggleData
+	if binding.enabled ~= enabledState then
+		warn("toggling enabled for", actionName, "to", enabledState)
+		binding.enabled = enabledState
+	end
 end
 
 function ActionManager.forceToggle(actionName: string, targetToggle: boolean?)
 	local binding = ActionManager._bindings[actionName]
+
+	if not binding.enabled then return end
+
 	local currentToggle = binding.toggleData
 	if currentToggle == nil then
 		if targetToggle then
@@ -446,29 +452,6 @@ function ActionManager._initialize()
 	ActionManager._updatePositionAndScale()
 
 	ActionManager._initialized = true
-end
-
-function ActionManager.callbackWrapper2(toggle: boolean?, inputState: Enum.UserInputState, onActivated: () -> (), onDeactivated: () -> ()): boolean?
-    local newToggle: boolean?
-	if toggle == nil then
-        --hold
-        if inputState == Enum.UserInputState.Begin then
-            onActivated()
-        elseif inputState == Enum.UserInputState.End then
-            onDeactivated()
-        end
-    else
-        if inputState == Enum.UserInputState.Begin then
-            if toggle then
-                newToggle = false
-                onDeactivated()
-            else
-                newToggle = true
-                onActivated()
-            end
-        end
-    end
-	return newToggle
 end
 
 ActionManager._initialize()

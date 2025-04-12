@@ -33,10 +33,8 @@ local stuff: stuff = {
 
             local function onActivated()
                 if humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and humanoid:GetState() ~= Enum.HumanoidStateType.Landed then
-                    if StaminaManager.getCurrentStamina() > StaminaManager.JUMP_STAMINA_COST then
-                        StaminaManager.setStaminaBar(StaminaManager.getCurrentStamina() - StaminaManager.JUMP_STAMINA_COST)
-                        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                    end
+                    StaminaManager.setStaminaBar(StaminaManager.getCurrentStamina() - StaminaManager.JUMP_STAMINA_COST)
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
                 end
             end
 
@@ -44,20 +42,13 @@ local stuff: stuff = {
                 
             end
 
-            return onActivated, onDeactivated
+            StaminaManager.addBoundAction("Jump", StaminaManager.JUMP_STAMINA_COST)
 
-            -- Config.toggle[actionName] = ActionManager.callbackWrapper2(Config.toggle[actionName], inputState, 
-            --     function()  --onActivated
-            --         if humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and humanoid:GetState() ~= Enum.HumanoidStateType.Landed then
-            --             if StaminaManager.getCurrentStamina() > StaminaManager.JUMP_STAMINA_COST then
-            --                 StaminaManager.setStaminaBar(StaminaManager.getCurrentStamina() - StaminaManager.JUMP_STAMINA_COST)
-            --                 humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            --             end
-            --         end
-            --     end, 
-            --     function()   --onDeactivated
-            --     end)
-            -- return Enum.ContextActionResult.Sink
+            local function onUnbind()
+                StaminaManager.removeBoundAction("Jump")
+            end
+
+            return onActivated, onDeactivated, onUnbind
         end,
         keyboardAndMouseInput = Enum.KeyCode.Space,
         gamepadInput = Enum.KeyCode.ButtonA,
@@ -76,7 +67,13 @@ local stuff: stuff = {
                 MovementStateMachine.RemoveFromTower("Sprint")
             end
 
-            return onActivated, onDeactivated
+            StaminaManager.addBoundAction("Sprint", 0)
+
+            local function onUnbind()
+                StaminaManager.removeBoundAction("Sprint")
+            end
+
+            return onActivated, onDeactivated, onUnbind
         end,
         keyboardAndMouseInput = Enum.KeyCode.LeftShift,
         gamepadInput = Enum.KeyCode.ButtonL3,
@@ -100,16 +97,11 @@ local stuff: stuff = {
                 MovementStateMachine.RemoveFromTower("Crouch")
             end
 
-            return onActivated, onDeactivated
+            local function onUnbind()
+                
+            end
 
-            -- Config.toggle[actionName] = ActionManager.callbackWrapper2(Config.toggle[actionName], inputState, 
-            --     function()  --onActivated
-            --         MovementStateMachine.AddToTower("Crouch")
-            --     end, 
-            --     function()   --onDeactivated
-            --         MovementStateMachine.RemoveFromTower("Crouch")
-            --     end)
-            -- return Enum.ContextActionResult.Sink
+            return onActivated, onDeactivated, onUnbind
         end,
         keyboardAndMouseInput = Enum.KeyCode.C,
         gamepadInput = Enum.KeyCode.ButtonB,

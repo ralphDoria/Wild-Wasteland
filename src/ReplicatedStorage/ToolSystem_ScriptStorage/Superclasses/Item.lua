@@ -167,19 +167,23 @@ function Item.drop(self : ItemType, onDropping: () -> ()?, onDropped : () -> ()?
 end
 
 function Item.toggleDropBind(self : ItemType, toggle : boolean, onDropping: () -> ()?, onDropped : () -> ()?)
-    local function functionToBind(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?
-        ActionManager.callbackWrapper2(nil, inputState, 
-            function()
-            end, 
-            function()
-                Item.drop(self, onDropping, onDropped)
-            end)
-        return Enum.ContextActionResult.Sink
-    end
     if toggle then
         ActionManager.bindAction(
             "Drop Item", 
-            functionToBind, 
+            function(): (() -> (), () -> (), () -> ())  
+                local function onActivated()
+                end
+
+                local function onDeactivated()
+                    Item.drop(self, onDropping, onDropped)
+                end
+
+                local function onUnbind()
+                    
+                end
+
+                return onActivated, onDeactivated, onUnbind
+            end, 
             Enum.KeyCode.X, 
             Enum.KeyCode.ButtonX, 
             4, 
