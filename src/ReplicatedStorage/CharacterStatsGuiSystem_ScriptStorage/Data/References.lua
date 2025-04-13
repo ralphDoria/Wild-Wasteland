@@ -2,13 +2,14 @@ local References = {
     player = game:GetService("Players").LocalPlayer,
     character = nil:: Model?,
     humanoid = nil:: Humanoid?,
-    StatGuiManager = require("./StatGuiManager"),
+    StatGuiManager = require("../SharedComponents/StatGuiManager"),
     SoundManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ToolSystem_ScriptStorage.Components.Shared.SoundManager),
     InputCategorizer = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ActionManagerSystem.Components.InputCategorizer),
     playerGui = game:GetService("Players").LocalPlayer.PlayerGui:: PlayerGui,
     SoundService = game:GetService("SoundService"),
     debuffSounds = game:GetService("SoundService"):FindFirstChild("Debuff", true):: Folder,
-    CharacterStatsGui = nil
+    CharacterStatsGui = nil,
+    TweenService = game:GetService("TweenService")
 }
 
 -- Outside of the table, setting references that depend on other references

@@ -6,8 +6,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ActionManager = require(ReplicatedStorage.RojoManaged_RS.ActionManagerSystem.ActionManager)
 local MovementStateMachine = require("./Modules/MovementStateMachine")
-local Config = require("./Modules/Config")
-local StaminaManager = require(game:GetService("StarterPlayer").StarterCharacterScripts.RojoManaged_SCS.MovementAndStaminaSystem_Client.Modules.StaminaManager)
+local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Data.Config)
+local StaminaManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Stamina.StaminaManager)
 local movementManagers = {
     ["Sprint"] = require("./Modules/Sprint"),
     ["Crouch"] = require("./Modules/Crouch")
@@ -33,7 +33,7 @@ local stuff: stuff = {
 
             local function onActivated()
                 if humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and humanoid:GetState() ~= Enum.HumanoidStateType.Landed then
-                    StaminaManager.changeStaminaEvent:Fire(StaminaManager.JUMP_STAMINA_COST)
+                    StaminaManager.changeStaminaBarBy(StaminaManager.JUMP_STAMINA_COST)
                     humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
                 end
             end

@@ -15,7 +15,7 @@ local Item = require("../Superclasses/Item")
 local HitboxManager = require("../Components/Shared/HitboxManager")
 local ToolGuiManager = require("../Components/Shared/ToolGuiManager")
 local ActionManager = require("../../ActionManagerSystem/ActionManager")
-local StaminaManager = require(game:GetService("StarterPlayer").StarterCharacterScripts.RojoManaged_SCS.MovementAndStaminaSystem_Client.Modules.StaminaManager)
+local StaminaManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Stamina.StaminaManager)
 local MeleeVMM = require("../Components/Melee/MeleeVMM")
 local CrosshairGuiManager = require("../Components/Shared/CrosshairManager")
 local CameraShaker = require(ReplicatedStorage.Packages.CameraShaker)
@@ -64,7 +64,7 @@ local function toggleSwingBind(self : MeleeObject, toggle : boolean)
                 StaminaManager.addBoundAction("Swing", self.staminaCost)
 
                 local function onActivated()
-                    StaminaManager.changeStaminaEvent:Fire(self.staminaCost)
+                    StaminaManager.changeStaminaBarBy(self.staminaCost)
                     Melee.swing(self)
                 end
 

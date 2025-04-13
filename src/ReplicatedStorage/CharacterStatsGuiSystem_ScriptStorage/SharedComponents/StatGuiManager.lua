@@ -1,6 +1,5 @@
 local CircularProgressBarManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.Utility.CircularProgressBarManager)
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 
 export type StatGui = {
     statName: string,

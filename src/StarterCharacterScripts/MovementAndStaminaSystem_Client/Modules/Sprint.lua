@@ -1,10 +1,9 @@
 local player = game:GetService("Players").LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid: Humanoid = character:WaitForChild("Humanoid")
-local Config = require("./Config")
+local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Data.Config)
 local ZMovementDirectionUtility = require("./ZMovementDirectionUtility")
-local StaminaManager = require(game:GetService("StarterPlayer").StarterCharacterScripts.RojoManaged_SCS.MovementAndStaminaSystem_Client.Modules.StaminaManager)
-local Trove = require(game:GetService("ReplicatedStorage").Packages.Trove)
+local StaminaManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Stamina.StaminaManager)local Trove = require(game:GetService("ReplicatedStorage").Packages.Trove)
 local trove = Trove.new()
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

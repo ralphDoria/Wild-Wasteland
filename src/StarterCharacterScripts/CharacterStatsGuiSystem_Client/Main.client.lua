@@ -1,5 +1,6 @@
-local References = require("./Components/References")
-local Health = require("./Components/Health")
+local RS = game:GetService("ReplicatedStorage")
+local References = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Data.References)
+local Health = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Health.HealthManager)
 
 local Config: {[string]: Color3} = {
     ["Health"] = Color3.fromRGB(255, 0, 0),
