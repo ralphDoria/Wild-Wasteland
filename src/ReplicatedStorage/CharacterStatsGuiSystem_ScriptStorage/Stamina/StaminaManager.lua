@@ -42,8 +42,8 @@ local sfx_info: foo = {
         sound = References.SoundService:FindFirstChild("MaleBreathing", true),
         timePositionMarkers = {
             0,
-            0.21,--exhale
-            0.61, --inhale
+            -- 0.07,--exhale
+            0.56, --inhale
             References.SoundService:FindFirstChild("MaleBreathing", true).TimeLength
         },
         breathingSpeed = {
@@ -59,22 +59,22 @@ local sfx_info: foo = {
         sound = References.SoundService:FindFirstChild("FemaleBreathing", true),
         timePositionMarkers = {
             0,
-            0.24, --exhale
-            0.87, --inhale
-            References.SoundService:FindFirstChild("FemaleBreathing", true).TimeLength
+            -- 0.14, --exhale
+            0.69, --inhale
+            References.SoundService:FindFirstChild("MaleBreathing", true).TimeLength
         },
         breathingSpeed = {
             min = 0.5,
             max = 1.3
         },
         breathingVolume = {
-            min = 0.5,
-            max = 3
+            min = 0.2,
+            max = 1
         }
     }
 }
 local default: "Male" = "Male"
-local chosenGenderIdentity: "Male" | "Female" = default
+local chosenGenderIdentity: "Male" | "Female" = "Female"
 ------------------------------------------------------------------------<<<MODULE SCRIPT>>>
 local StaminaManager = {_initialized = false}
 
@@ -90,6 +90,8 @@ local proportionMarkers = {
     fastestBreathing = 0
 }
 
+local isAboveStartBreathing: boolean = false
+
 local function updateBreathingSoundProperties(staminaProportion: number)
     local sound = sfx_info[chosenGenderIdentity].sound
     local minBreathingSpeed = sfx_info[chosenGenderIdentity].breathingSpeed.min
@@ -98,9 +100,11 @@ local function updateBreathingSoundProperties(staminaProportion: number)
     local maxBreathingVolume = sfx_info[chosenGenderIdentity].breathingVolume.max
 
     if staminaProportion > proportionMarkers.startBreathing then
+        isAboveStartBreathing = true
         SoundUtility.tweenSoundSpeed(sound, minBreathingSpeed, 1)
         SoundUtility.tweenSoundVolume(sound, 0, 5)
     else
+        isAboveStartBreathing = false
         local dynamicSpeed = math.clamp(
             math.map(
                 staminaProportion, 
@@ -132,24 +136,26 @@ local function toggleGuiBreathingSync(toggle: boolean)
     local higherTransparency = 0.8
 
     if toggle then
-        RunService:BindToRenderStep("GuiBreathingSync", 200, function(delta: number)  
+        RunService:BindToRenderStep("GuiBreathingSync", 200, function(delta: number)
             local currentTimePosition = math.round(sfx_info[chosenGenderIdentity].sound.TimePosition*100)/100 
             for i = 1, #timePositionMarkers - 1, 1 do
                 if timePositionMarkers[i] <= currentTimePosition and currentTimePosition < timePositionMarkers[i + 1] then
                     local transparencyValue
                     local dynamicColorValue
-                    if i % 2 == 0 then
-                        transparencyValue = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], lowerTransparency, higherTransparency)
-                        local x = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], 0, 255) 
-                        print(x)
-                        dynamicColorValue = Color3.fromRGB(x, x, 255)
-                    else
+                    if i == 1 then
                         transparencyValue = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], higherTransparency, lowerTransparency)
                         local x = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], 255, 0) 
-                        print(x)
-                        dynamicColorValue = Color3.fromRGB(x, x, 255)
+                        local x2 = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], 255, 150) 
+                        dynamicColorValue = Color3.fromRGB(x, x2, 255)
+                    elseif i == 2 then
+                        transparencyValue = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], lowerTransparency, higherTransparency)
+                        local x = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], 0, 255) 
+                        local x2 = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], 150, 255) 
+                        dynamicColorValue = Color3.fromRGB(x, x2, 255)
                     end
                     -- someBlueUi.GroupTransparency = transparencyValue
+                    --print(i)
+                    -- print("Changing color to:", dynamicColorValue)
                     References.StatGuiManager.getCanvasGroup(statGuiObject).GroupColor3 = dynamicColorValue
                     return
                 end

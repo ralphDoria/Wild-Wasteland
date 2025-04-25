@@ -48,12 +48,12 @@ function StatGuiManager.SetStatValue(self: StatGui, proportion: number)
         return
     end
     local valueTween = TweenService:Create(self.progress, TweenInfo.new(0.2), {Value = proportion})
-    self.statGui.GroupColor3 = Color3.fromRGB(255, 255, 255)
-    local colorTween = TweenService:Create(
-        self.statGui, 
-        TweenInfo.new(0.1, Enum.EasingStyle.Circular, Enum.EasingDirection.In, 0, true), 
-        {GroupColor3 = self.color})
-    colorTween:Play()
+    -- self.statGui.GroupColor3 = Color3.fromRGB(255, 255, 255)
+    -- local colorTween = TweenService:Create(
+    --     self.statGui, 
+    --     TweenInfo.new(0.1, Enum.EasingStyle.Circular, Enum.EasingDirection.In, 0, true), 
+    --     {GroupColor3 = self.color})
+    -- colorTween:Play()
     valueTween:Play()
 
     if self.percentageChangeEffect then

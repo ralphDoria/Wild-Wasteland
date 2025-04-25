@@ -1,4 +1,5 @@
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local ProgressBarTemplate: Frame = game:GetService("ReplicatedStorage").ProgressBar
 local connections: {[Frame]: RBXScriptConnection} = {}
 local completedEvents: {[Frame]: BindableEvent} = {}
@@ -51,6 +52,40 @@ function CircularProgressBarManager.InitializeProgressBar(progressBar): RBXScrip
         leftGradient.Rotation = math.clamp(angle, 180, 360)
         rightGradient.Rotation = math.clamp(angle, 0, 180)
     end)
+end
+
+function CircularProgressBarManager.createDeficitIndicator(progressBar)
+    if progressBar:FindFirstChild("DeficitIndicator") ~= nil then return end
+
+    
+    local deficitIndicator: Frame = progressBar:Clone()
+    deficitIndicator.Size = progressBar.Size
+    deficitIndicator.Position = progressBar.Position
+    deficitIndicator.AnchorPoint = progressBar.AnchorPoint
+    deficitIndicator.ZIndex = progressBar.ZIndex - 1
+    local numValue = deficitIndicator:FindFirstChildOfClass("NumberValue")
+    if numValue then
+        numValue:Destroy()
+    end
+    deficitIndicator.Parent = progressBar.Parent
+    return deficitIndicator
+end
+
+function CircularProgressBarManager.setDeficitIndicator(deficitIndicator, proportion)
+    local leftProgressBarImage: ImageLabel = deficitIndicator.LeftGradient.ProgressBarImage
+    local rightProgressBarImage: ImageLabel = deficitIndicator.RightGradient.ProgressBarImage
+    local leftGradient: UIGradient = leftProgressBarImage:FindFirstChildOfClass("UIGradient"):: UIGradient
+    local rightGradient: UIGradient = rightProgressBarImage:FindFirstChildOfClass("UIGradient"):: UIGradient
+
+    local angle = math.clamp(proportion * 360, 0, 360)
+    leftGradient.Rotation = math.clamp(angle, 180, 360)
+    rightGradient.Rotation = math.clamp(angle, 0, 180)
+
+    leftProgressBarImage.Transparency = 1
+    rightProgressBarImage.Transparency = 1
+    local ti = TweenInfo.new(0.25, Enum.EasingStyle.Linear, Enum.EasingDirection.In, nil, true)
+    local tween1 = TweenService:Create(leftProgressBarImage, ti, {Transparency = 0.5}):Play()
+    local tween2 = TweenService:Create(rightProgressBarImage, ti, {Transparency = 0.5}):Play()
 end
 
 function CircularProgressBarManager.ResetProgressBar(progressBar: Frame)
