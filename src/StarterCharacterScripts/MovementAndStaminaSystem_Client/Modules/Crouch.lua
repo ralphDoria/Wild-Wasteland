@@ -4,7 +4,7 @@ local humanoid: Humanoid = character.Humanoid
 local animator: Animator = humanoid:FindFirstChildOfClass("Animator") :: Animator
 local TweenService = game:GetService("TweenService")
 local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Data.Config)
-local ZMovementDirectionUtility = require("./ZMovementDirectionUtility")
+local MovementDirectionMonitor = require("./MovementDirectionMonitor")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MovementAndStaminaSystem_Storage = ReplicatedStorage.MovementAndStaminaSystem_Storage
 local remotes: {[string]: RemoteEvent} = {
@@ -34,7 +34,7 @@ local function crouchWalkIfMoving(speed: number)
 end
 
 local function updateCrouchWalkSpeed()
-    local direction: ZMovementDirectionUtility.zMovementDirection = ZMovementDirectionUtility.getZDirectionOfMovement()
+    local direction: MovementDirectionMonitor.zMovementDirection = MovementDirectionMonitor.getZDirectionOfMovement()
     if direction == "Forward" then
         crouchAnimTrack.walk:AdjustSpeed(1)
     elseif direction == "Backward" then
@@ -63,7 +63,7 @@ function Crouch.activate()
         -- When zMovementDirection changes
         table.insert(
             connections,
-            ZMovementDirectionUtility.zMovementDirectionChanged:Connect(function()  
+            MovementDirectionMonitor.zMovementDirectionChanged:Connect(function()  
                 updateCrouchWalkSpeed()
             end)
         )

@@ -1,0 +1,415 @@
+[1mdiff --git a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Data/Config.lua b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Data/Config.lua[m
+[1mindex 0670c6d..112ed07 100644[m
+[1m--- a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Data/Config.lua[m
+[1m+++ b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Data/Config.lua[m
+[36m@@ -15,7 +15,7 @@[m [mlocal config: config = {[m
+         ["Crouch"] = false [m
+     },[m
+     cooldownTime = {[m
+[31m-        ["Jump"] = 1,[m
+[32m+[m[32m        ["Jump"] = nil,[m
+     }[m
+ }[m
+ [m
+[1mdiff --git a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Health/HealthManager.lua b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Health/HealthManager.lua[m
+[1mindex 3692758..814c12e 100644[m
+[1m--- a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Health/HealthManager.lua[m
+[1m+++ b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Health/HealthManager.lua[m
+[36m@@ -71,7 +71,6 @@[m [mlocal function toggleGuiHeartbeatSoundSync(toggle: boolean)[m
+ [m
+     local heartbeatMarkers = {[m
+         0,[m
+[31m-        0.04348,[m
+         0.36863,[m
+         1.05158,[m
+         1.37572,[m
+[1mdiff --git a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/SharedComponents/SoundUtility.lua b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/SharedComponents/SoundUtility.lua[m
+[1mindex 4fc6e6e..6b78ffe 100644[m
+[1m--- a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/SharedComponents/SoundUtility.lua[m
+[1m+++ b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/SharedComponents/SoundUtility.lua[m
+[36m@@ -18,9 +18,8 @@[m [mend[m
+ function SoundUtility.tweenSoundVolume(sound: Sound, newVolume: number, transitionTime: number)[m
+     if newVolume == sound.Volume then  return end[m
+ [m
+[31m-[m
+[31m-[m
+     if not sound.IsPlaying and newVolume ~= 0 then[m
+[32m+[m[32m        print("playing", sound.Name)[m
+         sound:Play()[m
+     end[m
+ [m
+[1mdiff --git a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Stamina/StaminaManager.lua b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Stamina/StaminaManager.lua[m
+[1mindex 651ebb1..a3653f4 100644[m
+[1m--- a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Stamina/StaminaManager.lua[m
+[1m+++ b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Stamina/StaminaManager.lua[m
+[36m@@ -74,7 +74,7 @@[m [mlocal sfx_info: foo = {[m
+     }[m
+ }[m
+ local default: "Male" = "Male"[m
+[31m-local chosenGenderIdentity: "Male" | "Female" = "Female"[m
+[32m+[m[32mlocal chosenGenderIdentity: "Male" | "Female" = default[m
+ ------------------------------------------------------------------------<<<MODULE SCRIPT>>>[m
+ local StaminaManager = {_initialized = false}[m
+ [m
+[36m@@ -86,11 +86,11 @@[m [mStaminaManager.staminaChanged = staminaChangedEvent.Event :: RBXScriptSignal[m
+ local cachedStamina: number = MAX_STAMINA[m
+ [m
+ local proportionMarkers = {[m
+[31m-    startBreathing = 0.99,[m
+[32m+[m[32m    startBreathing = 0.5,[m
+     fastestBreathing = 0[m
+ }[m
+ [m
+[31m-local isAboveStartBreathing: boolean = false[m
+[32m+[m[32mlocal aboveStartBreathing = false[m
+ [m
+ local function updateBreathingSoundProperties(staminaProportion: number)[m
+     local sound = sfx_info[chosenGenderIdentity].sound[m
+[36m@@ -98,13 +98,13 @@[m [mlocal function updateBreathingSoundProperties(staminaProportion: number)[m
+     local maxBreathingSpeed = sfx_info[chosenGenderIdentity].breathingSpeed.max[m
+     local minBreathingVolume = sfx_info[chosenGenderIdentity].breathingVolume.min[m
+     local maxBreathingVolume = sfx_info[chosenGenderIdentity].breathingVolume.max[m
+[31m-[m
+     if staminaProportion > proportionMarkers.startBreathing then[m
+[31m-        isAboveStartBreathing = true[m
+[32m+[m[32m        if aboveStartBreathing then return end[m
+[32m+[m[32m        aboveStartBreathing = true[m
+         SoundUtility.tweenSoundSpeed(sound, minBreathingSpeed, 1)[m
+         SoundUtility.tweenSoundVolume(sound, 0, 5)[m
+     else[m
+[31m-        isAboveStartBreathing = false[m
+[32m+[m[32m        aboveStartBreathing = false[m
+         local dynamicSpeed = math.clamp([m
+             math.map([m
+                 staminaProportion, [m
+[36m@@ -129,43 +129,48 @@[m [mlocal function updateBreathingSoundProperties(staminaProportion: number)[m
+ end[m
+ [m
+ local function toggleGuiBreathingSync(toggle: boolean)[m
+[32m+[m[32m    local soundInfo = sfx_info[chosenGenderIdentity][m
+[32m+[m[32m    local sound: Sound = soundInfo.sound[m
+[32m+[m[32m    local markers: {number} = soundInfo.timePositionMarkers[m
+[32m+[m[32m    local white = Color3.fromRGB(255, 255, 255) -- White[m
+[32m+[m[32m    local blue = Color3.fromRGB(0, 150, 255) -- Blueish[m
+[32m+[m[41m    [m
+[32m+[m[32m    -- local currentSectionIndex = 1[m
+ [m
+[31m-    local timePositionMarkers = sfx_info[chosenGenderIdentity].timePositionMarkers[m
+[31m-[m
+[31m-    local lowerTransparency = 0.2[m
+[31m-    local higherTransparency = 0.8[m
+[32m+[m[32m    local fadeOutTween: Tween?[m
+ [m
+     if toggle then[m
+[31m-        RunService:BindToRenderStep("GuiBreathingSync", 200, function(delta: number)[m
+[31m-            local currentTimePosition = math.round(sfx_info[chosenGenderIdentity].sound.TimePosition*100)/100 [m
+[31m-            for i = 1, #timePositionMarkers - 1, 1 do[m
+[31m-                if timePositionMarkers[i] <= currentTimePosition and currentTimePosition < timePositionMarkers[i + 1] then[m
+[31m-                    local transparencyValue[m
+[31m-                    local dynamicColorValue[m
+[32m+[m[32m        -- print("cancelling tween")[m
+[32m+[m[32m        if fadeOutTween then[m
+[32m+[m[32m            fadeOutTween:Cancel()[m
+[32m+[m[32m            fadeOutTween = nil[m[41m [m
+[32m+[m[32m        end[m
+[32m+[m[32m        RunService:BindToRenderStep("GuiBreathingSync", 201, function(delta: number)[m
+[32m+[m[32m            local currentTimePosition = math.round(sound.TimePosition*100)/100[m[41m [m
+[32m+[m[32m            for i = 1, #markers - 1, 1 do[m
+[32m+[m[32m                if markers[i] <= currentTimePosition and currentTimePosition < markers[i + 1] then[m
+[32m+[m[32m                    local dynamicColorValue: Color3[m
+[32m+[m[32m                    local t0: number = markers[i][m
+[32m+[m[32m                    local t1: number = markers[i + 1][m
+[32m+[m[32m                    local a: number = (currentTimePosition - t0) / (t1 - t0)[m
+                     if i == 1 then[m
+[31m-                        transparencyValue = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], higherTransparency, lowerTransparency)[m
+[31m-                        local x = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], 255, 0) [m
+[31m-                        local x2 = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], 255, 150) [m
+[31m-                        dynamicColorValue = Color3.fromRGB(x, x2, 255)[m
+[32m+[m[32m                        dynamicColorValue = white:Lerp(blue, a)[m
+                     elseif i == 2 then[m
+[31m-                        transparencyValue = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], lowerTransparency, higherTransparency)[m
+[31m-                        local x = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], 0, 255) [m
+[31m-                        local x2 = math.map(currentTimePosition, timePositionMarkers[i], timePositionMarkers[i + 1], 150, 255) [m
+[31m-                        dynamicColorValue = Color3.fromRGB(x, x2, 255)[m
+[32m+[m[32m                        dynamicColorValue = blue:Lerp(white, a)[m
+                     end[m
+[31m-                    -- someBlueUi.GroupTransparency = transparencyValue[m
+[31m-                    --print(i)[m
+[31m-                    -- print("Changing color to:", dynamicColorValue)[m
+                     References.StatGuiManager.getCanvasGroup(statGuiObject).GroupColor3 = dynamicColorValue[m
+                     return[m
+                 end[m
+             end[m
+         end)[m
+[31m-    else [m
+[32m+[m[32m    else[m
+[32m+[m[32m        -- print("Playing tween from:", BrickColor.new(References.StatGuiManager.getCanvasGroup(statGuiObject).GroupColor3).Name)[m
+         RunService:UnbindFromRenderStep("GuiBreathingSync")[m
+         local ti = TweenInfo.new(1)[m
+[31m-        References.TweenService:Create(References.StatGuiManager.getCanvasGroup(statGuiObject), ti, {GroupColor3 = Color3.new(255, 255, 255)}):Play()[m
+[31m-        --References.TweenService:Create(someBlueUi, ti, {GroupTransparency = 1}):Play()[m
+[32m+[m[32m        fadeOutTween = References.TweenService:Create(References.StatGuiManager.getCanvasGroup(statGuiObject), ti, {GroupColor3 = Color3.new(255, 255, 255)})[m
+[32m+[m[32m        if fadeOutTween then[m
+[32m+[m[32m            fadeOutTween:Play()[m
+[32m+[m[32m        end[m
+     end[m
+ end[m
+ [m
+[36m@@ -282,18 +287,24 @@[m [mfunction StaminaManager.initialize()[m
+             updateBreathingSoundProperties(staminaProportion)[m
+         end)[m
+     )[m
+[32m+[m[32m    local savedF = sfx_info["Female"].sound.IsPlaying[m
+[32m+[m[32m    local savedM = sfx_info["Male"].sound.IsPlaying[m
+     table.insert([m
+         connections,[m
+         sfx_info["Female"].sound:GetPropertyChangedSignal("Playing"):Connect(function(...: any)  [m
+[31m-            warn(sfx_info["Female"].sound.IsPlaying)[m
+[31m-            toggleGuiBreathingSync(sfx_info["Female"].sound.IsPlaying)[m
+[32m+[m[32m            if savedF ~= sfx_info["Female"].sound.IsPlaying then[m
+[32m+[m[32m                savedF = sfx_info["Female"].sound.IsPlaying[m
+[32m+[m[32m                toggleGuiBreathingSync(sfx_info["Female"].sound.IsPlaying)[m
+[32m+[m[32m            end[m
+         end)[m
+     )[m
+     table.insert([m
+         connections,[m
+[31m-        sfx_info["Male"].sound:GetPropertyChangedSignal("Playing"):Connect(function(...: any)  [m
+[31m-            warn(sfx_info["Male"].sound.IsPlaying)[m
+[31m-            toggleGuiBreathingSync(sfx_info["Male"].sound.IsPlaying)[m
+[32m+[m[32m        sfx_info["Male"].sound:GetPropertyChangedSignal("Playing"):Connect(function(...: any)[m
+[32m+[m[32m            if savedM ~= sfx_info["Male"].sound.IsPlaying then[m
+[32m+[m[32m                savedM = sfx_info["Male"].sound.IsPlaying[m
+[32m+[m[32m                toggleGuiBreathingSync(sfx_info["Male"].sound.IsPlaying)[m
+[32m+[m[32m            end[m
+         end)[m
+     )[m
+     References.humanoid.Died:Once(function(...: any)  [m
+[1mdiff --git a/src/ServerScriptService/NewCodingConceptsTesting/promiseLibraryTest.server.lua b/src/ServerScriptService/NewCodingConceptsTesting/promiseLibraryTest.server.lua[m
+[1mindex f591778..1c85775 100644[m
+[1m--- a/src/ServerScriptService/NewCodingConceptsTesting/promiseLibraryTest.server.lua[m
+[1m+++ b/src/ServerScriptService/NewCodingConceptsTesting/promiseLibraryTest.server.lua[m
+[36m@@ -1,28 +1,28 @@[m
+[31m-local ReplicatedStorage = game:GetService("ReplicatedStorage")[m
+[31m-local Promise = require(ReplicatedStorage:FindFirstChild("Promise", true))[m
+[32m+[m[32m-- local ReplicatedStorage = game:GetService("ReplicatedStorage")[m
+[32m+[m[32m-- local Promise = require(ReplicatedStorage:FindFirstChild("Promise", true))[m
+ [m
+[31m-local promise = Promise.new(function(resolve : (number?) -> (), reject :  (string?) -> (), onCancel :  () -> ())[m
+[31m-    local success, result = pcall(function()  [m
+[31m-        local coinflip : number = math.random(0, 2)[m
+[31m-        if coinflip == 0 then[m
+[31m-            error("coinflip 0 error")[m
+[31m-        else[m
+[31m-            warn("coinflip 1 success")[m
+[31m-            return 10[m
+[31m-        end[m
+[31m-    end)[m
+[32m+[m[32m-- local promise = Promise.new(function(resolve : (number?) -> (), reject :  (string?) -> (), onCancel :  () -> ())[m
+[32m+[m[32m--     local success, result = pcall(function()[m[41m  [m
+[32m+[m[32m--         local coinflip : number = math.random(0, 2)[m
+[32m+[m[32m--         if coinflip == 0 then[m
+[32m+[m[32m--             error("coinflip 0 error")[m
+[32m+[m[32m--         else[m
+[32m+[m[32m--             warn("coinflip 1 success")[m
+[32m+[m[32m--             return 10[m
+[32m+[m[32m--         end[m
+[32m+[m[32m--     end)[m
+ [m
+[31m-    if success then[m
+[31m-        resolve(result)[m
+[31m-    else[m
+[31m-        reject(result)[m
+[31m-    end[m
+[31m-end)[m
+[32m+[m[32m--     if success then[m
+[32m+[m[32m--         resolve(result)[m
+[32m+[m[32m--     else[m
+[32m+[m[32m--         reject(result)[m
+[32m+[m[32m--     end[m
+[32m+[m[32m-- end)[m
+ [m
+[31m-promise[m
+[31m-    :andThen(function(result)[m
+[31m-        warn("promise resolved: ", result)[m
+[31m-    end)[m
+[31m-    :catch(function(result)[m
+[31m-        warn("promise rejected: ", result)[m
+[31m-    end)[m
+[32m+[m[32m-- promise[m
+[32m+[m[32m--     :andThen(function(result)[m
+[32m+[m[32m--         warn("promise resolved: ", result)[m
+[32m+[m[32m--     end)[m
+[32m+[m[32m--     :catch(function(result)[m
+[32m+[m[32m--         warn("promise rejected: ", result)[m
+[32m+[m[32m--     end)[m
+[1mdiff --git a/src/StarterCharacterScripts/MovementAndStaminaSystem_Client/Modules/Crouch.lua b/src/StarterCharacterScripts/MovementAndStaminaSystem_Client/Modules/Crouch.lua[m
+[1mindex 52f7a72..7ba73cd 100644[m
+[1m--- a/src/StarterCharacterScripts/MovementAndStaminaSystem_Client/Modules/Crouch.lua[m
+[1m+++ b/src/StarterCharacterScripts/MovementAndStaminaSystem_Client/Modules/Crouch.lua[m
+[36m@@ -4,7 +4,7 @@[m [mlocal humanoid: Humanoid = character.Humanoid[m
+ local animator: Animator = humanoid:FindFirstChildOfClass("Animator") :: Animator[m
+ local TweenService = game:GetService("TweenService")[m
+ local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Data.Config)[m
+[31m-local ZMovementDirectionUtility = require("./ZMovementDirectionUtility")[m
+[32m+[m[32mlocal MovementDirectionMonitor = require("./MovementDirectionMonitor")[m
+ local ReplicatedStorage = game:GetService("ReplicatedStorage")[m
+ local MovementAndStaminaSystem_Storage = ReplicatedStorage.MovementAndStaminaSystem_Storage[m
+ local remotes: {[string]: RemoteEvent} = {[m
+[36m@@ -34,7 +34,7 @@[m [mlocal function crouchWalkIfMoving(speed: number)[m
+ end[m
+ [m
+ local function updateCrouchWalkSpeed()[m
+[31m-    local direction: ZMovementDirectionUtility.zMovementDirection = ZMovementDirectionUtility.getZDirectionOfMovement()[m
+[32m+[m[32m    local direction: MovementDirectionMonitor.zMovementDirection = MovementDirectionMonitor.getZDirectionOfMovement()[m
+     if direction == "Forward" then[m
+         crouchAnimTrack.walk:AdjustSpeed(1)[m
+     elseif direction == "Backward" then[m
+[36m@@ -63,7 +63,7 @@[m [mfunction Crouch.activate()[m
+         -- When zMovementDirection changes[m
+         table.insert([m
+             connections,[m
+[31m-            ZMovementDirectionUtility.zMovementDirectionChanged:Connect(function()  [m
+[32m+[m[32m            MovementDirectionMonitor.zMovementDirectionChanged:Connect(function()[m[41m  [m
+                 updateCrouchWalkSpeed()[m
+             end)[m
+         )[m
+[1mdiff --git a/src/StarterCharacterScripts/MovementAndStaminaSystem_Client/Modules/Sprint.lua b/src/StarterCharacterScripts/MovementAndStaminaSystem_Client/Modules/Sprint.lua[m
+[1mindex 11b6ce4..d0c0fcc 100644[m
+[1m--- a/src/StarterCharacterScripts/MovementAndStaminaSystem_Client/Modules/Sprint.lua[m
+[1m+++ b/src/StarterCharacterScripts/MovementAndStaminaSystem_Client/Modules/Sprint.lua[m
+[36m@@ -2,7 +2,7 @@[m [mlocal player = game:GetService("Players").LocalPlayer[m
+ local character = player.Character or player.CharacterAdded:Wait()[m
+ local humanoid: Humanoid = character:WaitForChild("Humanoid")[m
+ local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Data.Config)[m
+[31m-local ZMovementDirectionUtility = require("./ZMovementDirectionUtility")[m
+[32m+[m[32mlocal MovementDirectionMonitor = require("./MovementDirectionMonitor")[m
+ local StaminaManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Stamina.StaminaManager)local Trove = require(game:GetService("ReplicatedStorage").Packages.Trove)[m
+ local trove = Trove.new()[m
+ [m
+[36m@@ -34,30 +34,45 @@[m [mlocal function disconnectAllConnections()[m
+     end[m
+ end[m
+ [m
+[31m-local function sprintIfMovingForward()[m
+[31m-    if ZMovementDirectionUtility.getZDirectionOfMovement() == "Forward" then[m
+[31m-        remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Sprint"])[m
+[31m-        StaminaManager.drainStaminaBar()[m
+[31m-    else[m
+[31m-        remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])[m
+[31m-        StaminaManager.fillStaminaBar()[m
+[32m+[m[32mlocal function dynamicWalkSpeedBasedOnIsMoving()[m
+[32m+[m
+[32m+[m[32m    local function changeWalkSpeedIfMoving()[m
+[32m+[m[32m        if MovementDirectionMonitor.isMovingHorizontally() then[m
+[32m+[m[32m            remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Sprint"])[m
+[32m+[m[32m            StaminaManager.drainStaminaBar()[m
+[32m+[m[32m        else[m
+[32m+[m[32m            remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])[m
+[32m+[m[32m            StaminaManager.fillStaminaBar()[m
+[32m+[m[32m        end[m
+     end[m
+[31m-end[m
+ [m
+[32m+[m[32m     -- Initial check[m
+[32m+[m[32m     changeWalkSpeedIfMoving()[m
+[32m+[m
+[32m+[m[32m    -- When isMoving changes[m
+[32m+[m[32m    table.insert([m
+[32m+[m[32m        connections,[m
+[32m+[m[32m        MovementDirectionMonitor.isMovingChanged:Connect(function(...: any)[m[41m  [m
+[32m+[m[32m            changeWalkSpeedIfMoving()[m
+[32m+[m[32m        end)[m[41m    [m
+[32m+[m[32m    )[m
+[32m+[m[32mend[m
+ [m
+ function Sprint.activate()[m
+     disconnectAllConnections()[m
+ [m
+[31m-    -- Initial check[m
+[31m-    sprintIfMovingForward()[m
+[32m+[m[32m    -- -- Initial check[m
+[32m+[m[32m    -- updateSprintSpeed()[m
+ [m
+[31m-    -- When zMovementDirection changes[m
+[31m-    table.insert([m
+[31m-        connections,[m
+[31m-        ZMovementDirectionUtility.zMovementDirectionChanged:Connect(function()  [m
+[31m-            sprintIfMovingForward()[m
+[31m-        end)[m
+[31m-    )[m
+[32m+[m[32m    -- -- When zMovementDirection changes[m
+[32m+[m[32m    -- table.insert([m[41m [m
+[32m+[m[32m    --     connections,[m
+[32m+[m[32m    --     ZMovementDirectionUtility.zMovementDirectionChanged:Connect(function()[m[41m  [m
+[32m+[m[32m    --         updateSprintSpeed()[m
+[32m+[m[32m    --     end)[m
+[32m+[m[32m    -- )[m
+[32m+[m
+[32m+[m[32m    dynamicWalkSpeedBasedOnIsMoving()[m
+ [m
+     Sprint.active = true[m
+     character:SetAttribute("Sprint", true)[m
+[1mdiff --git a/src/StarterCharacterScripts/MovementAndStaminaSystem_Client/Modules/ZMovementDirectionUtility.lua b/src/StarterCharacterScripts/MovementAndStaminaSystem_Client/Modules/ZMovementDirectionUtility.lua[m
+[1mdeleted file mode 100644[m
+[1mindex 0595734..0000000[m
+[1m--- a/src/StarterCharacterScripts/MovementAndStaminaSystem_Client/Modules/ZMovementDirectionUtility.lua[m
+[1m+++ /dev/null[m
+[36m@@ -1,56 +0,0 @@[m
+[31m-local RunService = game:GetService("RunService")[m
+[31m-local player = game:GetService("Players").LocalPlayer[m
+[31m-local character = player.Character or player.CharacterAdded:Wait()[m
+[31m-local humanoid: Humanoid = character:WaitForChild("Humanoid")[m
+[31m-local zMovementDirectionEvent = Instance.new("BindableEvent")[m
+[31m-export type zMovementDirection = "Forward" | "Backward" | "Stationary"[m
+[31m-local saved: zMovementDirection = "Stationary"[m
+[31m-[m
+[31m-local ZMovementDirectionUtility = {[m
+[31m-    _initialized = false[m
+[31m-}[m
+[31m-[m
+[31m-ZMovementDirectionUtility.zMovementDirectionChanged = zMovementDirectionEvent.Event[m
+[31m-[m
+[31m-function ZMovementDirectionUtility.getZDirectionOfMovement(): zMovementDirection[m
+[31m-    local DirectionOfMovement = character.HumanoidRootPart.CFrame:VectorToObjectSpace( character.HumanoidRootPart.AssemblyLinearVelocity )[m
+[31m-    DirectionOfMovement = Vector3.new( DirectionOfMovement.X / humanoid.WalkSpeed, 0, DirectionOfMovement.Z / humanoid.WalkSpeed )[m
+[31m-    local value = math.round(DirectionOfMovement.Z)[m
+[31m-    local foo[m
+[31m-    if value == 0 then[m
+[31m-        foo = "Stationary"[m
+[31m-    elseif value < 0 then -- Remember that in terms of the z axis, negative is forward.[m
+[31m-        foo = "Forward"[m
+[31m-    else[m
+[31m-        foo = "Backward"[m
+[31m-    end[m
+[31m-    return foo[m
+[31m-end[m
+[31m-[m
+[31m-function ZMovementDirectionUtility._initialize()[m
+[31m-    if ZMovementDirectionUtility._initialized == true then[m
+[31m-        warn("ZMovementDirectionUtility is already initialized for this character")[m
+[31m-        return[m
+[31m-    end[m
+[31m-    local connection[m
+[31m-    connection = RunService.RenderStepped:Connect(function(dt: number)[m
+[31m-        local current = ZMovementDirectionUtility.getZDirectionOfMovement()[m
+[31m-        if current ~= saved then[m
+[31m-            saved = current[m
+[31m-            zMovementDirectionEvent:Fire(current)[m
+[31m-        end[m
+[31m-    end)[m
+[31m-    ZMovementDirectionUtility._initialized = true[m
+[31m-[m
+[31m-    humanoid.Died:Once(function()  [m
+[31m-        if connection then[m
+[31m-            connection:Disconnect()[m
+[31m-            connection = nil[m
+[31m-            ZMovementDirectionUtility._initialized = false[m
+[31m-        end[m
+[31m-    end)[m
+[31m-end[m
+[31m-[m
+[31m-ZMovementDirectionUtility._initialize()[m
+[31m-[m
+[31m-return ZMovementDirectionUtility[m
+\ No newline at end of file[m

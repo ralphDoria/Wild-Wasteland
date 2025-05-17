@@ -15,7 +15,7 @@ local config: config = {
         ["Crouch"] = false 
     },
     cooldownTime = {
-        ["Jump"] = 1,
+        ["Jump"] = nil,
     }
 }
 

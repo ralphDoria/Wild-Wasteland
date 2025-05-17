@@ -2,7 +2,7 @@ local player = game:GetService("Players").LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid: Humanoid = character:WaitForChild("Humanoid")
 local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Data.Config)
-local ZMovementDirectionUtility = require("./ZMovementDirectionUtility")
+local MovementDirectionMonitor = require("./MovementDirectionMonitor")
 local StaminaManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Stamina.StaminaManager)local Trove = require(game:GetService("ReplicatedStorage").Packages.Trove)
 local trove = Trove.new()
 
@@ -34,30 +34,45 @@ local function disconnectAllConnections()
     end
 end
 
-local function sprintIfMovingForward()
-    if ZMovementDirectionUtility.getZDirectionOfMovement() == "Forward" then
-        remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Sprint"])
-        StaminaManager.drainStaminaBar()
-    else
-        remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
-        StaminaManager.fillStaminaBar()
-    end
-end
+local function dynamicWalkSpeedBasedOnIsMoving()
 
+    local function changeWalkSpeedIfMoving()
+        if MovementDirectionMonitor.isMovingHorizontally() then
+            remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Sprint"])
+            StaminaManager.drainStaminaBar()
+        else
+            remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
+            StaminaManager.fillStaminaBar()
+        end
+    end
+
+     -- Initial check
+     changeWalkSpeedIfMoving()
+
+    -- When isMoving changes
+    table.insert(
+        connections,
+        MovementDirectionMonitor.isMovingChanged:Connect(function(...: any)  
+            changeWalkSpeedIfMoving()
+        end)    
+    )
+end
 
 function Sprint.activate()
     disconnectAllConnections()
 
-    -- Initial check
-    sprintIfMovingForward()
+    -- -- Initial check
+    -- updateSprintSpeed()
 
-    -- When zMovementDirection changes
-    table.insert(
-        connections,
-        ZMovementDirectionUtility.zMovementDirectionChanged:Connect(function()  
-            sprintIfMovingForward()
-        end)
-    )
+    -- -- When zMovementDirection changes
+    -- table.insert( 
+    --     connections,
+    --     ZMovementDirectionUtility.zMovementDirectionChanged:Connect(function()  
+    --         updateSprintSpeed()
+    --     end)
+    -- )
+
+    dynamicWalkSpeedBasedOnIsMoving()
 
     Sprint.active = true
     character:SetAttribute("Sprint", true)

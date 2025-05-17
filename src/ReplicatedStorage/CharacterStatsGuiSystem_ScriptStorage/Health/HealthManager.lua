@@ -71,7 +71,6 @@ local function toggleGuiHeartbeatSoundSync(toggle: boolean)
 
     local heartbeatMarkers = {
         0,
-        0.04348,
         0.36863,
         1.05158,
         1.37572,
