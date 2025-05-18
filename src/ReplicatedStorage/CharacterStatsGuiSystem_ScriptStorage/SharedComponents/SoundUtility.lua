@@ -19,7 +19,7 @@ function SoundUtility.tweenSoundVolume(sound: Sound, newVolume: number, transiti
     if newVolume == sound.Volume then  return end
 
     if not sound.IsPlaying and newVolume ~= 0 then
-        print("playing", sound.Name)
+        -- print("playing", sound.Name)
         sound:Play()
     end
 

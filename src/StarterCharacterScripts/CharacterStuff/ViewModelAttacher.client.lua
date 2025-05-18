@@ -16,8 +16,9 @@ until player:HasAppearanceLoaded()
 local viewModel = ReplicatedStorage:WaitForChild("viewModel"):Clone()
 local IdValid, IdNotValid = pcall(function()
     game.Players:GetNameFromUserIdAsync(player.UserId)
- end)
- if IdValid then
+end)
+
+if IdValid then
     local humanoidDescription : HumanoidDescription = Players:GetHumanoidDescriptionFromUserId(player.UserId)
     --Replicating player's appearance onto view model
     local bodyColors : BodyColors = Instance.new("BodyColors")
@@ -35,7 +36,8 @@ local IdValid, IdNotValid = pcall(function()
 else
     --While playtesting in studio with multiple players using the "TEST" tab, I was getting invalid UserId's because these are test players
     --the viewmodel will just look grey
- end
+    print(IdNotValid)
+end
 
 local head = viewModel:WaitForChild("Head")
 

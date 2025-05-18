@@ -12,7 +12,7 @@ return function()
         if not instance:IsA("Tool") then
             warn("tagged instance is not a tool")
         end
-        warn("creating new Instance of " .. instance.Name)
+        -- warn("creating new Instance of " .. instance.Name)
         class.new(instance, humanoid)
     end
     

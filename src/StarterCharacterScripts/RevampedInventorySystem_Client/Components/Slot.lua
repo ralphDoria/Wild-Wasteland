@@ -43,7 +43,7 @@ function Slot.new(slot : Frame, slotType : "Hotbar" | "Inventory") : SlotType
 end
 
 function Slot.FillSlot(self : SlotType, tool : Tool, itemType : string)
-    print("Filling slot: ", self.HotbarNumber.Text)
+    -- print("Filling slot: ", self.HotbarNumber.Text)
     self.Quantity.Visible = if itemType == "Misc" then true else false
     self.ImageButton.Image = tool.TextureId
     self.tool = tool

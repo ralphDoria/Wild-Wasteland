@@ -90,7 +90,45 @@ local proportionMarkers = {
     fastestBreathing = 0
 }
 
-local aboveStartBreathing = false
+local function toggleGuiBreathingSync(toggle: boolean)
+    local soundInfo = sfx_info[chosenGenderIdentity]
+    local sound: Sound = soundInfo.sound
+    local markers: {number} = soundInfo.timePositionMarkers
+    local white = Color3.fromRGB(255, 255, 255) -- White
+    local blue = Color3.fromRGB(0, 150, 255) -- Blueish
+    
+    -- local currentSectionIndex = 1
+
+    local fadeOutTween: Tween?
+
+    if toggle then
+        RunService:BindToRenderStep("GuiBreathingSync", 201, function(delta: number)
+            local currentTimePosition = math.round(sound.TimePosition*100)/100 
+            for i = 1, #markers - 1, 1 do
+                if markers[i] <= currentTimePosition and currentTimePosition < markers[i + 1] then
+                    local dynamicColorValue: Color3
+                    local t0: number = markers[i]
+                    local t1: number = markers[i + 1]
+                    local a: number = (currentTimePosition - t0) / (t1 - t0)
+                    if i == 1 then
+                        dynamicColorValue = white:Lerp(blue, a)
+                    elseif i == 2 then
+                        dynamicColorValue = blue:Lerp(white, a)
+                    end
+                    References.TweenService:Create(References.StatGuiManager.getCanvasGroup(statGuiObject), TweenInfo.new(0), {GroupColor3 = dynamicColorValue}):Play()
+                    return
+                end
+            end
+        end)
+    else
+        -- print("Playing tween from:", BrickColor.new(References.StatGuiManager.getCanvasGroup(statGuiObject).GroupColor3).Name)
+        RunService:UnbindFromRenderStep("GuiBreathingSync")
+        local ti = TweenInfo.new(3)
+        References.TweenService:Create(References.StatGuiManager.getCanvasGroup(statGuiObject), ti, {GroupColor3 = Color3.new(1, 1, 1)}):Play()
+    end
+end
+
+local aboveStartBreathingThreshold = true
 
 local function updateBreathingSoundProperties(staminaProportion: number)
     local sound = sfx_info[chosenGenderIdentity].sound
@@ -99,12 +137,21 @@ local function updateBreathingSoundProperties(staminaProportion: number)
     local minBreathingVolume = sfx_info[chosenGenderIdentity].breathingVolume.min
     local maxBreathingVolume = sfx_info[chosenGenderIdentity].breathingVolume.max
     if staminaProportion > proportionMarkers.startBreathing then
-        if aboveStartBreathing then return end
-        aboveStartBreathing = true
-        SoundUtility.tweenSoundSpeed(sound, minBreathingSpeed, 1)
-        SoundUtility.tweenSoundVolume(sound, 0, 5)
+        if aboveStartBreathingThreshold == false then
+            -- warn("crossed above StartBreathing Threshold")
+            aboveStartBreathingThreshold = true
+
+            toggleGuiBreathingSync(false)
+            SoundUtility.tweenSoundSpeed(sound, minBreathingSpeed, 1)
+            SoundUtility.tweenSoundVolume(sound, 0, 3)
+        end
     else
-        aboveStartBreathing = false
+        if aboveStartBreathingThreshold == true then
+            -- warn("crossed below StartBreathing Threshold")
+            aboveStartBreathingThreshold = false
+            toggleGuiBreathingSync(true)
+        end
+
         local dynamicSpeed = math.clamp(
             math.map(
                 staminaProportion, 
@@ -125,52 +172,6 @@ local function updateBreathingSoundProperties(staminaProportion: number)
         )
         SoundUtility.tweenSoundSpeed(sound, dynamicSpeed, 0.5)
         SoundUtility.tweenSoundVolume(sound, dynamicVolume, 0.5)
-    end
-end
-
-local function toggleGuiBreathingSync(toggle: boolean)
-    local soundInfo = sfx_info[chosenGenderIdentity]
-    local sound: Sound = soundInfo.sound
-    local markers: {number} = soundInfo.timePositionMarkers
-    local white = Color3.fromRGB(255, 255, 255) -- White
-    local blue = Color3.fromRGB(0, 150, 255) -- Blueish
-    
-    -- local currentSectionIndex = 1
-
-    local fadeOutTween: Tween?
-
-    if toggle then
-        -- print("cancelling tween")
-        if fadeOutTween then
-            fadeOutTween:Cancel()
-            fadeOutTween = nil 
-        end
-        RunService:BindToRenderStep("GuiBreathingSync", 201, function(delta: number)
-            local currentTimePosition = math.round(sound.TimePosition*100)/100 
-            for i = 1, #markers - 1, 1 do
-                if markers[i] <= currentTimePosition and currentTimePosition < markers[i + 1] then
-                    local dynamicColorValue: Color3
-                    local t0: number = markers[i]
-                    local t1: number = markers[i + 1]
-                    local a: number = (currentTimePosition - t0) / (t1 - t0)
-                    if i == 1 then
-                        dynamicColorValue = white:Lerp(blue, a)
-                    elseif i == 2 then
-                        dynamicColorValue = blue:Lerp(white, a)
-                    end
-                    References.StatGuiManager.getCanvasGroup(statGuiObject).GroupColor3 = dynamicColorValue
-                    return
-                end
-            end
-        end)
-    else
-        -- print("Playing tween from:", BrickColor.new(References.StatGuiManager.getCanvasGroup(statGuiObject).GroupColor3).Name)
-        RunService:UnbindFromRenderStep("GuiBreathingSync")
-        local ti = TweenInfo.new(1)
-        fadeOutTween = References.TweenService:Create(References.StatGuiManager.getCanvasGroup(statGuiObject), ti, {GroupColor3 = Color3.new(255, 255, 255)})
-        if fadeOutTween then
-            fadeOutTween:Play()
-        end
     end
 end
 
@@ -285,26 +286,6 @@ function StaminaManager.initialize()
             --
             local staminaProportion: number = math.round((currentStamina/References.humanoid.MaxHealth) * 100)/100
             updateBreathingSoundProperties(staminaProportion)
-        end)
-    )
-    local savedF = sfx_info["Female"].sound.IsPlaying
-    local savedM = sfx_info["Male"].sound.IsPlaying
-    table.insert(
-        connections,
-        sfx_info["Female"].sound:GetPropertyChangedSignal("Playing"):Connect(function(...: any)  
-            if savedF ~= sfx_info["Female"].sound.IsPlaying then
-                savedF = sfx_info["Female"].sound.IsPlaying
-                toggleGuiBreathingSync(sfx_info["Female"].sound.IsPlaying)
-            end
-        end)
-    )
-    table.insert(
-        connections,
-        sfx_info["Male"].sound:GetPropertyChangedSignal("Playing"):Connect(function(...: any)
-            if savedM ~= sfx_info["Male"].sound.IsPlaying then
-                savedM = sfx_info["Male"].sound.IsPlaying
-                toggleGuiBreathingSync(sfx_info["Male"].sound.IsPlaying)
-            end
         end)
     )
     References.humanoid.Died:Once(function(...: any)  

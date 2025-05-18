@@ -31,7 +31,7 @@ local ItemGroupTemplate : Frame = Templates:FindFirstChild("ItemGroupTemplate") 
 local InventorySystem = {}
 
 function InventorySystem.init()
-	warn("initializing revamped inventory")
+	-- warn("initializing revamped inventory")
 	gui.Enabled = true
 	Hotbar.Visible = true
 	MainInventory.Visible = false
@@ -41,7 +41,7 @@ function InventorySystem.init()
 
 	ItemMovementTracker(
 		function(tool) --onAdded
-			warn("calling onAdded")
+			-- warn("calling onAdded")
 			local emptyHotbarslot : Slot.SlotType? =  HotbarManager.findMinimumEmptyHotbarSlot()
 			if emptyHotbarslot ~= nil then
 				Slot.FillSlot(emptyHotbarslot, tool, tool:GetAttribute("Type") :: string)

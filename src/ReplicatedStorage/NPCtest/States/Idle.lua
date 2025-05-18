@@ -9,7 +9,7 @@ Idle.Transitions = {
 }
 
 function Idle:OnEnter(data)
-    print("Entered Idle!")
+    -- print("Entered Idle!")
     local humanoid = data.humanoid
     local startingPosition = data.startingPosition
 

@@ -1,17 +1,14 @@
 local RS = game:GetService("ReplicatedStorage")
 local References = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Data.References)
 local Health = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Health.HealthManager)
-
-local Config: {[string]: Color3} = {
-    ["Health"] = Color3.fromRGB(255, 0, 0),
-    ["Stamina"] = Color3.fromRGB(255, 145, 0),
-    ["Hunger"] = Color3.fromRGB(255, 234, 0),
-    ["Thirst"] = Color3.fromRGB(0, 17, 255)
-}
+local Hunger = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Hunger.HungerManager) 
+local Thrist = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Thirst.ThirstManager) 
 
 local function initialize()
 	References.update()
 	Health.initialize()
+	Hunger.initialize()
+	Thrist.initialize()
 
 	local function updatePositionAndScale()
 		local touchControlsEnabled = References.playerGui:FindFirstChild("TouchGui") ~= nil

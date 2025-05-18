@@ -18,7 +18,7 @@ local plr = game:GetService("Players").LocalPlayer
 plr:SetAttribute("inTitleScreen", true) --for inventory gui to hold off on intializing inventory system
 local lsmMenu : ScreenGui = game:GetService("ReplicatedFirst").LoadStartMainMenu
 lsmMenu.Parent = plr.PlayerGui
-print("lsmMenu ScreenGui parented")
+-- print("lsmMenu ScreenGui parented")
 local loadingScreenElements = {
 	mainInfo = lsmMenu:FindFirstChild("mainInfo", true),
 	miscInfo = lsmMenu:FindFirstChild("miscInfo", true),

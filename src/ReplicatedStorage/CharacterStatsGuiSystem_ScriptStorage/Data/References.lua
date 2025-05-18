@@ -9,7 +9,8 @@ local References = {
     SoundService = game:GetService("SoundService"),
     debuffSounds = game:GetService("SoundService"):FindFirstChild("Debuff", true):: Folder,
     CharacterStatsGui = nil,
-    TweenService = game:GetService("TweenService")
+    TweenService = game:GetService("TweenService"),
+    Trove = require(game:GetService("ReplicatedStorage").Packages.Trove)
 }
 
 -- Outside of the table, setting references that depend on other references
