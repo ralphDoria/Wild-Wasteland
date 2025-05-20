@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local source = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
 
 local barbedBat = source["Barbed Bat"]
+local healingInjection = source["Healing Injection"]
 
 local ToolInfo = {}
 
@@ -32,7 +33,28 @@ local catalog : {[string] : ToolInfo} = {
                 metal = barbedBat.Sounds.impact.metal
             }
         }
+    },
+    [healingInjection.Name] = {
+        animObjects = {
+            equip = healingInjection.Anims.equip,
+            idle = healingInjection.Anims.idle,
+            activate = healingInjection.Anims.activate   
+        },
+        soundObjects = {
+            equip = healingInjection.Sounds.equip,
+            drop = {
+                hard = healingInjection.Sounds.drop.hard,
+                soft = healingInjection.Sounds.drop.soft
+            },
+            needle = {
+                inject = healingInjection.Sounds.needle.inject,
+                insert = healingInjection.Sounds.needle.insert,
+                remove = healingInjection.Sounds.needle:FindFirstChild("remove")
+            },
+            singleHeartbeat = healingInjection.Sounds.singleHeartbeat
+        }
     }
+
 }
 
 function ToolInfo.get(toolName : string) : ToolInfo

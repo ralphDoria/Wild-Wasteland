@@ -1,4 +1,8 @@
 local RS = game:GetService("ReplicatedStorage")
+local CharacterStatsGuiSystem_Storage = RS:FindFirstChild("CharacterStatsGuiSystem_Storage", true)
+local remotes: {[string]: RemoteEvent} = {
+    hungerThirstDamage = CharacterStatsGuiSystem_Storage:FindFirstChild("hungerThirstDamage", true)
+}
 local References = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Data.References)
 local statGui: CanvasGroup = References.CharacterStatsGui.Frame.thirst
 local statGuiObject = References.StatGuiManager.new(statGui, "Thirst", Color3.fromRGB(198, 204, 19))
@@ -53,6 +57,8 @@ function ThirstManager.initialize()
         end
     end)
 
+    local isAffected = false
+
     trove:Add(
         task.spawn(function()
             while task.wait(1/Config.speed) do
@@ -69,12 +75,19 @@ function ThirstManager.initialize()
                 -- decrement hunger or damage humanoid flow control
                 ------------------
                 if currentvalue > 0 then
+                    if isAffected == true then
+                        isAffected = false
+                        remotes.hungerThirstDamage:FireServer(false, References.humanoid, Config.damage)
+                    end
                     local newValue = currentvalue - Config.increment
                     local proportion = newValue/maxValue
                     References.StatGuiManager.SetStatValue(statGuiObject, proportion)
                     currentvalue = newValue
                 else
-                    References.humanoid:TakeDamage(Config.damage)
+                    if isAffected == false then
+                        isAffected = true
+                        remotes.hungerThirstDamage:FireServer(true, References.humanoid, Config.damage)
+                    end
                 end   
                 
                 ------------------

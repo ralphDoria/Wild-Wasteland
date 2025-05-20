@@ -211,7 +211,7 @@ local function nukeFlashingCutscene()
 	background.blackScreen.Transparency = 1
 	task.wait(1)
 end
---nukeFlashingCutscene()
+-- nukeFlashingCutscene()
 
 local connections = {}
 

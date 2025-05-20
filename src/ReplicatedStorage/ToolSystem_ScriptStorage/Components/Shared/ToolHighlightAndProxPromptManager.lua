@@ -1,5 +1,6 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Trove = require(ReplicatedStorage.Packages.Trove)
 local player = game:GetService("Players").LocalPlayer
 local ToolSystem_Storage = ReplicatedStorage.ToolSystem_Storage
 local highlight: Highlight = ToolSystem_Storage.Shared.Instances.Highlight
@@ -15,7 +16,7 @@ export type ToolHighlightAndProxPromptManager = {
     tool : Tool,
     highlight : Highlight,
     pp : ProximityPrompt,
-    connections : {RBXScriptConnection}
+    connections : {RBXScriptConnection?}
 }
 
 local ToolHighlightAndProxPromptManager = {}
@@ -78,8 +79,16 @@ function ToolHighlightAndProxPromptManager._initialize(self : ToolHighlightAndPr
     )
 end
 
-function ToolHighlightAndProxPromptManager.Destroy()
-    
+function ToolHighlightAndProxPromptManager.Destroy(self: ToolHighlightAndProxPromptManager)
+    for _, v in self.connections do
+        if typeof(v) == "RBXScriptConnection" then
+            v:Disconnect()    
+        end
+        v = nil
+    end
+    self.highlight:Destroy()
+    self.pp:Destroy()
+    table.clear(self)
 end
 
 

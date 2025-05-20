@@ -33,12 +33,12 @@ function CrosshairManager.new()
 		connections = {}
 	}
 
-    CrosshairManager.initialize(self)
+    CrosshairManager._initialize(self)
 
     return self
 end
 
-function CrosshairManager.initialize(self : CrosshairObject)
+function CrosshairManager._initialize(self : CrosshairObject)
     
 end
 

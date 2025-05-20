@@ -5,6 +5,7 @@ local player = Players.LocalPlayer
 local humanoid = player.Character:FindFirstChildOfClass("Humanoid", true) or player.CharacterAdded:Wait():FindFirstChildOfClass("Humanoid", true)
 local toolTags = {
      ["Melee"] = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage.Subclasses.Melee),--the tool tag is just going to be the name of the tool
+     ["HealingInjection"] = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage.Items.Consumables.HealingInjection)
 }
 
 return function()

@@ -25,15 +25,12 @@ local camShake = CameraShaker.new(Enum.RenderPriority.Last.Value, function(shake
 end)
 camShake:Start()
 
-local crosshairID : string = "rbxassetid://122059927774494"
-
 export type MeleeObject = Item.ItemType & {
     damage : number,
     staminaCost: number,
     swingSpeed : number,
     HitboxManager : HitboxManager.HitboxManager,
-    CrosshairGuiObject : CrosshairGuiManager.CrosshairObject,
-    trail : Trail
+    trail : Trail,
 }
 
 local Melee =  {}
@@ -44,7 +41,6 @@ function Melee.new(tool : Tool, humanoid : Humanoid) : MeleeObject
     self.staminaCost = 10
     self.swingSpeed = 1
     self.HitboxManager = HitboxManager.new(tool)
-    self.CrosshairGuiObject = CrosshairGuiManager.new()
     self.trail = tool:FindFirstChildWhichIsA("Trail", true)
 
     Melee.toggleSwingTrail(self, false)
@@ -93,7 +89,6 @@ function Melee.initialize(self : MeleeObject)
     Item.initialize(
         self,
         function()  --onEquipping
-            CrosshairGuiManager.toggleEnable(self.CrosshairGuiObject)
         end, 
         function() --onEquipped
             toggleSwingBind(self, true)
@@ -102,13 +97,11 @@ function Melee.initialize(self : MeleeObject)
             toggleSwingBind(self, false) 
         end,
         function() --onUnequipped()
-            CrosshairGuiManager.ForceDisable(self.CrosshairGuiObject)
         end, 
         function() --onDropping()
             toggleSwingBind(self, false)
         end,
         function() --onDropped()
-            CrosshairGuiManager.ForceDisable(self.CrosshairGuiObject) 
         end
     )
     MeleeVMM.ConnectTrailsTransparencyUpdater(self.ViewmodelManager, self.tool)
@@ -132,7 +125,7 @@ function Melee.initialize(self : MeleeObject)
         local impactSounds = self.soundManager.Sounds[self.tool.Name].impact :: {[string] : Sound}
         local fleshSound = impactSounds.flesh
         self.soundManager.playSound("Server", fleshSound, self.tool:FindFirstChild("BodyAttach"), 0)
-        CrosshairGuiManager.showHitmarker(self.CrosshairGuiObject, function()  
+        CrosshairGuiManager.showHitmarker(self.crosshairGuiObject, function()  
             self.soundManager.playSound("Client", hitmarkerSound, self.tool:FindFirstChild("BodyAttach"), 0)
         end)
         camShake:ShakeOnce(3, 5, 0.2, 0.2)
@@ -148,7 +141,6 @@ function Melee.initialize(self : MeleeObject)
     --     return Enum.ContextActionResult.Sink
     -- end, true, Enum.KeyCode.P)
 
-    CrosshairGuiManager.toggleCrosshairLines(self.CrosshairGuiObject, false)
 end
 
 function Melee.swing(self : MeleeObject)

@@ -10,6 +10,8 @@ local ToolHighlightAndProxPromptManager = require("../Components/Shared/ToolHigh
 local ToolGuiManager = require("../Components/Shared/ToolGuiManager")
 local ActionManager = require("../../ActionManagerSystem/ActionManager")
 local ToolInfo = require("../Data/ToolInfo")
+local CrosshairGuiManager = require("../Components/Shared/CrosshairManager")
+local Trove = require(ReplicatedStorage.Packages.Trove)
 
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local bindables : {[string] : BindableEvent} = {
@@ -32,12 +34,17 @@ export type ItemType = {
     ToolGuiManager : any,
     ToolHighlightAndProxPromptManager : ToolHighlightAndProxPromptManager.ToolHighlightAndProxPromptManager,
     finiteStateMachine : ModuleScript?,
+    crosshairGuiObject: CrosshairGuiManager.CrosshairObject,
     connections : {[string] : RBXScriptConnection},
+    trove: {},
     State : "Equipping" | "Idle" | "Unequipping" | "Unequipped" | "Activated" | "Dropping" | "Dropped"
 }
 
 local currentAnimationManager = AnimationManager.new(currentCharacter)
 local currentViewmodelManager = ViewmodelManager.new(workspace.CurrentCamera:WaitForChild("viewModel"))
+local crosshairGuiObject = CrosshairGuiManager.new()
+CrosshairGuiManager.toggleCrosshairLines(crosshairGuiObject, false)
+
 
 local Item = {}
 
@@ -45,6 +52,8 @@ local Item = {}
     Makes this tool usable for the humanoid's current character
 ]]
 function Item.new(tool : Tool, humanoid : Humanoid) : ItemType
+    local trove = Trove.new()
+
     local self : ItemType = {
         tool = tool,
         humanoid = humanoid,
@@ -53,7 +62,9 @@ function Item.new(tool : Tool, humanoid : Humanoid) : ItemType
         ViewmodelManager = currentViewmodelManager :: any, --viewmodelController will handle viewmodel instance reference
         ToolGuiManager = ToolGuiManager,
         ToolHighlightAndProxPromptManager = ToolHighlightAndProxPromptManager.new(tool),
+        crosshairGuiObject = crosshairGuiObject,
         connections = {},
+        trove = trove,
         State = "Unequipped"
     }
 
@@ -100,6 +111,7 @@ function Item.equip(self: ItemType, equipping: () -> ()?, equipped: () -> ()?, o
     local equipTrack : AnimationTrack = currentAnimationManager.animationTracks[self.tool.Name].equip
     local vmEquipTrack : AnimationTrack = currentViewmodelManager.animManager.animationTracks[self.tool.Name].equip
     Item.toggleDropBind(self, true, onDropping, onDropped)
+    CrosshairGuiManager.toggleEnable(crosshairGuiObject)
     if equipping then equipping() end
     if equipTrack.IsPlaying then
         equipTrack:AdjustSpeed(1)
@@ -126,6 +138,7 @@ function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> 
     SoundManager.playSound("Server", SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach"), 0)
     local equipTrack : AnimationTrack = currentAnimationManager.animationTracks[self.tool.Name].equip
     local vmEquipTrack : AnimationTrack = currentViewmodelManager.animManager.animationTracks[self.tool.Name].equip
+    CrosshairGuiManager.ForceDisable(crosshairGuiObject)
     if unequipping then unequipping() end
     if equipTrack.IsPlaying then
         equipTrack:AdjustSpeed(-1)
@@ -152,6 +165,7 @@ function Item.drop(self : ItemType, onDropping: () -> ()?, onDropped : () -> ()?
     if self.State == "Idle" or self.State == "Equipping" then
         Item.ChangeState(self, "Dropping")
         Item.toggleDropBind(self, false)
+        CrosshairGuiManager.ForceDisable(crosshairGuiObject) 
         if onDropping then
             onDropping()
         end
@@ -195,7 +209,18 @@ function Item.toggleDropBind(self : ItemType, toggle : boolean, onDropping: () -
     end
 end
 
-function Item.destroy(self : ItemType)
+function Item.updateHumaoid()
+    
+end
+
+function Item.Destroy(self : ItemType)
+    ToolHighlightAndProxPromptManager.Destroy(self.ToolHighlightAndProxPromptManager)
+    --animManager internal data
+    --viewmodelManager internal data
+
+    for _, v in self.connections do
+        v:Disconnect()
+    end
 end
 
 return Item

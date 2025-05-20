@@ -1,7 +1,13 @@
 export type SoundManager = {
     playSound : (networkSide : "Client" | "Server", sound : Sound, soundParent : any, delayCorrection : number) -> (),
     storeSounds : (toolName : string, soundObjects : {[string] : Sound | {[string] : Sound}}) -> (),
-    Sounds : {[string] : {[string] : Sound | {[string] : Sound}}}
+    Sounds : {
+        [string] : { -- tool name (mandatory)
+            [string]: Sound | {
+                [string]: Sound
+            }
+        }
+    }
 }
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
