@@ -11,7 +11,7 @@ local ToolGuiManager = require("../Components/Shared/ToolGuiManager")
 local ActionManager = require("../../ActionManagerSystem/ActionManager")
 local ToolInfo = require("../Data/ToolInfo")
 local CrosshairGuiManager = require("../Components/Shared/CrosshairManager")
-local Trove = require(ReplicatedStorage.Packages.Trove)
+-- local Trove = require(ReplicatedStorage.Packages.Trove)
 
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local bindables : {[string] : BindableEvent} = {
@@ -25,6 +25,8 @@ local remotes: {[string] : RemoteEvent} = {
 
 local currentCharacter = player.Character or player.CharacterAdded:Wait()
 
+type state = "Equipping" | "Idle" | "Unequipping" | "Unequipped" | "Activated" | "Dropping" | "Dropped" | "Destroying" | "UpdatingCharacter"
+
 export type ItemType = {
     tool : Tool,
     humanoid : Humanoid,
@@ -36,8 +38,7 @@ export type ItemType = {
     finiteStateMachine : ModuleScript?,
     crosshairGuiObject: CrosshairGuiManager.CrosshairObject,
     connections : {[string] : RBXScriptConnection},
-    trove: {},
-    State : "Equipping" | "Idle" | "Unequipping" | "Unequipped" | "Activated" | "Dropping" | "Dropped"
+    State : state
 }
 
 local currentAnimationManager = AnimationManager.new(currentCharacter)
@@ -52,8 +53,6 @@ local Item = {}
     Makes this tool usable for the humanoid's current character
 ]]
 function Item.new(tool : Tool, humanoid : Humanoid) : ItemType
-    local trove = Trove.new()
-
     local self : ItemType = {
         tool = tool,
         humanoid = humanoid,
@@ -64,7 +63,6 @@ function Item.new(tool : Tool, humanoid : Humanoid) : ItemType
         ToolHighlightAndProxPromptManager = ToolHighlightAndProxPromptManager.new(tool),
         crosshairGuiObject = crosshairGuiObject,
         connections = {},
-        trove = trove,
         State = "Unequipped"
     }
 
@@ -156,7 +154,7 @@ function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> 
     end
 end
 
-function Item.ChangeState(self: ItemType, state: "Equipping" | "Idle" | "Unequipping" | "Unequipped" | "Activated" | "Dropping" | "Dropped")
+function Item.ChangeState(self: ItemType, state: state)
     self.tool:SetAttribute("State", state)
     self.State = state
 end
@@ -209,18 +207,22 @@ function Item.toggleDropBind(self : ItemType, toggle : boolean, onDropping: () -
     end
 end
 
-function Item.updateHumaoid()
+function Item.updateCharacter()
     
 end
 
-function Item.Destroy(self : ItemType)
+function Item.Destroy(self : ItemType, childObjectCleanupMethod: () -> ())
+    warn("running this ")
+    Item.ChangeState(self, "Destroying")
     ToolHighlightAndProxPromptManager.Destroy(self.ToolHighlightAndProxPromptManager)
     --animManager internal data
-    --viewmodelManager internal data
-
+    ViewmodelManager.removeTool(self.ViewmodelManager, self.tool)
     for _, v in self.connections do
         v:Disconnect()
     end
+    childObjectCleanupMethod()
+    warn("clearing table")
+    table.clear(self)
 end
 
 return Item

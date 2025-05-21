@@ -16,7 +16,7 @@ export type ViewmodelManager = {
     viewmodel : Model,
     ToolToVMToolMapping : { [Tool] : Tool },
     animManager : AnimationManager.AnimationManager,
-    connections : {RBXScriptConnection?},
+    connections : {[Tool | string]: {[string]: RBXScriptConnection}},
     mouseSway : any
 }
 
@@ -54,33 +54,33 @@ function ViewmodelManager.AddTool(self: ViewmodelManager, tool: Tool, animations
     vmTool.Parent = nil
     self.ToolToVMToolMapping[tool] = vmTool
     AnimationManager.LoadAnimations(self.animManager, tool.Name, animations)
-    table.insert(
-        self.connections,
-        tool.Equipped:Connect(function()
-            ViewmodelManager.toggleViewmodelToolVisibility(self, tool)
-            ViewmodelManager._toggleBobAndSway(self, true)
-            vmTool.Parent = self.viewmodel
-            local BodyAttachJoint = self.viewmodel:WaitForChild("Torso"):FindFirstChild("BodyAttachJoint") :: Motor6D
-            if BodyAttachJoint then
-                BodyAttachJoint.Part1 = vmTool:FindFirstChild("BodyAttach") :: BasePart
-            end
-        end)
-    )
-    table.insert(
-        self.connections,
-        tool.Unequipped:Connect(function()
-            ViewmodelManager._toggleBobAndSway(self, false)
-            vmTool.Parent = nil
-            local BodyAttachJoint = self.viewmodel:WaitForChild("Torso"):FindFirstChild("BodyAttachJoint") :: Motor6D
-            if BodyAttachJoint then
-                BodyAttachJoint.Part1 = nil
-            end
-        end)
-    )
+    self.connections[tool] = {}
+    self.connections[tool].equipped = tool.Equipped:Connect(function()
+        ViewmodelManager.toggleViewmodelToolVisibility(self, tool)
+        ViewmodelManager._toggleBobAndSway(self, true)
+        vmTool.Parent = self.viewmodel
+        local BodyAttachJoint = self.viewmodel:WaitForChild("Torso"):FindFirstChild("BodyAttachJoint") :: Motor6D
+        if BodyAttachJoint then
+            BodyAttachJoint.Part1 = vmTool:FindFirstChild("BodyAttach") :: BasePart
+        end
+    end)
+    self.connections[tool].unequipped = tool.Unequipped:Connect(function()
+        ViewmodelManager._toggleBobAndSway(self, false)
+        vmTool.Parent = nil
+        local BodyAttachJoint = self.viewmodel:WaitForChild("Torso"):FindFirstChild("BodyAttachJoint") :: Motor6D
+        if BodyAttachJoint then
+            BodyAttachJoint.Part1 = nil
+        end
+    end)
 end
 
 function ViewmodelManager.removeTool(self: ViewmodelManager, tool: Tool)
-    
+    self.ToolToVMToolMapping[tool]:Destroy()
+    self.ToolToVMToolMapping[tool] = nil
+    for _, connection in self.connections[tool] do
+        connection:Disconnect()
+    end
+    table.clear(self.connections[tool])
 end
 
 function ViewmodelManager.findOriginalTool(self: ViewmodelManager,vmTool: Tool): Tool?
@@ -97,15 +97,12 @@ function ViewmodelManager._initialize(self : ViewmodelManager)
     The file named "ViewModelAttacher" makes all descendants of the viewmodel before the frame renders, while 
     the RBXScriptConnection here changes the vmTool transparency after the frame has rendered
     ]]
-    table.insert(
-        self.connections,
-        Players.LocalPlayer.Character.Torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
-            local equippedViewmodelTool = self.viewmodel:FindFirstChildOfClass("Tool")
-            if equippedViewmodelTool then
-                ViewmodelManager.toggleViewmodelToolVisibility(self, ViewmodelManager.findOriginalTool(self, equippedViewmodelTool) :: Tool) 
-            end
-        end)
-    )
+    self.connections.ToggleVMToolVisibilityBasedOnTorsoTransparency = Players.LocalPlayer.Character.Torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
+        local equippedViewmodelTool = self.viewmodel:FindFirstChildOfClass("Tool")
+        if equippedViewmodelTool then
+            ViewmodelManager.toggleViewmodelToolVisibility(self, ViewmodelManager.findOriginalTool(self, equippedViewmodelTool) :: Tool) 
+        end
+    end)
 end
 
 function ViewmodelManager._viewmodelBobAndSwayCalculation(self: ViewmodelManager, deltaTime: number)

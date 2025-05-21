@@ -12,8 +12,7 @@ local ToolHighlightAndProxPromptManager = require("../Components/Shared/ToolHigh
 
 export type ConsumableObject = Item.ItemType & {
     consumeSpeed: number,
-    effectType: "Hunger" | "Thirst" | "Stamina" | "Health",
-    startActivatedEffects: () -> ()
+    startActivatedEffects: () -> (),
 }
 
 local Consumable = {}
@@ -21,9 +20,7 @@ local Consumable = {}
 function Consumable.new(tool : Tool, humanoid : Humanoid, startActivatedEffects: () -> ()): ConsumableObject
     local self = Item.new(tool, humanoid)
     self.consumeSpeed = 1
-    self.effectType = "Health"  
     self.startActivatedEffects = startActivatedEffects
-
 
     Consumable.initialize(self)
 
@@ -108,8 +105,11 @@ function Consumable.activate(self: ConsumableObject)
     end
 end
 
-function Consumable.destroy(self: ConsumableObject)
-    
+function Consumable.Destroy(self: ConsumableObject, childObjectCleanupMethod: () -> ())
+    Item.Destroy(self, function()  
+        self.consumeSpeed = nil
+        childObjectCleanupMethod()
+    end)
 end
 
 return Consumable

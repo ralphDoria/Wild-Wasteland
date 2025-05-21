@@ -8,9 +8,11 @@ local Consumable = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptSto
 local HealingInjection = {}
 
 function HealingInjection.new(tool, humanoid): Consumable.ConsumableObject
-    local self = Consumable.new(tool, humanoid, function()
-        remotes.heal:FireServer(humanoid, 25)
-    end)
+    local self = Consumable.new(tool, humanoid, 
+        function()
+            remotes.heal:FireServer(humanoid, 25)
+        end
+    )
 
     HealingInjection._initialize(self)
 
@@ -33,7 +35,9 @@ function HealingInjection._initialize(self: Consumable.ConsumableObject)
 end
 
 function HealingInjection.Destroy(self)
-    
+    Consumable.Destroy(self, function()  
+        
+    end)
 end
 
 return HealingInjection

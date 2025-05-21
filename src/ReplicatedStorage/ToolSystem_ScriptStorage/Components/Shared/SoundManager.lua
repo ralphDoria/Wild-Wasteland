@@ -3,7 +3,7 @@ export type SoundManager = {
     storeSounds : (toolName : string, soundObjects : {[string] : Sound | {[string] : Sound}}) -> (),
     Sounds : {
         [string] : { -- tool name (mandatory)
-            [string]: Sound | {
+            [string]: Sound & {
                 [string]: Sound
             }
         }
