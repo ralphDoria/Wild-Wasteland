@@ -79,7 +79,9 @@ function ViewmodelManager.AddTool(self: ViewmodelManager, tool: Tool, animations
     )
 end
 
-
+function ViewmodelManager.removeTool(self: ViewmodelManager, tool: Tool)
+    
+end
 
 function ViewmodelManager.findOriginalTool(self: ViewmodelManager,vmTool: Tool): Tool?
     for key, v in self.ToolToVMToolMapping do
