@@ -107,6 +107,7 @@ function Item.equip(self: ItemType, equipping: () -> ()?, equipped: () -> ()?, o
     self.humanoid:EquipTool(self.tool)
     SoundManager.playSound("Server", SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach"), 0)
     local equipTrack : AnimationTrack = currentAnimationManager.animationTracks[self.tool.Name].equip
+    equipTrack.Priority = Enum.AnimationPriority.Action2
     local vmEquipTrack : AnimationTrack = currentViewmodelManager.animManager.animationTracks[self.tool.Name].equip
     Item.toggleDropBind(self, true, onDropping, onDropped)
     CrosshairGuiManager.toggleEnable(crosshairGuiObject)
@@ -135,6 +136,7 @@ function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> 
     currentViewmodelManager.animManager.animationTracks[self.tool.Name].idle:Stop()
     SoundManager.playSound("Server", SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach"), 0)
     local equipTrack : AnimationTrack = currentAnimationManager.animationTracks[self.tool.Name].equip
+    equipTrack.Priority = Enum.AnimationPriority.Action
     local vmEquipTrack : AnimationTrack = currentViewmodelManager.animManager.animationTracks[self.tool.Name].equip
     CrosshairGuiManager.ForceDisable(crosshairGuiObject)
     if unequipping then unequipping() end
@@ -146,12 +148,11 @@ function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> 
         vmEquipTrack:Play(0.1, 1, -1)
     end
     equipTrack.Stopped:Wait()
+    equipTrack:Stop(0)
     if self.State == "Unequipping" or self.State == "Dropping" then
-        print("unequipping tools")
         self.humanoid:UnequipTools()
         Item.toggleDropBind(self, false)
         if unequipped then unequipped() end
-        equipTrack.Ended:Wait()
         Item.ChangeState(self, "Unequipped")
     end
 end
@@ -214,7 +215,6 @@ function Item.updateCharacter()
 end
 
 function Item.Destroy(self : ItemType, childObjectCleanupMethod: () -> ())
-    print("Calling Item.Destroy()")
     Item.ChangeState(self, "Destroying")
     ToolHighlightAndProxPromptManager.Destroy(self.ToolHighlightAndProxPromptManager)
     --animManager internal data

@@ -41,7 +41,6 @@ function HealingInjection._initialize(self: Consumable.ConsumableObject)
 end
 
 function HealingInjection.Destroy(self)
-    print("Calling HealingInjection.Destroy()")
     Consumable.Destroy(self, function()  
         for _, connection in self.connections do
             connection:Disconnect()

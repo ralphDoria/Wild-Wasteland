@@ -96,7 +96,6 @@ end
 
 function Consumable.activate(self: ConsumableObject)
     if self.State == "Idle" then
-        warn("consumable activated")
         Item.ChangeState(self, "Activated")
         local activateTrack = self.animManager.animationTracks[self.tool.Name].activate
         local vmActivateTrack = self.ViewmodelManager.animManager.animationTracks[self.tool.Name].activate
@@ -119,7 +118,6 @@ function Consumable.activate(self: ConsumableObject)
 end
 
 function Consumable.Destroy(self: ConsumableObject, childObjectCleanupMethod: () -> ())
-    print("Calling Consumable.Destroy()")
     Item.Destroy(self, function()
         self.consumeSpeed = nil
         toggleInjectBind(self, false)
