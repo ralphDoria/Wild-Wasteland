@@ -55,7 +55,6 @@ function InventorySystem.init()
 		end,
 		function(tool) --onDropped
 			--empty slot
-			warn("calling onDropped")
 			Slot.EmptySlot(Slot.GetSlotFromTool(tool) ::  Slot.SlotType)
 		end
 	)

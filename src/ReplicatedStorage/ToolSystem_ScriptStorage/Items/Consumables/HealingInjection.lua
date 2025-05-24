@@ -8,11 +8,7 @@ local Consumable = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptSto
 local HealingInjection = {}
 
 function HealingInjection.new(tool, humanoid): Consumable.ConsumableObject
-    local self = Consumable.new(tool, humanoid, 
-        function()
-            remotes.heal:FireServer(humanoid, 25)
-        end
-    )
+    local self = Consumable.new(tool, humanoid)
 
     HealingInjection._initialize(self)
 
@@ -20,8 +16,18 @@ function HealingInjection.new(tool, humanoid): Consumable.ConsumableObject
 end
 
 function HealingInjection._initialize(self: Consumable.ConsumableObject)
+    Consumable.initialize(
+        self, 
+        function() -- activatedEffects()  
+            remotes.heal:FireServer(self.humanoid, 25)
+        end,
+        function() -- childClassCleanupFunction()
+            HealingInjection.Destroy(self)
+        end
+    )
+
     local activateTrack = self.animManager.animationTracks[self.tool.Name].activate
-    activateTrack:GetMarkerReachedSignal("needle"):Connect(function(status: "insert" | "inject" | "remove")
+    self.connections.activateAnimEvents = activateTrack:GetMarkerReachedSignal("needle"):Connect(function(status: "insert" | "inject" | "remove")
         if self.State ~= "Unequipped" then
             if status == "insert" then
                 self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].needle.insert, self.tool:FindFirstChild("BodyAttach"), 0)
@@ -35,8 +41,11 @@ function HealingInjection._initialize(self: Consumable.ConsumableObject)
 end
 
 function HealingInjection.Destroy(self)
+    print("Calling HealingInjection.Destroy()")
     Consumable.Destroy(self, function()  
-        
+        for _, connection in self.connections do
+            connection:Disconnect()
+        end
     end)
 end
 

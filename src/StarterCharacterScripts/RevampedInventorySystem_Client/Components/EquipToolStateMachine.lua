@@ -12,34 +12,31 @@ local EquipToolStateMachine = {}
 
 EquipToolStateMachine.targetTool = nil
 
-function EquipToolStateMachine.SetTargetTool(tool: Tool)
+function EquipToolStateMachine.SetTargetTool(thisTargetTool: Tool)
     local currentTool = character:FindFirstChildOfClass("Tool")
-    if currentTool == nil or currentTool == tool then
-        local state : state = tool:GetAttribute("State") :: state
+    EquipToolStateMachine.targetTool = thisTargetTool
+
+    if currentTool == nil or currentTool == thisTargetTool then
+        local state : state = thisTargetTool:GetAttribute("State") :: state
         if state == "Unequipping" or state == "Unequipped" then
-            Bindables.ToggleEquip:Fire(tool, true)
+            Bindables.ToggleEquip:Fire(thisTargetTool, true)
         elseif state == "Equipping" or state == "Idle" then
-            Bindables.ToggleEquip:Fire(tool, false)
+            Bindables.ToggleEquip:Fire(thisTargetTool, false)
         end
     else
-        warn("This feature isn't ready to be tested until you've implemented a tool with an animation different from the Barbed Bat's.")
-        --[[
+        -- warn("This feature isn't ready to be tested until you've implemented a tool with an animation different from the Barbed Bat's.")
         local currentToolState : state = currentTool:GetAttribute("State") :: state
         if currentToolState == "Equipping" or currentToolState == "Idle" then
-            if EquipToolStateMachine.targetTool == currentTool then return end
-            EquipToolStateMachine.targetTool = currentTool
             Bindables.ToggleEquip:Fire(currentTool, false)
             local connection : RBXScriptConnection
             connection = currentTool:GetAttributeChangedSignal("State"):Connect(function(...: any)  
                 local newCurrentToolState : state = currentTool:GetAttribute("State") :: state
-                print(newCurrentToolState)
                 if newCurrentToolState == "Unequipped" then
                     connection:Disconnect()
-                    Bindables.ToggleEquip:Fire(tool, true)
+                    Bindables.ToggleEquip:Fire(thisTargetTool, true)
                 end
             end)
         end
-        ]]
     end
 end
 

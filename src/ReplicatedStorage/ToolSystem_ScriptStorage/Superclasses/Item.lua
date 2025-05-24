@@ -212,16 +212,15 @@ function Item.updateCharacter()
 end
 
 function Item.Destroy(self : ItemType, childObjectCleanupMethod: () -> ())
-    warn("running this ")
+    print("Calling Item.Destroy()")
     Item.ChangeState(self, "Destroying")
     ToolHighlightAndProxPromptManager.Destroy(self.ToolHighlightAndProxPromptManager)
     --animManager internal data
     ViewmodelManager.removeTool(self.ViewmodelManager, self.tool)
-    for _, v in self.connections do
+    for connectionName, v in self.connections do
         v:Disconnect()
     end
     childObjectCleanupMethod()
-    warn("clearing table")
     table.clear(self)
 end
 

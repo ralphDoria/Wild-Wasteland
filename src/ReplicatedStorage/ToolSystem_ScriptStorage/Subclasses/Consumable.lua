@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local remotes: {[string] : RemoteEvent} = {
-    dispose = ToolSystem_Storage.Consumable.Remotes.Dispose
+    dispose = ToolSystem_Storage.Consumable.Remotes.Dispose,
 }
 local particles : {[string] : ParticleEmitter} = {
     -- blood = ToolSystem_Storage.Melee.Instances.Blood
@@ -11,18 +11,19 @@ local Item = require("../Superclasses/Item")
 local ToolHighlightAndProxPromptManager = require("../Components/Shared/ToolHighlightAndProxPromptManager")
 
 export type ConsumableObject = Item.ItemType & {
-    consumeSpeed: number,
-    startActivatedEffects: () -> (),
+    consumeSpeed: number?,
+    activatedEffects: () -> (),
+    childClassCleanupFunction: () -> ()
 }
 
 local Consumable = {}
 
-function Consumable.new(tool : Tool, humanoid : Humanoid, startActivatedEffects: () -> ()): ConsumableObject
+function Consumable.new(tool : Tool, humanoid : Humanoid): ConsumableObject
     local self = Item.new(tool, humanoid)
     self.consumeSpeed = 1
-    self.startActivatedEffects = startActivatedEffects
-
-    Consumable.initialize(self)
+    -- The two attributes below will be assigned when the initialize function is called (which is called by the child)
+    self.activatedEffects = nil
+    self.childClassCleanupFunction = nil
 
     return self
 end
@@ -30,7 +31,7 @@ end
 local function toggleInjectBind(self : ConsumableObject, toggle : boolean)
     if toggle then
         ActionManager.bindAction(
-            "Swing", 
+            "Activate", 
             function(): (() -> (), () -> (), () -> ())  
 
                 local function onActivated()
@@ -53,11 +54,15 @@ local function toggleInjectBind(self : ConsumableObject, toggle : boolean)
             nil, 
             "rbxassetid://115384682565092")
     else
-        ActionManager.unbindAction("Swing")
+        ActionManager.unbindAction("Activate")
     end
 end
 
-function Consumable.initialize(self: ConsumableObject)
+function Consumable.initialize(self: ConsumableObject, activatedEffects: () -> (), childClassCleanupFunction: () -> ())
+
+    self.activatedEffects = activatedEffects
+    self.childClassCleanupFunction = childClassCleanupFunction
+
     Item.initialize(
         self,
         function()  --onEquipping
@@ -76,14 +81,22 @@ function Consumable.initialize(self: ConsumableObject)
         function() --onDropped()
         end
     )
-    self.connections.dispose = remotes.dispose.OnClientEvent:Connect(function(...: any)  
-        --Basically need to clean all of tool data here
-        ToolHighlightAndProxPromptManager.Destroy(self.ToolHighlightAndProxPromptManager)
+
+    self.connections.dispose = remotes.dispose.OnClientEvent:Connect(function(tool: Tool)
+
+        if tool ~= self.tool then return end
+
+        if self.childClassCleanupFunction then
+            self.childClassCleanupFunction()
+        else
+            warn("childClassCleanupFunction has not been assigned in Consumable class")
+        end
     end)
 end
 
 function Consumable.activate(self: ConsumableObject)
     if self.State == "Idle" then
+        warn("consumable activated")
         Item.ChangeState(self, "Activated")
         local activateTrack = self.animManager.animationTracks[self.tool.Name].activate
         local vmActivateTrack = self.ViewmodelManager.animManager.animationTracks[self.tool.Name].activate
@@ -94,7 +107,7 @@ function Consumable.activate(self: ConsumableObject)
         idleTrack:Stop()
         vmIdleTrack:Stop()
         activateTrack.Stopped:Wait()
-        self.startActivatedEffects()
+        self.activatedEffects()
         idleTrack:Play()
         vmIdleTrack:Play()
         Item.ChangeState(self, "Idle")
@@ -106,8 +119,10 @@ function Consumable.activate(self: ConsumableObject)
 end
 
 function Consumable.Destroy(self: ConsumableObject, childObjectCleanupMethod: () -> ())
-    Item.Destroy(self, function()  
+    print("Calling Consumable.Destroy()")
+    Item.Destroy(self, function()
         self.consumeSpeed = nil
+        toggleInjectBind(self, false)
         childObjectCleanupMethod()
     end)
 end

@@ -30,7 +30,6 @@ return function(tool : Tool)
                 playSound(soundObjects.drop.soft, BodyAttach)
                 touchedEvent:Disconnect()
             else
-                warn("hit floor: hard material: ", partThatTouched, partThatTouched.Parent)
                 playSound(soundObjects.drop.hard, BodyAttach)
                 touchedEvent:Disconnect()
             end
