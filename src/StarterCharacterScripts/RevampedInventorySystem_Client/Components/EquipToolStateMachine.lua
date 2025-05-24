@@ -11,10 +11,15 @@ type state = "Equipping" | "Idle" | "Unequipping" | "Unequipped" | "Activated"
 local EquipToolStateMachine = {}
 
 EquipToolStateMachine.targetTool = nil
+local targetToolChangedBindable: BindableEvent = Instance.new("BindableEvent")
+local targetToolChanged: RBXScriptSignal = targetToolChangedBindable.Event
 
 function EquipToolStateMachine.SetTargetTool(thisTargetTool: Tool)
     local currentTool = character:FindFirstChildOfClass("Tool")
-    EquipToolStateMachine.targetTool = thisTargetTool
+    if EquipToolStateMachine.targetTool ~= thisTargetTool then
+       EquipToolStateMachine.targetTool = thisTargetTool
+        targetToolChangedBindable:Fire(thisTargetTool) 
+    end
 
     if currentTool == nil or currentTool == thisTargetTool then
         local state : state = thisTargetTool:GetAttribute("State") :: state
@@ -30,6 +35,23 @@ function EquipToolStateMachine.SetTargetTool(thisTargetTool: Tool)
             Bindables.ToggleEquip:Fire(currentTool, false)
             local connection : RBXScriptConnection
             connection = currentTool:GetAttributeChangedSignal("State"):Connect(function(...: any)  
+                targetToolChanged:Once(function(newTargetTool)  
+                    connection:Disconnect()
+                end)
+
+                local newCurrentToolState : state = currentTool:GetAttribute("State") :: state
+                if newCurrentToolState == "Unequipped" then
+                    connection:Disconnect()
+                    Bindables.ToggleEquip:Fire(thisTargetTool, true)
+                end
+            end)
+        elseif currentToolState == "Unequipping" then
+            local connection : RBXScriptConnection
+            connection = currentTool:GetAttributeChangedSignal("State"):Connect(function(...: any)  
+                targetToolChanged:Once(function(newTargetTool)  
+                    connection:Disconnect()
+                end)
+
                 local newCurrentToolState : state = currentTool:GetAttribute("State") :: state
                 if newCurrentToolState == "Unequipped" then
                     connection:Disconnect()

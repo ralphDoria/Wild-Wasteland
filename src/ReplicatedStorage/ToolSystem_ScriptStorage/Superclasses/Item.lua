@@ -147,10 +147,12 @@ function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> 
     end
     equipTrack.Stopped:Wait()
     if self.State == "Unequipping" or self.State == "Dropping" then
-        Item.ChangeState(self, "Unequipped")
+        print("unequipping tools")
         self.humanoid:UnequipTools()
         Item.toggleDropBind(self, false)
         if unequipped then unequipped() end
+        equipTrack.Ended:Wait()
+        Item.ChangeState(self, "Unequipped")
     end
 end
 
