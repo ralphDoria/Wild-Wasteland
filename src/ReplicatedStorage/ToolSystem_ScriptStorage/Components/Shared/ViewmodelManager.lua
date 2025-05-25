@@ -41,7 +41,7 @@ end
 function ViewmodelManager.AddTool(self: ViewmodelManager, tool: Tool, animations : {[string] : Animation})
     local vmTool = tool:Clone()
     vmTool:AddTag("vmTool")
-    local vmToolModel = vmTool:FindFirstChild("ToolModel") :: Model | MeshPart
+    local vmToolModel = vmTool:WaitForChild("ToolModel") :: Model | MeshPart
     if vmToolModel:IsA("MeshPart") then
         vmToolModel.CanCollide = false
     elseif vmToolModel:IsA("Model") then

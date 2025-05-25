@@ -46,7 +46,7 @@ function HotbarManager.toggleKeybindToHotbarSlot(toggle : boolean)
             if slotIndex then
                 local associatedHotbarSlot : Slot.SlotType= hotbarNumberToSlot[slotIndex]
                 if not associatedHotbarSlot._isEmpty then
-                    EquipToolStateMachine.SetTargetTool(associatedHotbarSlot.tool :: Tool)
+                    EquipToolStateMachine.SetTargetTool(associatedHotbarSlot)
                 end
             end
         end)
