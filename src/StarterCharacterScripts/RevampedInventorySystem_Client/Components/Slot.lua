@@ -57,6 +57,7 @@ end
 
 function Slot.EmptySlot(self : SlotType.SlotType)
     Select.removeEffect(self)
+    Hover.removeEffect(self)
     self.Quantity.Visible = false
     self.ImageButton.Image = ""
     self.tool = nil

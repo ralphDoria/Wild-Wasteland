@@ -45,6 +45,14 @@ function ToolHighlightAndProxPromptManager.new(tool: Tool) : ToolHighlightAndPro
 end
 
 function ToolHighlightAndProxPromptManager._initialize(self : ToolHighlightAndProxPromptManager)
+    
+    --Initial check (maybe use observer pattern in the future)
+    if self.tool.Parent == workspace then
+        self.pp.Enabled = true
+    else
+        self.pp.Enabled = false
+    end
+    
     table.insert(
         self.connections,
         self.tool.AncestryChanged:Connect(function(child: Instance, parent: Instance?) 

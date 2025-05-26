@@ -1,5 +1,4 @@
 local SlotType = require("./SlotType")
-local TweenService = game:GetService("TweenService")
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui : PlayerGui = player:FindFirstChild("PlayerGui") :: PlayerGui
@@ -7,11 +6,12 @@ local gui : ScreenGui = playerGui:WaitForChild("RevampingInventory") :: ScreenGu
 local Templates : Folder = gui:FindFirstChild("Templates") :: Folder
 local ItemInfoDisplayTempalte = Templates:FindFirstChild("ItemInfoDisplayTemplate")
 local GuiService = game:GetService("GuiService")
+local TweenService = game:GetService("TweenService")
 
 local Hover = {}
 
 Hover.currentSlot = nil
-local itemInfoDisplays = {}
+local itemInfoDisplays: {[SlotType.SlotType]: Frame} = {}
 
 local function createItemInfoDisplay(slot: SlotType.SlotType)
     local clone: Frame = ItemInfoDisplayTempalte:Clone()
@@ -24,13 +24,18 @@ local function createItemInfoDisplay(slot: SlotType.SlotType)
     if nameLabel then
         nameLabel.Text = tool.Name
     end
-    clone.Visible = true
     clone.AnchorPoint = Vector2.new(0.5, 1)
     clone.Position = UDim2.fromOffset(
         slot._itself.AbsolutePosition.X - slot._itself.AnchorPoint.X*slot._itself.AbsoluteSize.X + 0.5*slot._itself.AbsoluteSize.X, 
         slot._itself.AbsolutePosition.Y - slot._itself.AnchorPoint.Y*slot._itself.AbsoluteSize.Y + GuiService:GetGuiInset().Y
     )
+
+    clone.Visible = true
     clone.Parent = gui
+    local finalSize = UDim2.new(0, clone.AbsoluteSize.X, 0, clone.AbsoluteSize.Y)
+    clone.AutomaticSize = Enum.AutomaticSize.None
+    clone.Size = UDim2.new(0, clone.AbsoluteSize.X, 0, 0)
+    TweenService:Create(clone, TweenInfo.new(0.1), {Size = finalSize}):Play()
     return clone
 end
 
@@ -72,10 +77,8 @@ function Hover.removeEffect(slot: SlotType.SlotType)
     ):Play()
     slot.ImageButton.Size = UDim2.fromScale(1, 1)
 
-    local thisItemInfoDisplay = itemInfoDisplays[slot]
-    if thisItemInfoDisplay then
-        thisItemInfoDisplay:Destroy()
-        itemInfoDisplays[slot] = nil
+    if itemInfoDisplays[slot] then
+        itemInfoDisplays[slot]:Destroy()
     end
 end
 
