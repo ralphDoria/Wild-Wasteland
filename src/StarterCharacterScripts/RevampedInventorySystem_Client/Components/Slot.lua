@@ -4,6 +4,9 @@ local SlotType = require("./SlotType")
 export type SlotType = SlotType.SlotType
 local Hover = require("./Hover")
 local Select = require("./Select")
+local Config = require("./Config")
+local UserInputService = game:GetService("UserInputService")
+local Drag = require("./Drag")
 
 local EquipToolStateMachine = require("./EquipToolStateMachine")
 
@@ -43,13 +46,33 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
     self.tool = tool
     self.ImageButton.Visible = true
     self._isEmpty = false
-    self.connections.equipByClick = self.ImageButton.MouseButton1Click:Connect(function()
-        EquipToolStateMachine.SetTargetTool(self)
+    self.connections.equipByClick = self.ImageButton.MouseButton1Down:Connect(function()
+        local currentTime = tick()
+
+        self.ImageButton.MouseButton1Up:Once(function()
+            if tick() - currentTime < Config.KBM_Touch.dragThreshold then
+                print("selecting")
+                EquipToolStateMachine.SetTargetTool(self)
+            end
+        end)
+    
+        task.wait(Config.KBM_Touch.dragThreshold)
+        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+            print("dragging")
+            Drag.start(self)
+            local connection
+            connection = UserInputService.InputEnded:Connect(function(inputObject: InputObject, a1: boolean)  
+                if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
+                    connection:Disconnect()
+                    Drag.stop(self)
+                end
+            end)            
+        end
     end)
-    self.connections.hoverBegin = self._itself.MouseEnter:Connect(function(a0: number, a1: number)  
+    self.connections.kbm_hoverBegin = self._itself.MouseEnter:Connect(function(a0: number, a1: number)  
         Hover.applyEffect(self)
-    end)
-    self.connections.hoverEnd = self._itself.MouseLeave:Connect(function(a0: number, a1: number)  
+    end) 
+    self.connections.kbm_hoverEnd = self._itself.MouseLeave:Connect(function(a0: number, a1: number)  
         Hover.removeEffect(self)
     end)
     table.insert(FilledSlots, self)

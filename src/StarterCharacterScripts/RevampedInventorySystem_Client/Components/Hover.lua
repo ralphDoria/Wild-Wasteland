@@ -1,4 +1,5 @@
 local SlotType = require("./SlotType")
+local Config = require("./Config")
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui : PlayerGui = player:FindFirstChild("PlayerGui") :: PlayerGui
@@ -11,6 +12,9 @@ local TweenService = game:GetService("TweenService")
 local Hover = {}
 
 Hover.currentSlot = nil
+SlotHoveredChangedBindable = Instance.new("BindableEvent")
+SlotHoveredChanged = SlotHoveredChangedBindable.Event
+
 local itemInfoDisplays: {[SlotType.SlotType]: Frame} = {}
 
 local function createItemInfoDisplay(slot: SlotType.SlotType)
@@ -44,7 +48,10 @@ local function destroyItemInfoDisplay(itemInfoDisplay)
 end
 
 function Hover.applyEffect(slot: SlotType.SlotType)
-    Hover.currentSlot = slot
+    if Hover.currentSlot ~= slot then
+        Hover.currentSlot = slot
+        SlotHoveredChangedBindable:Fire()
+    end
 
     TweenService:Create(
         slot.ImageButton, 
@@ -53,14 +60,17 @@ function Hover.applyEffect(slot: SlotType.SlotType)
     ):Play()
     slot.ImageButton.Size = UDim2.fromScale(0.8, 0.8)
 
-    itemInfoDisplays[slot] = createItemInfoDisplay(slot)
-    -- -- for creating a delay before possibly showing info display
-    -- task.spawn(function()
-    --     task.wait(0.5)
-    --     if Hover.currentSlot == slot then
-            
-    --     end
-    -- end)
+    -- for creating a delay before possibly showing info display
+    task.spawn(function()
+        local accumulatedTime = 0
+        while Hover.currentSlot == slot do
+            accumulatedTime += task.wait()
+            if accumulatedTime >= Config.KBM_Touch.dragThreshold then
+                itemInfoDisplays[slot] = createItemInfoDisplay(slot)
+                break
+            end
+        end
+    end)
 end
 
 function Hover.removeEffect(slot: SlotType.SlotType)
@@ -77,8 +87,8 @@ function Hover.removeEffect(slot: SlotType.SlotType)
     ):Play()
     slot.ImageButton.Size = UDim2.fromScale(1, 1)
 
-    if itemInfoDisplays[slot] then
-        itemInfoDisplays[slot]:Destroy()
+    for _, v in itemInfoDisplays do
+        v:Destroy()
     end
 end
 
