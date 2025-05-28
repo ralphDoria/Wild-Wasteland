@@ -38,7 +38,7 @@ function ToolHighlightAndProxPromptManager.new(tool: Tool) : ToolHighlightAndPro
     self.pp.Enabled = false
     self.pp.RequiresLineOfSight = false
     self.pp.HoldDuration = 0.5
-    self.pp.Parent = tool:FindFirstChild("BodyAttach")
+    self.pp.Parent = tool:FindFirstChild("BodyAttach", true)
     ToolHighlightAndProxPromptManager._initialize(self)
 
     return self

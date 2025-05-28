@@ -30,7 +30,7 @@ return function()
         if tool:FindFirstAncestorOfClass("Workspace") == nil then
             local character = player.Character
             if character then
-                local BodyAttach = tool:FindFirstChild("BodyAttach")
+                local BodyAttach = tool:FindFirstChild("BodyAttach", true)
                 if BodyAttach then
                    tool.Parent = workspace
                    BodyAttach.CFrame = character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3) 

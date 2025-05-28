@@ -30,11 +30,11 @@ function HealingInjection._initialize(self: Consumable.ConsumableObject)
     self.connections.activateAnimEvents = activateTrack:GetMarkerReachedSignal("needle"):Connect(function(status: "insert" | "inject" | "remove")
         if self.State ~= "Unequipped" then
             if status == "insert" then
-                self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].needle.insert, self.tool:FindFirstChild("BodyAttach"), 0)
+                self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].needle.insert, self.tool:FindFirstChild("BodyAttach", true), 0)
             elseif status == "inject" then
-                self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].needle.inject, self.tool:FindFirstChild("BodyAttach"), 0)
+                self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].needle.inject, self.tool:FindFirstChild("BodyAttach", true), 0)
             elseif status == "remove" then
-                self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].needle.remove, self.tool:FindFirstChild("BodyAttach"), 0)
+                self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].needle.remove, self.tool:FindFirstChild("BodyAttach", true), 0)
             end
         end
     end)

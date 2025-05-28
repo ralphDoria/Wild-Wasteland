@@ -61,7 +61,7 @@ function ViewmodelManager.AddTool(self: ViewmodelManager, tool: Tool, animations
         vmTool.Parent = self.viewmodel
         local BodyAttachJoint = self.viewmodel:WaitForChild("Torso"):FindFirstChild("BodyAttachJoint") :: Motor6D
         if BodyAttachJoint then
-            BodyAttachJoint.Part1 = vmTool:FindFirstChild("BodyAttach") :: BasePart
+            BodyAttachJoint.Part1 = vmTool:FindFirstChild("BodyAttach", true) :: BasePart
         end
     end)
     self.connections[tool].unequipped = tool.Unequipped:Connect(function()

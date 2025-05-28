@@ -6,12 +6,14 @@ local StarterGui = game:GetService("StarterGui")
 ----
 local Slot = require("./Components/Slot")
 local HotbarManager = require("./Components/Hotbar")
+local WearableInterface = require("./Components/WearableInterface")
 local RobloxStateMachine = require("../../../../ReplicatedStorage/Packages/RobloxStateMachine") :: any
 local ItemGroup = require("./Components/ItemGroup")
 local Config = require("./Config")
 local ItemMovementTracker = require("./Components/ItemMovementTracker")
 ----
 local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
 local playerGui : PlayerGui = player:FindFirstChild("PlayerGui") :: PlayerGui
 local character = player.Character or player.CharacterAdded:Wait()
 local backpack : Backpack = player:FindFirstChild("Backpack") :: Backpack
@@ -38,6 +40,7 @@ function InventorySystem.init()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) --disables Roblox's default backpack
 
 	HotbarManager.init(SlotTemplate, Hotbar)
+	WearableInterface.initialize(character)
 
 	ItemMovementTracker(
 		function(tool) --onAdded
@@ -70,6 +73,16 @@ function InventorySystem.init()
 		false,
 		Enum.KeyCode.Tab
 	)
+	local TouchBackpackSlot = Hotbar:FindFirstChild("TouchBackpackSlot") :: Frame
+	local button = TouchBackpackSlot:FindFirstChildWhichIsA("TextButton", true)
+	if button then
+		button.MouseButton1Click:Connect(function()  
+			print("touch tap input registered")
+			InventorySystem.toggleInventoryVisibility(if MainInventory.Visible then false else true)
+		end)
+	else
+		warn("button not found")
+	end
 end
 
 --[[

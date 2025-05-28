@@ -116,7 +116,7 @@ function Item.equip(self: ItemType, equipping: () -> ()?, equipped: () -> ()?, o
     ToolGuiManager.setTool(self.tool)
     ToolGuiManager.show()
     self.humanoid:EquipTool(self.tool)
-    SoundManager.playSound("Server", SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach"), 0)
+    SoundManager.playSound("Server", SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach", true), 0)
     local equipTrack : AnimationTrack = currentAnimationManager.animationTracks[self.tool.Name].equip
     equipTrack.Priority = Enum.AnimationPriority.Action2
     local vmEquipTrack : AnimationTrack = currentViewmodelManager.animManager.animationTracks[self.tool.Name].equip
@@ -145,7 +145,7 @@ function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> 
     ToolGuiManager.hide()
     currentAnimationManager.animationTracks[self.tool.Name].idle:Stop()
     currentViewmodelManager.animManager.animationTracks[self.tool.Name].idle:Stop()
-    SoundManager.playSound("Server", SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach"), 0)
+    SoundManager.playSound("Server", SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach", true), 0)
     local equipTrack : AnimationTrack = currentAnimationManager.animationTracks[self.tool.Name].equip
     equipTrack.Priority = Enum.AnimationPriority.Action
     local vmEquipTrack : AnimationTrack = currentViewmodelManager.animManager.animationTracks[self.tool.Name].equip

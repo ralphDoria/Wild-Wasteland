@@ -19,7 +19,7 @@ local function checkSoftMaterial(part: BasePart): boolean
 end
 
 return function(tool : Tool)
-    local BodyAttach = tool:FindFirstChild("BodyAttach")
+    local BodyAttach = tool:FindFirstChild("BodyAttach", true)
     local soundObjects = ToolInfo.get(tool.Name).soundObjects
     local touchedEvent
     touchedEvent = BodyAttach.Touched:Connect(function(partThatTouched)

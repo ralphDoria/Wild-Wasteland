@@ -20,7 +20,7 @@ return function(tool : Tool)
     --<<<Specific Parts>>>--
     local droppedDetector = tool:FindFirstChild("DropDetector")
     --<<<SFX>>>--
-    local SFX_part = if tool:FindFirstChild("SFX_part") then tool:FindFirstChild("SFX_part") else tool.BodyAttach
+    local SFX_part = if tool:FindFirstChild("SFX_part") then tool:FindFirstChild("SFX_part") else tool:FindFirstChild("BodyAttach", true)
     --<<<Even Connection>>>--
     local touchedEvent
     touchedEvent = droppedDetector.Touched:Connect(function(partThatTouched)

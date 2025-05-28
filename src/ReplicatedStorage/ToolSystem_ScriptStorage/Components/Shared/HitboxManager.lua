@@ -12,7 +12,7 @@ local HitboxManager = {}
 
 function HitboxManager.new(tool: Tool) : HitboxManager
     local self : HitboxManager = {
-        RaycastHitbox = RaycastHitbox.new(tool:FindFirstChild("BodyAttach")),
+        RaycastHitbox = RaycastHitbox.new(tool:FindFirstChild("BodyAttach", true)),
         connections = {}
     }
 

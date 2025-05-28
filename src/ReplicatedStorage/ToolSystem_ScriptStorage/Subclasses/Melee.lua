@@ -109,7 +109,7 @@ function Melee.initialize(self : MeleeObject)
     swingTrack:GetMarkerReachedSignal("swing"):Connect(function(status : "start" | "end")
         if self.State ~= "Unequipped" then
             if status == "start" then
-                self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].swing :: Sound, self.tool:FindFirstChild("BodyAttach"), 0)
+                self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].swing :: Sound, self.tool:FindFirstChild("BodyAttach", true), 0)
                 self.HitboxManager.RaycastHitbox:HitStart()
                 Melee.toggleSwingTrail(self, true)
             elseif status == "end" then
@@ -124,9 +124,9 @@ function Melee.initialize(self : MeleeObject)
         -- warn("hit ", character.Name)
         local impactSounds = self.soundManager.Sounds[self.tool.Name].impact :: {[string] : Sound}
         local fleshSound = impactSounds.flesh
-        self.soundManager.playSound("Server", fleshSound, self.tool:FindFirstChild("BodyAttach"), 0)
+        self.soundManager.playSound("Server", fleshSound, self.tool:FindFirstChild("BodyAttach", true), 0)
         CrosshairGuiManager.showHitmarker(self.crosshairGuiObject, function()  
-            self.soundManager.playSound("Client", hitmarkerSound, self.tool:FindFirstChild("BodyAttach"), 0)
+            self.soundManager.playSound("Client", hitmarkerSound, self.tool:FindFirstChild("BodyAttach", true), 0)
         end)
         camShake:ShakeOnce(3, 5, 0.2, 0.2)
         remotes.Hit:FireServer(humanoid, self.damage, particles.blood, raycastResult.Position, raycastResult.Normal)

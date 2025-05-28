@@ -14,7 +14,7 @@ local function assembleTool(toolName : String, parent)
     
     tool:AddTag(ToolCatalog[toolName].Tag) -- ToolCatalog[toolName].Tag == toolName
 
-    local bodyAttach = tool:FindFirstChild("BodyAttach")
+    local bodyAttach = tool:FindFirstChild("BodyAttach", true)
     if bodyAttach then
         local x = proxProm:Clone()
         x.ObjectText = "\"" .. string.upper(tool.Name) .. "\""

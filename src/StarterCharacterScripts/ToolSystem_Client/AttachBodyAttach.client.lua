@@ -8,7 +8,7 @@ local player = game:GetService("Players").LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
 character.ChildAdded:Connect(function(child)
-    if child:IsA("Tool") and child:FindFirstChild("BodyAttach") then
+    if child:IsA("Tool") and child:FindFirstChild("BodyAttach", true) then
 		local bodyAttachJoint : Motor6D = character:FindFirstChild("BodyAttachJoint", true)
         local bodyAttach : BasePart = child:FindFirstChild("BodyAttach", true)
         if bodyAttachJoint and bodyAttach then

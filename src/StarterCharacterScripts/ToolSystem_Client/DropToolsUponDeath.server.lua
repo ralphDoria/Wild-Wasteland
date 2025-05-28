@@ -12,7 +12,7 @@ humanoid.Died:Connect(function()
     for _, tool in backpack:GetChildren() do
         tool.Parent = workspace
         detectDroppedToolHitFloor(tool)
-        local bodyAttach = tool:FindFirstChild("BodyAttach")
+        local bodyAttach = tool:FindFirstChild("BodyAttach", true)
         if bodyAttach then
             bodyAttach.CFrame = hrp.CFrame
         end
