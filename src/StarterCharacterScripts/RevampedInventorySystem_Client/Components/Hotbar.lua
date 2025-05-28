@@ -20,11 +20,11 @@ local HotbarManager = {}
 function HotbarManager.init(SlotTemplate : Frame, hotbar : CanvasGroup)
     Hotbar = hotbar
     for i, _ in hotbarNumberToKeybind do
-		local slot = SlotTemplate:Clone()
-		slot.Parent = hotbar
-		hotbarSlotToSlotData[slot] = Slot.new(slot, "Hotbar")
-		hotbarSlotToSlotData[slot].HotbarNumber.Text = tostring(i)
-        hotbarSlotToSlotData[slot]._itself.LayoutOrder = i
+        local slot = Slot.new("Hotbar")
+        slot._itself.Parent = hotbar
+		hotbarSlotToSlotData[slot._itself] = slot
+		hotbarSlotToSlotData[slot._itself].HotbarNumber.Text = tostring(i)
+        hotbarSlotToSlotData[slot._itself]._itself.LayoutOrder = i
 	end
     HotbarManager.toggleKeybindToHotbarSlot(true)
 end

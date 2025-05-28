@@ -1,5 +1,10 @@
 --!strict
 
+local playerGui : PlayerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui") :: PlayerGui
+local gui : ScreenGui = playerGui:WaitForChild("RevampingInventory") :: ScreenGui
+local Templates : Folder = gui:FindFirstChild("Templates") :: Folder
+local SlotTemplate : Frame = Templates:FindFirstChild("SlotTemplate") :: Frame
+
 local SlotType = require("./SlotType")
 export type SlotType = SlotType.SlotType
 local Hover = require("./Hover")
@@ -22,7 +27,9 @@ local Slot = {}
 
 ----    Methods
 
-function Slot.new(slot : Frame, slotType : "Hotbar" | "Inventory") : SlotType.SlotType
+function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable") : SlotType.SlotType
+
+    local slot = SlotTemplate:Clone()
 
     local self : SlotType.SlotType = {
         _itself = slot :: Frame,
@@ -41,7 +48,6 @@ function Slot.new(slot : Frame, slotType : "Hotbar" | "Inventory") : SlotType.Sl
     self.ActionIndicator.Visible = false
     self.Quantity.Visible = false
     return self
-
 end
 
 function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)

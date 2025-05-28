@@ -23,6 +23,7 @@ local ValidClasses = {
 export type vpCharObj = {
     Viewport: ViewportFrame,
     Camera: Camera,
+	Viewmodel: Model,
     RenderObjects: {},
     Connections: {RBXScriptConnection}
 }
@@ -95,6 +96,7 @@ function ViewportCharacter.handleCharacter(Viewport: ViewportFrame, character: M
         Viewport = Viewport,
         Camera = Instance.new("Camera"),
         RenderObjects = table.create(25),
+		Viewmodel = nil,
         Connections = {}
     }
     Viewport.CurrentCamera	= self.Camera
@@ -102,6 +104,7 @@ function ViewportCharacter.handleCharacter(Viewport: ViewportFrame, character: M
 	Viewport:ClearAllChildren()
 
 	local Viewmodel = Instance.new("Model")
+	self.Viewmodel = Viewmodel
 	Viewmodel.Name = "PlayerViewmodel"
 	Viewmodel.Parent = Viewport
 
@@ -132,7 +135,7 @@ function ViewportCharacter.handleCharacter(Viewport: ViewportFrame, character: M
 
     table.insert(
         self.Connections,
-        RunService.Heartbeat:Connect(function()
+        RunService.Stepped:Connect(function()
             if (not character:FindFirstChild("HumanoidRootPart")) or (not Viewport.Visible) then
                 return
             end
