@@ -7,7 +7,7 @@ export type SlotType = {
     _isEmpty : boolean,
     InnerFrame : Frame,
     ImageButton : ImageButton,
-    DropLabel : TextLabel,
+    ActionIndicator : ImageLabel,
     HotbarNumber : TextLabel,
     Quantity : TextLabel,
     tool : Tool?,

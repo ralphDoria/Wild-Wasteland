@@ -69,7 +69,7 @@ function ToolHighlightAndProxPromptManager._initialize(self : ToolHighlightAndPr
             if thisPlayer == player then
                 self.pp.Enabled = false
                 remotes.PickUpTool:FireServer(self.tool)
-                bindables.OnPickUp:Fire()
+                bindables.OnPickUp:Fire(self.tool)
             end
         end)
     )

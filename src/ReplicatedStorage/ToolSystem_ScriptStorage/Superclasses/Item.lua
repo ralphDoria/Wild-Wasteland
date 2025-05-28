@@ -16,7 +16,8 @@ local CrosshairGuiManager = require("../Components/Shared/CrosshairManager")
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local bindables : {[string] : BindableEvent} = {
     ToggleEquip = ToolSystem_Storage.Shared:FindFirstChild("ToggleEquip", true),
-    OnPickUp = ToolSystem_Storage.Shared.Bindables.OnPickUp
+    OnPickUp = ToolSystem_Storage.Shared.Bindables.OnPickUp,
+    DropToolBindable = ToolSystem_Storage.Shared.Bindables.DropToolBindable
 }
 local remotes: {[string] : RemoteEvent} = {
     ToggleToolCanCollide = ToolSystem_Storage.Shared.Remotes.ToggleToolCanCollide,
@@ -38,6 +39,7 @@ export type ItemType = {
     finiteStateMachine : ModuleScript?,
     crosshairGuiObject: CrosshairGuiManager.CrosshairObject,
     connections : {[string] : RBXScriptConnection},
+    actionNames: {[string]: string},
     State : state
 }
 
@@ -63,9 +65,11 @@ function Item.new(tool : Tool, humanoid : Humanoid) : ItemType
         ToolHighlightAndProxPromptManager = ToolHighlightAndProxPromptManager.new(tool),
         crosshairGuiObject = crosshairGuiObject,
         connections = {},
+        actionNames = {},
         State = "Unequipped"
     }
 
+    self.actionNames.dropItem = "Drop Item" 
     Item.ChangeState(self, "Unequipped")
     SoundManager.storeSounds(tool.Name, ToolInfo.get(tool.Name).soundObjects)
     local toolAnims = ToolInfo.get(tool.Name).animObjects
@@ -95,8 +99,15 @@ function Item.initialize(self : ItemType, equipping: () -> ()?, equipped: () -> 
             --Proximity Prompt and highlight
         end
     end)
-    self.connections.OnPickUp = bindables.OnPickUp.Event:Connect(function()  
-        Item.ChangeState(self, "Unequipped")
+    self.connections.OnPickUp = bindables.OnPickUp.Event:Connect(function(key: Tool)  
+        if key == self.tool then
+            Item.ChangeState(self, "Unequipped")
+        end
+    end)
+    self.connections.bindableDrop = bindables.DropToolBindable.Event:Connect(function(key: Tool) 
+        if key == self.tool then
+            Item.drop(self)
+        end
     end)
 end
 
@@ -163,9 +174,14 @@ function Item.ChangeState(self: ItemType, state: state)
 end
 
 function Item.drop(self : ItemType, onDropping: () -> ()?, onDropped : () -> ()?)
-    if self.State == "Idle" or self.State == "Equipping" then
+    if self.State == "Idle" or self.State == "Equipping" or self.State == "Unequipped" then
         Item.ChangeState(self, "Dropping")
-        Item.toggleDropBind(self, false)
+        -- Item.toggleDropBind(self, false)
+        for _, v in self.actionNames do
+            if ActionManager.isBinded(v) then
+                ActionManager.unbindAction(v)
+            end 
+        end
         CrosshairGuiManager.ForceDisable(crosshairGuiObject) 
         if onDropping then
             onDropping()
@@ -184,7 +200,7 @@ end
 function Item.toggleDropBind(self : ItemType, toggle : boolean, onDropping: () -> ()?, onDropped : () -> ()?)
     if toggle then
         ActionManager.bindAction(
-            "Drop Item", 
+            self.actionNames.dropItem, 
             function(): (() -> (), () -> (), () -> ())  
                 local function onActivated()
                 end
@@ -206,7 +222,7 @@ function Item.toggleDropBind(self : ItemType, toggle : boolean, onDropping: () -
             nil, 
             "rbxassetid://108041751673485")
     else
-        ActionManager.unbindAction("Drop Item")
+        ActionManager.unbindAction(self.actionNames.dropItem)
     end
 end
 

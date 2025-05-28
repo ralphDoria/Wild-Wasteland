@@ -8,12 +8,23 @@ local Templates : Folder = gui:FindFirstChild("Templates") :: Folder
 local ItemInfoDisplayTempalte = Templates:FindFirstChild("ItemInfoDisplayTemplate")
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
+local MainInventory : Frame = gui:FindFirstChild("MainInventory") :: Frame
 
 local Hover = {}
 
 Hover.currentSlot = nil
 SlotHoveredChangedBindable = Instance.new("BindableEvent")
 SlotHoveredChanged = SlotHoveredChangedBindable.Event
+
+Hover.IsInInventory = false
+
+MainInventory.MouseEnter:Connect(function(a0: number, a1: number)  
+    Hover.IsInInventory = true
+end)
+
+MainInventory.MouseLeave:Connect(function(a0: number, a1: number)  
+    Hover.IsInInventory = false
+end)
 
 local itemInfoDisplays: {[SlotType.SlotType]: Frame} = {}
 
@@ -51,6 +62,7 @@ function Hover.applyEffect(slot: SlotType.SlotType)
     if Hover.currentSlot ~= slot then
         Hover.currentSlot = slot
         SlotHoveredChangedBindable:Fire()
+        print("Hover.currentSlot: ", if Hover.currentSlot then Hover.currentSlot.HotbarNumber.Text else nil)
     end
 
     TweenService:Create(

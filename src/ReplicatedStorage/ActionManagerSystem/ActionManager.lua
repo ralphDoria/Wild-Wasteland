@@ -219,6 +219,10 @@ function ActionManager.bindAction(
 	ActionManager._bindings[actionName] = binding
 end
 
+function ActionManager.isBinded(actionName: string)
+	return ActionManager._bindings[actionName] ~= nil
+end
+
 function ActionManager.unbindAction(actionName: string)
 	local binding = ActionManager._bindings[actionName]
 	if binding then

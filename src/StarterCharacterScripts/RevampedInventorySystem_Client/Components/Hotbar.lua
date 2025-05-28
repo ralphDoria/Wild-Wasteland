@@ -1,3 +1,4 @@
+--!strict
 local EquipToolStateMachine = require("./EquipToolStateMachine")
 
 local Slot = require("./Slot")
@@ -12,7 +13,7 @@ local hotbarNumberToKeybind = {
 	[4] = Enum.KeyCode.Four,
 	[5] = Enum.KeyCode.Five
 }
-local hotbarNumberToSlot : {Slot.SlotType} = {}
+local hotbarSlotToSlotData : {[Frame]: Slot.SlotType} = {}
 
 local HotbarManager = {}
 
@@ -21,20 +22,28 @@ function HotbarManager.init(SlotTemplate : Frame, hotbar : CanvasGroup)
     for i, _ in hotbarNumberToKeybind do
 		local slot = SlotTemplate:Clone()
 		slot.Parent = hotbar
-		hotbarNumberToSlot[i] = Slot.new(slot, "Hotbar")
-		hotbarNumberToSlot[i].HotbarNumber.Text = tostring(i)
+		hotbarSlotToSlotData[slot] = Slot.new(slot, "Hotbar")
+		hotbarSlotToSlotData[slot].HotbarNumber.Text = tostring(i)
+        hotbarSlotToSlotData[slot]._itself.LayoutOrder = i
 	end
     HotbarManager.toggleKeybindToHotbarSlot(true)
 end
 
 function HotbarManager.findMinimumEmptyHotbarSlot() : Slot.SlotType?
-    for _, v in hotbarNumberToSlot do
+    local lowest: Slot.SlotType? = nil
+    for _, v in hotbarSlotToSlotData do
         if v._isEmpty == true then
-            return v
+            if lowest == nil then
+                lowest = v
+            else
+                if v._itself.LayoutOrder < lowest._itself.LayoutOrder then
+                    lowest = v
+                end
+            end
         end
     end
 
-    return nil
+    return lowest
 end
 
 local keybindConnection : RBXScriptConnection?
@@ -42,11 +51,16 @@ function HotbarManager.toggleKeybindToHotbarSlot(toggle : boolean)
     if toggle then
         --warn("enbaling keybindToHotbarSlot")
         keybindConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            local slotIndex = table.find(hotbarNumberToKeybind, input.KeyCode)
-            if slotIndex then
-                local associatedHotbarSlot : Slot.SlotType= hotbarNumberToSlot[slotIndex]
-                if not associatedHotbarSlot._isEmpty then
-                    EquipToolStateMachine.SetTargetTool(associatedHotbarSlot)
+            if Hotbar then
+                for _, v in Hotbar:GetChildren() do
+                    if v:IsA("Frame") then
+                        if v.LayoutOrder == table.find(hotbarNumberToKeybind, input.KeyCode) then
+                            local correspondingHotbarSlot = hotbarSlotToSlotData[v]
+                            if correspondingHotbarSlot._isEmpty == false then
+                                EquipToolStateMachine.SetTargetTool(correspondingHotbarSlot)
+                            end
+                        end
+                    end
                 end
             end
         end)

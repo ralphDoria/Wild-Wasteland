@@ -24,6 +24,7 @@ function Consumable.new(tool : Tool, humanoid : Humanoid): ConsumableObject
     -- The two attributes below will be assigned when the initialize function is called (which is called by the child)
     self.activatedEffects = nil
     self.childClassCleanupFunction = nil
+    self.actionNames.activate = "Activate"
 
     return self
 end
@@ -31,7 +32,7 @@ end
 local function toggleInjectBind(self : ConsumableObject, toggle : boolean)
     if toggle then
         ActionManager.bindAction(
-            "Activate", 
+            self.actionNames.activate, 
             function(): (() -> (), () -> (), () -> ())  
 
                 local function onActivated()
@@ -54,7 +55,7 @@ local function toggleInjectBind(self : ConsumableObject, toggle : boolean)
             nil, 
             "rbxassetid://115384682565092")
     else
-        ActionManager.unbindAction("Activate")
+        ActionManager.unbindAction(self.actionNames.activate)
     end
 end
 

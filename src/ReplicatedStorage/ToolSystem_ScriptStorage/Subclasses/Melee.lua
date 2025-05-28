@@ -43,8 +43,8 @@ function Melee.new(tool : Tool, humanoid : Humanoid) : MeleeObject
     self.HitboxManager = HitboxManager.new(tool)
     self.trail = tool:FindFirstChildWhichIsA("Trail", true)
 
+    self.actionNames.swing = "Swing" 
     Melee.toggleSwingTrail(self, false)
-    
 
     Melee.initialize(self)
 
@@ -54,10 +54,10 @@ end
 local function toggleSwingBind(self : MeleeObject, toggle : boolean)
     if toggle then
         ActionManager.bindAction(
-            "Swing", 
+            self.actionNames.swing, 
             function(): (() -> (), () -> (), () -> ())  
 
-                StaminaManager.addBoundAction("Swing", self.staminaCost)
+                StaminaManager.addBoundAction(self.actionNames.swing, self.staminaCost)
 
                 local function onActivated()
                     StaminaManager.changeStaminaBarBy(self.staminaCost)
@@ -69,7 +69,7 @@ local function toggleSwingBind(self : MeleeObject, toggle : boolean)
                 end
 
                 local function onUnbind()
-                    StaminaManager.removeBoundAction("Swing")
+                    StaminaManager.removeBoundAction(self.actionNames.swing)
                 end
 
                 return onActivated, onDeactivated, onUnbind
@@ -81,7 +81,7 @@ local function toggleSwingBind(self : MeleeObject, toggle : boolean)
             self.animManager.animationTracks[self.tool.Name].swing.Length, 
             "rbxassetid://115384682565092")
     else
-        ActionManager.unbindAction("Swing")
+        ActionManager.unbindAction(self.actionNames.swing)
     end
 end
 

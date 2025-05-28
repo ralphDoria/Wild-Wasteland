@@ -1,4 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local PlaySoundUtil = require(ReplicatedStorage:FindFirstChild("Utility", true).PlaySoundUtil)
 local remotes: {[string] : RemoteEvent} = {
@@ -26,7 +27,22 @@ return function()
         end
     end)
     remotes.DropTool.OnServerEvent:Connect(function(player: Player, tool: Tool)
-        tool.Parent = workspace
+        if tool:FindFirstAncestorOfClass("Workspace") == nil then
+            local character = player.Character
+            if character then
+                local BodyAttach = tool:FindFirstChild("BodyAttach")
+                if BodyAttach then
+                   tool.Parent = workspace
+                   BodyAttach.CFrame = character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3) 
+                else
+                    error("Can't drop tool: Tool BodyAttach is nil")
+                end
+            else
+                error("Can't drop tool: character is nil")
+            end
+        else
+            tool.Parent = workspace
+        end
         OnHitFloor(tool)
     end)
     remotes.PickUpTool.OnServerEvent:Connect(function(player: Player, tool: Tool)
