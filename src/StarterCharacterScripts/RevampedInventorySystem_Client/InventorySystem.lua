@@ -36,11 +36,11 @@ function InventorySystem.init()
 	-- warn("initializing revamped inventory")
 	gui.Enabled = true
 	Hotbar.Visible = true
-	MainInventory.Visible = false
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) --disables Roblox's default backpack
 
 	HotbarManager.init(SlotTemplate, Hotbar)
 	WearableInterface.initialize(character)
+	MainInventory.Visible = false
 
 	ItemMovementTracker(
 		function(tool) --onAdded

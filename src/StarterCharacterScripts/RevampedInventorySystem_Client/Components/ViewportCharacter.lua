@@ -8,9 +8,6 @@
 	boatbomber, 2/17/19 (Updated: 6/13/2021)
 --]=]
 
--- Settings
-local OFFSET = CFrame.new(0,0,-7)
-
 -- Services
 local RunService = game:GetService("RunService")
 
@@ -23,6 +20,8 @@ local ValidClasses = {
 export type vpCharObj = {
     Viewport: ViewportFrame,
     Camera: Camera,
+	CameraRadius: CFrame,
+	CameraPosition: CFrameValue,
 	Viewmodel: Model,
     RenderObjects: {},
     Connections: {RBXScriptConnection}
@@ -95,10 +94,13 @@ function ViewportCharacter.handleCharacter(Viewport: ViewportFrame, character: M
     local self: vpCharObj = {
         Viewport = Viewport,
         Camera = Instance.new("Camera"),
+		CameraRadius = CFrame.new(0, 0, -7),
+		CameraPosition = Instance.new("CFrameValue"), -- can be modified later
         RenderObjects = table.create(25),
 		Viewmodel = nil,
         Connections = {}
     }
+	self.CameraPosition.Value = self.CameraRadius
     Viewport.CurrentCamera	= self.Camera
 
 	Viewport:ClearAllChildren()
@@ -143,7 +145,7 @@ function ViewportCharacter.handleCharacter(Viewport: ViewportFrame, character: M
             -- Update camera
             local hrp = character:FindFirstChild("HumanoidRootPart")
             if hrp then
-                self.Camera.CFrame = CFrame.new(hrp.CFrame:ToWorldSpace(OFFSET).Position, hrp.Position)
+                self.Camera.CFrame = CFrame.new(hrp.CFrame:ToWorldSpace(self.CameraPosition.Value).Position, hrp.Position)
             else
                 warn("HumanoidRootPart not found, can't position viewport camera")
             end
