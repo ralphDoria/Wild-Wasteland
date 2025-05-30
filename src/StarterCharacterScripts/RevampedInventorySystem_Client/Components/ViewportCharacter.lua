@@ -21,7 +21,7 @@ export type vpCharObj = {
     Viewport: ViewportFrame,
     Camera: Camera,
 	CameraRadius: CFrame,
-	CameraPosition: CFrameValue,
+	CameraPosition: CFrame,
 	Viewmodel: Model,
     RenderObjects: {},
     Connections: {RBXScriptConnection}
@@ -95,12 +95,11 @@ function ViewportCharacter.handleCharacter(Viewport: ViewportFrame, character: M
         Viewport = Viewport,
         Camera = Instance.new("Camera"),
 		CameraRadius = CFrame.new(0, 0, -7),
-		CameraPosition = Instance.new("CFrameValue"), -- can be modified later
+		CameraPosition = CFrame.new(0, 0, -7), -- can be modified later
         RenderObjects = table.create(25),
 		Viewmodel = nil,
         Connections = {}
     }
-	self.CameraPosition.Value = self.CameraRadius
     Viewport.CurrentCamera	= self.Camera
 
 	Viewport:ClearAllChildren()
@@ -145,7 +144,7 @@ function ViewportCharacter.handleCharacter(Viewport: ViewportFrame, character: M
             -- Update camera
             local hrp = character:FindFirstChild("HumanoidRootPart")
             if hrp then
-                self.Camera.CFrame = CFrame.new(hrp.CFrame:ToWorldSpace(self.CameraPosition.Value).Position, hrp.Position)
+                self.Camera.CFrame = CFrame.new(hrp.CFrame:ToWorldSpace(self.CameraPosition).Position, hrp.Position)
             else
                 warn("HumanoidRootPart not found, can't position viewport camera")
             end

@@ -47,6 +47,14 @@ function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable") : SlotType.Slo
     self.ImageButton.Visible = false
     self.ActionIndicator.Visible = false
     self.Quantity.Visible = false
+
+    self.connections.hoverBegin = self._itself.MouseEnter:Connect(function(a0: number, a1: number)  
+        Hover.applyEffect(self)
+    end) 
+    self.connections.hoverEnd = self._itself.MouseLeave:Connect(function(a0: number, a1: number)  
+        Hover.removeEffect(self)
+    end)
+
     return self
 end
 
@@ -57,26 +65,16 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
     self.tool = tool
     self.ImageButton.Visible = true
     self._isEmpty = false
-    self.connections.equipAndDragFunctionality = self.ImageButton.MouseButton1Down:Connect(function()
-        local selectSlot: RBXScriptConnection?
+    self.connections.EquipFromClick = self.ImageButton.MouseButton1Click:Connect(function(...: any)  
+        EquipToolStateMachine.SetTargetTool(self)
+    end)
+    self.connections.DragFunctionality = self.ImageButton.MouseButton1Down:Connect(function()
         local startDrag: RBXScriptConnection?
-
-        selectSlot = self.ImageButton.MouseButton1Up:Once(function()
-            print("selecting")
-            if selectSlot then
-                selectSlot:Disconnect()
-                selectSlot = nil
-            end
-            EquipToolStateMachine.SetTargetTool(self)
-        end)
     
         startDrag = UserInputService.InputChanged:Connect(function(inputObject: InputObject, a1: boolean)  
             if inputObject.UserInputType == Enum.UserInputType.MouseMovement then
                 if startDrag then
                     startDrag:Disconnect()
-                end
-                if selectSlot then
-                    selectSlot:Disconnect()
                 end
             end
 
@@ -100,12 +98,6 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
         end
         end)
     end)
-    self.connections.kbm_hoverBegin = self._itself.MouseEnter:Connect(function(a0: number, a1: number)  
-        Hover.applyEffect(self)
-    end) 
-    self.connections.kbm_hoverEnd = self._itself.MouseLeave:Connect(function(a0: number, a1: number)  
-        Hover.removeEffect(self)
-    end)
     table.insert(FilledSlots, self)
 end
 
@@ -117,8 +109,10 @@ function Slot.EmptySlot(self : SlotType.SlotType)
     self.tool = nil
     self.ImageButton.Visible = false
     self._isEmpty = true
-    for _, v in self.connections do
-        v:Disconnect()
+    for name, v in self.connections do
+        if name ~= "hoverBegin" and name ~= "hoverend" then            
+            v:Disconnect()
+        end
     end
     table.remove(FilledSlots, table.find(FilledSlots, self))
 end

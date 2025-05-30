@@ -31,7 +31,7 @@ function PointDimensionalConverter.get2DPosition(Position: Vector3, camera : Cam
 	end
 end
 
-function PointDimensionalConverter.findHypotenuseAndTheta(point1: UDim2, point2 : UDim2) : number
+function PointDimensionalConverter.findHypotenuseAndTheta(point1: UDim2, point2 : UDim2): (number, number)
     local x = point1.X.Offset - point2.X.Offset
     local y = point1.Y.Offset - point2.Y.Offset
     local hypotenuse = math.sqrt(math.pow(x, 2) + math.pow(y, 2))

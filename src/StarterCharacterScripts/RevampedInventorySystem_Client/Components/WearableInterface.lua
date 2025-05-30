@@ -1,18 +1,23 @@
+--!strict
+
 local player = game:GetService("Players").LocalPlayer
 local playerGui : PlayerGui = player:FindFirstChild("PlayerGui") :: PlayerGui
 local gui : ScreenGui = playerGui:WaitForChild("RevampingInventory") :: ScreenGui
 local MainInventory : Frame = gui:FindFirstChild("MainInventory") :: Frame
 local WearableSection : Frame = MainInventory:FindFirstChild("WearableSection") :: Frame
-local Templates = WearableSection:FindFirstChild("Templates")
-local circle = Templates:FindFirstChild("Circle")
-local line = Templates:FindFirstChild("Line")
+local WearableSlotsContainer: Frame = WearableSection:FindFirstChild("WearableSlotsContainer", true) :: Frame
+local Templates = WearableSection:FindFirstChild("Templates") :: Folder
+local circle = Templates:FindFirstChild("Circle"):: ImageLabel
+local line = Templates:FindFirstChild("Line"):: ImageLabel
 local WearableSlot = require("./WearableSlot")
 local ViewportCharacter = require("./ViewportCharacter")
-local ViewportFrame = WearableSection:FindFirstChildWhichIsA("ViewportFrame", true)
+local ViewportFrame = WearableSection:FindFirstChildWhichIsA("ViewportFrame", true) :: ViewportFrame
 local RunService = game:GetService("RunService")
 local PointDimensionalConverter = require("./PointDimensionalConverter")
 local mouse = player:GetMouse()
 local TweenService = game:GetService("TweenService")
+local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
 
 type x = {
     slot: WearableSlot.WearableSlotType, 
@@ -20,7 +25,8 @@ type x = {
     line: ImageLabel, 
     image: string,
     torsoOffset: CFrame,
-    uiOffsetMultiplier: number
+    uiOffsetMultiplier: number,
+    LayoutOrder: number
 }
 
 local slots: {x} = {
@@ -28,32 +34,37 @@ local slots: {x} = {
         slot = nil,
         image = "rbxassetid://18790580783",
         torsoOffset = CFrame.new(),
-        uiOffsetMultiplier = 1
+        uiOffsetMultiplier = 1,
+        LayoutOrder = 2
     },
     Legs = {
         slot = nil, 
         image = "rbxassetid://18790582567",
         torsoOffset = CFrame.new(0, -2, 0),
-        uiOffsetMultiplier = -1
+        uiOffsetMultiplier = -1,
+        LayoutOrder = 4
     },
     Head = {
         slot = nil, 
         image = "rbxassetid://18790572259",
         torsoOffset = CFrame.new(0, 1.5, 0)
         ,
-        uiOffsetMultiplier = 1
+        uiOffsetMultiplier = 1,
+        LayoutOrder = 1
     },
     Feet = {
         slot = nil, 
         image = "rbxassetid://18790584454",
         torsoOffset = CFrame.new(0, -3, 0),
-        uiOffsetMultiplier = 1
+        uiOffsetMultiplier = 1,
+        LayoutOrder = 5
     },
     Backpack = {
         slot = nil, 
         image = "rbxassetid://109883323088072",
         torsoOffset = CFrame.new(0, 0, 0.5),
-        uiOffsetMultiplier = -1
+        uiOffsetMultiplier = -1,
+        LayoutOrder = 3
     },
 }
 
@@ -69,10 +80,13 @@ function WearableInterface.initialize(character: Model)
 
     for _, v in slots do
         v.slot = WearableSlot.new()
+        v.slot._itself.AnchorPoint = Vector2.new(0.5, 0.5)
+        v.slot._itself.ZIndex = 2
+        v.slot._itself.LayoutOrder = v.LayoutOrder
         v.slot.ImageButton.Image = v.image
         v.slot.ImageButton.Rotation = 0
         v.slot.ImageButton.Visible = true
-        v.slot._itself.Parent = wearableGuiInstances
+        v.slot._itself.Parent = WearableSlotsContainer
         v.circle = circle:Clone()
         v.circle.Visible = true
         v.circle.Parent = wearableGuiInstances
@@ -93,36 +107,60 @@ function WearableInterface.initialize(character: Model)
     local lastX: number? = nil
     local deltaX: number = 0
     local connections = {}
+    local BindName = "RestoreEquilibrium"
 
     ViewportFrame.InputBegan:Connect(function(io: InputObject)
         if io.UserInputType == Enum.UserInputType.MouseButton1 then
             
-            TweenService:Create(vpCharObj.CameraPosition, TweenInfo.new(0), {Value = vpCharObj.CameraPosition.Value}):Play()
+            RunService:UnbindFromRenderStep(BindName)
             lastX = mouse.X
 
             table.insert(
                 connections,
-                ViewportFrame.InputChanged:Connect(function(io: InputObject)
+                UserInputService.InputChanged:Connect(function(io: InputObject)
                     if io.UserInputType == Enum.UserInputType.MouseMovement then
+
                         if UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
                             local currentX = mouse.X
                             deltaX = lastX - currentX
-                            vpCharObj.CameraPosition.Value = CFrame.Angles(vpCharObj.CameraPosition.Value:ToOrientation())*CFrame.Angles(0, (2*math.pi)*(1/200)*deltaX, 0) * vpCharObj.CameraRadius
+                            vpCharObj.CameraPosition = CFrame.Angles(vpCharObj.CameraPosition:ToOrientation())*CFrame.Angles(0, (2*math.pi)*(1/200)*deltaX, 0) * vpCharObj.CameraRadius
                             print("Dragging")
                             lastX = currentX
                         end
+
                     end
                 end)
             )
 
-            ViewportFrame.InputEnded:Once(function(io3: InputObject)
-                if io3.UserInputType == Enum.UserInputType.MouseButton1 then
-                    for _, v in connections do
-                        v:Disconnect()
-                        TweenService:Create(vpCharObj.CameraPosition, TweenInfo.new(1), {Value = vpCharObj.CameraRadius}):Play()
+            table.insert(
+                connections,
+                UserInputService.InputEnded:Connect(function(io: InputObject, a1: boolean)  
+                    if io.UserInputType == Enum.UserInputType.MouseButton1 then
+
+                        for _, v in connections do
+                            v:Disconnect()
+                        end
+                        local accumulatedTime = 0
+                        local lastCameraPosition = vpCharObj.CameraPosition
+                        local _, y, _ = lastCameraPosition:ToOrientation()
+                        local SECONDS_TO_ROTATE_180 = 2
+                        local secondsUntilHomeostasis = SECONDS_TO_ROTATE_180 * (math.abs(y) / (math.pi))
+                        print(math.abs(y), secondsUntilHomeostasis)
+                        RunService:BindToRenderStep(BindName, 201, function(delta: number) 
+                            print("running")
+                            accumulatedTime += delta
+                            local alpha = accumulatedTime/secondsUntilHomeostasis
+                            vpCharObj.CameraPosition =
+                                CFrame.Angles(lastCameraPosition:ToOrientation()):Lerp(CFrame.Angles(vpCharObj.CameraRadius:ToOrientation()), alpha)
+                                    * vpCharObj.CameraRadius
+                            if alpha >= 1 then
+                                RunService:UnbindFromRenderStep(BindName)
+                            end
+                        end)
+
                     end
-                end
-            end)
+                end)
+            )
         end
     end)
     
@@ -138,15 +176,19 @@ function WearableInterface.initialize(character: Model)
                 local circlePosition : UDim2 = screenPosition
                 v.circle.Position = circlePosition
 
-                --positioning the slot
-                v.slot._itself.AnchorPoint = Vector2.new(0.5, 0.5)
-                v.slot._itself.Position = circlePosition  + UDim2.fromOffset(v.slot._itself.AbsoluteSize.Y * v.uiOffsetMultiplier, 0)
+                -- --positioning the slot
+                -- v.slot._itself.AnchorPoint = Vector2.new(0.5, 0.5)
+                -- v.slot._itself.Position = circlePosition  + UDim2.fromOffset(v.slot._itself.AbsoluteSize.Y * v.uiOffsetMultiplier, 0)
                 
 
                 --connecting a line between the circle and slot
-                local hypotenuse, theta = PointDimensionalConverter.findHypotenuseAndTheta(v.slot._itself.Position, circlePosition)
+                local guiInset: UDim2 = UDim2.fromOffset(GuiService:GetGuiInset().X, GuiService:GetGuiInset().Y)
+                local manualAnchorPointAddition = UDim2.fromOffset(v.slot._itself.AbsoluteSize.X/2, v.slot._itself.AbsoluteSize.X/2)
+                local slotAbsolutePosition = UDim2.fromOffset(v.slot._itself.AbsolutePosition.X, v.slot._itself.AbsolutePosition.Y) 
+                    + manualAnchorPointAddition + guiInset
+                local hypotenuse, theta = PointDimensionalConverter.findHypotenuseAndTheta(slotAbsolutePosition, circlePosition)
                 v.line.Size = UDim2.fromOffset(2, hypotenuse)
-                v.line.Position = circlePosition:Lerp(v.slot._itself.Position, 0.5)
+                v.line.Position = circlePosition:Lerp(slotAbsolutePosition, 0.5)
                 v.line.Rotation = math.deg(theta) + 90
             end 
         end

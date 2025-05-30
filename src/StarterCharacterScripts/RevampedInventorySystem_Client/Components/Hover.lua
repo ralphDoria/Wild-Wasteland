@@ -65,6 +65,8 @@ function Hover.applyEffect(slot: SlotType.SlotType)
         print("Hover.currentSlot: ", if Hover.currentSlot then Hover.currentSlot.HotbarNumber.Text else nil)
     end
 
+    if slot._isEmpty then return end
+
     TweenService:Create(
         slot.ImageButton, 
         TweenInfo.new(10, Enum.EasingStyle.Linear, Enum.EasingDirection.In, math.huge), 
