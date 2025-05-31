@@ -6,11 +6,11 @@ export type ToolInfo = {
 }
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ToolCatalog = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
 
-local source = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
-
-local barbedBat = source["Barbed Bat"]
-local healingInjection = source["Healing Injection"]
+local barbedBat = ToolCatalog["Barbed Bat"]
+local healingInjection = ToolCatalog["Healing Injection"]
+local nvGoggles = ToolCatalog["NV Goggles"]
 
 local ToolInfo = {}
 
@@ -52,6 +52,19 @@ local catalog : {[string] : ToolInfo} = {
                 remove = healingInjection.Sounds.needle:FindFirstChild("remove")
             },
             singleHeartbeat = healingInjection.Sounds.singleHeartbeat
+        }
+    },
+    [nvGoggles.Name] = {
+        animObjects = {
+            equip = nvGoggles.Anims.equip,
+            idle = nvGoggles.Anims.idle,
+            wear = nvGoggles.Anims.wear
+        },
+        soundObjects = {
+            activate = nvGoggles.Sounds.activate,
+            offSwitch = nvGoggles.Sounds.offSwitch,
+            onSwitch = nvGoggles.Sounds.onSwitch,
+            equip = nvGoggles.Sounds.equip
         }
     }
 

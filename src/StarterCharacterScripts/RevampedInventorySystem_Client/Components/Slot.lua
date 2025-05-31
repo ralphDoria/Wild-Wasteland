@@ -6,6 +6,7 @@ local Templates : Folder = gui:FindFirstChild("Templates") :: Folder
 local SlotTemplate : Frame = Templates:FindFirstChild("SlotTemplate") :: Frame
 
 local SlotType = require("./SlotType")
+local WearableCategory = require("./WearableCategory")
 export type SlotType = SlotType.SlotType
 local Hover = require("./Hover")
 local Select = require("./Select")
@@ -27,7 +28,7 @@ local Slot = {}
 
 ----    Methods
 
-function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable") : SlotType.SlotType
+function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCategory: WearableCategory.WearableCategoryType?) : SlotType.SlotType
 
     local slot = SlotTemplate:Clone()
 
@@ -39,6 +40,8 @@ function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable") : SlotType.Slo
         ActionIndicator = slot:FindFirstChild("ActionIndicator", true) :: ImageLabel,
         HotbarNumber = slot:FindFirstChild("HotbarNumber", true) :: TextLabel,
         Quantity = slot:FindFirstChild("Quantity", true) :: TextLabel,
+        isWearable = if slotType == "Wearable" then true else false,
+        WearableCategory = wearableCategory,
         connections = {},
         tool = nil 
     }
@@ -128,8 +131,9 @@ end
 
 function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
     if s2._itself.Parent ~= s1._itself.Parent then
+        print("switching slot parents", s1._itself.Parent, s2._itself.Parent)
         local s2_savedParent = s2._itself.Parent
-        s2._itself.LayoutOrder = s1._itself.LayoutOrder
+        s2._itself.Parent = s1._itself.Parent
         s1._itself.Parent = s2_savedParent
     end
 

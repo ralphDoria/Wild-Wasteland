@@ -26,7 +26,10 @@ local remotes: {[string] : RemoteEvent} = {
 
 local currentCharacter = player.Character or player.CharacterAdded:Wait()
 
-type state = "Equipping" | "Idle" | "Unequipping" | "Unequipped" | "Activated" | "Dropping" | "Dropped" | "Destroying" | "UpdatingCharacter"
+type state = "Equipping" | "Idle" | "Unequipping" | "Unequipped" | "Activated" 
+    | "Wearing" | "Unwearing" | "Worn"
+    | "Dropping" | "Dropped" 
+    | "Destroying" | "UpdatingCharacter"
 
 export type ItemType = {
     tool : Tool,

@@ -65,26 +65,28 @@ function Hover.applyEffect(slot: SlotType.SlotType)
         print("Hover.currentSlot: ", if Hover.currentSlot then Hover.currentSlot.HotbarNumber.Text else nil)
     end
 
-    if slot._isEmpty then return end
-
-    TweenService:Create(
-        slot.ImageButton, 
-        TweenInfo.new(10, Enum.EasingStyle.Linear, Enum.EasingDirection.In, math.huge), 
-        {Rotation = 180}
-    ):Play()
-    slot.ImageButton.Size = UDim2.fromScale(0.8, 0.8)
-
-    -- for creating a delay before possibly showing info display
-    task.spawn(function()
-        local accumulatedTime = 0
-        while Hover.currentSlot == slot do
-            accumulatedTime += task.wait()
-            if accumulatedTime >= Config.KBM_Touch.dragThreshold then
-                itemInfoDisplays[slot] = createItemInfoDisplay(slot)
-                break
+    if not slot._isEmpty then
+        -- for creating a delay before possibly showing info display
+        task.spawn(function()
+            local accumulatedTime = 0
+            while Hover.currentSlot == slot do
+                accumulatedTime += task.wait()
+                if accumulatedTime >= Config.KBM_Touch.dragThreshold then
+                    itemInfoDisplays[slot] = createItemInfoDisplay(slot)
+                    break
+                end
             end
+        end)
+
+        if not slot.isWearable then 
+            TweenService:Create(
+                slot.ImageButton, 
+                TweenInfo.new(10, Enum.EasingStyle.Linear, Enum.EasingDirection.In, math.huge), 
+                {Rotation = 180}
+            ):Play()
+            slot.ImageButton.Size = UDim2.fromScale(0.8, 0.8)
         end
-    end)
+    end
 end
 
 function Hover.removeEffect(slot: SlotType.SlotType)
@@ -94,15 +96,20 @@ function Hover.removeEffect(slot: SlotType.SlotType)
         --otherwise, it's been changed by Hover.applyEffect, and should avoid setting it to nil here to avoid race condition bugs
     end
 
-    TweenService:Create(
-        slot.ImageButton, 
-        TweenInfo.new(0.2), 
-        {Rotation = -180}
-    ):Play()
-    slot.ImageButton.Size = UDim2.fromScale(1, 1)
-
     for _, v in itemInfoDisplays do
         v:Destroy()
+    end 
+
+    if not slot._isEmpty then
+
+        if not slot.isWearable then 
+            TweenService:Create(
+                slot.ImageButton, 
+                TweenInfo.new(0.2), 
+                {Rotation = -180}
+            ):Play()
+            slot.ImageButton.Size = UDim2.fromScale(1, 1)
+        end
     end
 end
 

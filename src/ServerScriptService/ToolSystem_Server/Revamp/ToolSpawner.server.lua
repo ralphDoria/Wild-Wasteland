@@ -1,11 +1,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage")
 local rev_SpawnTool : RemoteEvent = ToolSystem_Storage:FindFirstChild("SpawnTool", true)
-local source = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
+local ToolCatalog = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
 local Players = game:GetService("Players")
 
 local function foo(toolName : string, parent : Instance)
-    local folder : Folder? = source[toolName]
+    local folder : Folder? = ToolCatalog[toolName]
     if folder == nil then
         warn(toolName .. " not found in ToolCatalog FOLDER")
     else
@@ -25,5 +25,6 @@ Players.PlayerAdded:Connect(function(player: Player)
         foo("Healing Injection", player.Backpack)
         foo("Healing Injection", player.Backpack)
         foo("Healing Injection", player.Backpack)
+        foo("NV Goggles", player.Backpack)
     end)
 end)

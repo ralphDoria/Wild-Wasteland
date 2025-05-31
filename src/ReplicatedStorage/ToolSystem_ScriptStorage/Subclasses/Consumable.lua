@@ -22,7 +22,6 @@ function Consumable.new(tool : Tool, humanoid : Humanoid): ConsumableObject
     local self = Item.new(tool, humanoid)
     self.consumeSpeed = 1
     -- The two attributes below will be assigned when the initialize function is called (which is called by the child)
-    self.activatedEffects = nil
     self.childClassCleanupFunction = nil
     self.actionNames.activate = "Activate"
 
