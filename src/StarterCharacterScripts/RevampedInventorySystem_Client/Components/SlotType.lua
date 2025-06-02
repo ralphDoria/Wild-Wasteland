@@ -7,7 +7,6 @@ local WearableCategory = require("./WearableCategory")
 export type SlotType = {
     _itself : Frame,
     _isEmpty : boolean,
-    isWearable: boolean,
     WearableCategory: WearableCategory.WearableCategoryType?, 
     InnerFrame : Frame,
     ImageButton : ImageButton,

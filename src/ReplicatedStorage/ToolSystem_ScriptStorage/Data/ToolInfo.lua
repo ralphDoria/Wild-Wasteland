@@ -64,7 +64,11 @@ local catalog : {[string] : ToolInfo} = {
             activate = nvGoggles.Sounds.activate,
             offSwitch = nvGoggles.Sounds.offSwitch,
             onSwitch = nvGoggles.Sounds.onSwitch,
-            equip = nvGoggles.Sounds.equip
+            equip = nvGoggles.Sounds.equip,
+            drop = {
+                hard = healingInjection.Sounds.drop.hard,
+                soft = healingInjection.Sounds.drop.soft
+            }
         }
     }
 

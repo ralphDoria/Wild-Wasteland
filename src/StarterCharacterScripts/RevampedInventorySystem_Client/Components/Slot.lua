@@ -7,6 +7,7 @@ local SlotTemplate : Frame = Templates:FindFirstChild("SlotTemplate") :: Frame
 
 local SlotType = require("./SlotType")
 local WearableCategory = require("./WearableCategory")
+local WearableSlotInfo = require("./WearableSlotInfo")
 export type SlotType = SlotType.SlotType
 local Hover = require("./Hover")
 local Select = require("./Select")
@@ -29,7 +30,6 @@ local Slot = {}
 ----    Methods
 
 function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCategory: WearableCategory.WearableCategoryType?) : SlotType.SlotType
-
     local slot = SlotTemplate:Clone()
 
     local self : SlotType.SlotType = {
@@ -40,7 +40,6 @@ function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCatego
         ActionIndicator = slot:FindFirstChild("ActionIndicator", true) :: ImageLabel,
         HotbarNumber = slot:FindFirstChild("HotbarNumber", true) :: TextLabel,
         Quantity = slot:FindFirstChild("Quantity", true) :: TextLabel,
-        isWearable = if slotType == "Wearable" then true else false,
         WearableCategory = wearableCategory,
         connections = {},
         tool = nil 
@@ -68,6 +67,7 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
     self.tool = tool
     self.ImageButton.Visible = true
     self._isEmpty = false
+
     self.connections.EquipFromClick = self.ImageButton.MouseButton1Click:Connect(function(...: any)  
         EquipToolStateMachine.SetTargetTool(self)
     end)
@@ -118,6 +118,12 @@ function Slot.EmptySlot(self : SlotType.SlotType)
         end
     end
     table.remove(FilledSlots, table.find(FilledSlots, self))
+
+    if self.WearableCategory then
+        print(self.WearableCategory)
+        self.ImageButton.Visible = true
+        self.ImageButton.Image = WearableSlotInfo[self.WearableCategory].image
+    end
 end
 
 function Slot.GetSlotFromTool(tool : Tool) : SlotType.SlotType?
@@ -130,19 +136,55 @@ function Slot.GetSlotFromTool(tool : Tool) : SlotType.SlotType?
 end
 
 function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
-    if s2._itself.Parent ~= s1._itself.Parent then
-        print("switching slot parents", s1._itself.Parent, s2._itself.Parent)
-        local s2_savedParent = s2._itself.Parent
-        s2._itself.Parent = s1._itself.Parent
-        s1._itself.Parent = s2_savedParent
-    end
+    if s1.WearableCategory == nil and s2.WearableCategory == nil then
+        if s2._itself.Parent ~= s1._itself.Parent then
+            print("switching slot parents", s1._itself.Parent, s2._itself.Parent)
+            local s2_savedParent = s2._itself.Parent
+            s2._itself.Parent = s1._itself.Parent
+            s1._itself.Parent = s2_savedParent
+        end
 
-    local s2LO = s2._itself.LayoutOrder
-    local s1LO = s1._itself.LayoutOrder
-    s2._itself.LayoutOrder = s1LO
-    s2.HotbarNumber.Text = tostring(s1LO)
-    s1._itself.LayoutOrder = s2LO
-    s1.HotbarNumber.Text = tostring(s2LO)
+        local s2LO = s2._itself.LayoutOrder
+        local s1LO = s1._itself.LayoutOrder
+        s2._itself.LayoutOrder = s1LO
+        s2.HotbarNumber.Text = tostring(s1LO)
+        s1._itself.LayoutOrder = s2LO
+        s1.HotbarNumber.Text = tostring(s2LO)
+    else
+        --defining
+        local wearableSlot: SlotType.SlotType
+        local itemSlot: SlotType.SlotType
+        --initializing
+        if s1.WearableCategory and s2.WearableCategory == nil then
+            wearableSlot = s1
+            itemSlot = s2
+            
+        elseif s2.WearableCategory and s1.WearableCategory == nil then
+            wearableSlot = s2
+            itemSlot = s1
+        end
+        --logic
+        if wearableSlot.tool and itemSlot.tool then -- both are filled
+            local wearableSlotTool = wearableSlot.tool
+            Slot.EmptySlot(wearableSlot)
+            Slot.FillSlot(wearableSlot, itemSlot.tool, "")
+            Slot.EmptySlot(itemSlot)
+            Slot.FillSlot(itemSlot, wearableSlotTool, "")
+        elseif wearableSlot.tool == nil and itemSlot.tool == nil then -- both are empty
+            -- do fucking nothing
+        elseif wearableSlot.tool == nil then -- wearable slot is empty, item slot is filled
+            if itemSlot.tool:GetAttribute("WearableCategory") == wearableSlot.WearableCategory then
+                print("This is the correct spot")
+                Slot.FillSlot(wearableSlot, itemSlot.tool, "")
+                Slot.EmptySlot(itemSlot)
+            else
+                print("This is the not the correct spot")
+            end
+        else -- itemSlot.tool == nil; wearable slot is filled, item slot is empty
+            Slot.FillSlot(itemSlot, wearableSlot.tool, "")
+            Slot.EmptySlot(s1)
+        end
+    end
 end
 
 function Slot.destroy(self : SlotType.SlotType)

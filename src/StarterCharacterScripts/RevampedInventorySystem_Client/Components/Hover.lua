@@ -78,7 +78,7 @@ function Hover.applyEffect(slot: SlotType.SlotType)
             end
         end)
 
-        if not slot.isWearable then 
+        if slot.WearableCategory == nil then 
             TweenService:Create(
                 slot.ImageButton, 
                 TweenInfo.new(10, Enum.EasingStyle.Linear, Enum.EasingDirection.In, math.huge), 
@@ -102,7 +102,7 @@ function Hover.removeEffect(slot: SlotType.SlotType)
 
     if not slot._isEmpty then
 
-        if not slot.isWearable then 
+        if slot.WearableCategory == nil then 
             TweenService:Create(
                 slot.ImageButton, 
                 TweenInfo.new(0.2), 

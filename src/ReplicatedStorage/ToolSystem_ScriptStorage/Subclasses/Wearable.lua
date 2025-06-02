@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ToolCatalog: Folder = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
 export type WearableType = Item.ItemType & {
     originalAccessory: Accessory,
+    thisAccessory: Accessory,
     WearSpeed: number,
     WearableCategory: WearableCategory.WearableCategoryType,
     applyWornEffects: () -> (),
@@ -23,16 +24,8 @@ local Wearable = {}
 function Wearable.new(tool: Tool, humanoid: Humanoid)
     local self = Item.new(tool, humanoid):: WearableType
     
-    local valid = false
     local thisWearableCategory = tool:GetAttribute("WearableCategory")
-    for _, v in WearableCategory do
-        if thisWearableCategory == v then
-            valid = true
-        end
-    end
-    if not valid then
-        error(tostring(thisWearableCategory) .. " is not a valid WearableCategory attribute")
-    end
+    WearableCategory.typeCheck(thisWearableCategory)
 
     -- instance variables inherited from Item
     self.actionNames.wearUnwear = "Wear/Unwear"
@@ -43,6 +36,7 @@ function Wearable.new(tool: Tool, humanoid: Humanoid)
         error("Folder for " .. tool.Name .. " not found in ToolCatalog" )
     end
     self.originalAccessory = toolFolder:FindFirstChildWhichIsA("Accessory", true):: Accessory
+    self.thisAccessory = self.tool:FindFirstChildWhichIsA("Accessory", true):: Accessory
     self.WearableCategory = tool:GetAttribute("WearableCategory"):: WearableCategory.WearableCategoryType
     self.WearSpeed = 1
 
@@ -104,6 +98,26 @@ function Wearable.initialize(self: WearableType, appyWornEffects: () -> (), remo
         function() --onDropped()
         end
     )
+    local wearTrack = self.animManager.animationTracks[self.tool.Name].wear
+    self.connections.wearTrackOverlapped = wearTrack:GetMarkerReachedSignal("overlapped"):Connect(function(...: any)  
+        if self.State == "Wearing" then
+            print("set tool accessory transparency to 1")
+            for _, v in self.thisAccessory:GetDescendants() do
+                if v:IsA("BasePart") then
+                    remotes.ToggleWear:FireServer(true, self.humanoid.Parent, self.originalAccessory, self.thisAccessory)
+                    self.applyWornEffects()
+                end
+            end
+        elseif self.State == "Unwearing" then
+            print("set tool accessory transparency to 0")
+            for _, v in self.thisAccessory:GetDescendants() do
+                if v:IsA("BasePart") then
+                    remotes.ToggleWear:FireServer(false, self.humanoid.Parent, self.originalAccessory, self.thisAccessory)
+                    self.removeWornEffects()
+                end
+            end
+        end
+    end)
 end
 
 function Wearable.wear(self: WearableType)
@@ -125,8 +139,6 @@ function Wearable.wear(self: WearableType)
         wearTrack.Stopped:Wait()
         if self.State == "Wearing" then
             Item.ChangeState(self, "Worn")
-            remotes.ToggleWear:FireServer(true, self.humanoid.Parent, self.originalAccessory)
-            self.applyWornEffects()
         end
     end
 end
@@ -152,8 +164,6 @@ function Wearable.unwear(self: WearableType)
              idleTrack:Play()
             vmIdleTrack:Play()
             Item.ChangeState(self, "Idle")
-            remotes.ToggleWear:FireServer(false, self.humanoid.Parent, self.originalAccessory)
-            self.removeWornEffects()
         end
     end
 end

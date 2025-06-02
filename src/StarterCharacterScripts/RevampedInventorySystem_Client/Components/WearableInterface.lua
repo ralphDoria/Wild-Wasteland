@@ -18,55 +18,8 @@ local mouse = player:GetMouse()
 local TweenService = game:GetService("TweenService")
 local GuiService = game:GetService("GuiService")
 local UserInputService = game:GetService("UserInputService")
-
-type x = {
-    slot: Slot.SlotType, 
-    circle: ImageLabel, 
-    line: ImageLabel, 
-    image: string,
-    torsoOffset: CFrame,
-    uiOffsetMultiplier: number,
-    LayoutOrder: number
-}
-
-local slots: {x} = {
-    Torso = {
-        slot = nil,
-        image = "rbxassetid://18790580783",
-        torsoOffset = CFrame.new(),
-        uiOffsetMultiplier = 1,
-        LayoutOrder = 2
-    },
-    Legs = {
-        slot = nil, 
-        image = "rbxassetid://18790582567",
-        torsoOffset = CFrame.new(0, -2, 0),
-        uiOffsetMultiplier = -1,
-        LayoutOrder = 4
-    },
-    Head = {
-        slot = nil, 
-        image = "rbxassetid://18790572259",
-        torsoOffset = CFrame.new(0, 1.5, 0)
-        ,
-        uiOffsetMultiplier = 1,
-        LayoutOrder = 1
-    },
-    Feet = {
-        slot = nil, 
-        image = "rbxassetid://18790584454",
-        torsoOffset = CFrame.new(0, -3, 0),
-        uiOffsetMultiplier = 1,
-        LayoutOrder = 5
-    },
-    Backpack = {
-        slot = nil, 
-        image = "rbxassetid://109883323088072",
-        torsoOffset = CFrame.new(0, 0, 0.5),
-        uiOffsetMultiplier = -1,
-        LayoutOrder = 3
-    },
-}
+local WearableSlotInfo = require("./WearableSlotInfo")
+local WearableCategory = require("./WearableCategory")
 
 local WearableInterface = {}
 
@@ -78,8 +31,9 @@ function WearableInterface.initialize(character: Model)
     local wearableGuiInstances = Instance.new("Folder")
     wearableGuiInstances.Parent = gui
 
-    for _, v in slots do
-        v.slot = Slot.new("Wearable")
+    for key, v in WearableSlotInfo do
+        WearableCategory.typeCheck(key)
+        v.slot = Slot.new("Wearable", key:: WearableCategory.WearableCategoryType)
         v.slot._itself.AnchorPoint = Vector2.new(0.5, 0.5)
         v.slot._itself.ZIndex = 2
         v.slot._itself.LayoutOrder = v.LayoutOrder
@@ -169,7 +123,7 @@ function WearableInterface.initialize(character: Model)
     RunService.RenderStepped:Connect(function(dt: number)  
         local torso: BasePart = vpCharObj.Viewmodel:FindFirstChild("Torso") :: BasePart
         if torso then
-            for k, v in slots do
+            for k, v in WearableSlotInfo do
                 local screenPosition : UDim2 = PointDimensionalConverter.get2DPosition((torso.CFrame * v.torsoOffset).Position, vpCharObj.Camera, ViewportFrame)
 
                 --positioning the circle
