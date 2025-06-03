@@ -72,6 +72,16 @@ function ViewmodelManager.AddTool(self: ViewmodelManager, tool: Tool, animations
             BodyAttachJoint.Part1 = nil
         end
     end)
+    -- for i, v in tool:GetDescendants() do
+    --     if v:IsA("BasePart") then
+    --         self.connections[tool]["transparencyMatcher" .. i] = v:GetPropertyChangedSignal("Transparency"):Connect(function(...: any)
+    --             local corresponding = vmTool:FindFirstChild(v.Name, true):: BasePart
+    --             if corresponding then
+    --                 corresponding.Transparency = v.Transparency  
+    --             end
+    --         end)
+    --     end
+    -- end
 end
 
 function ViewmodelManager.removeTool(self: ViewmodelManager, tool: Tool)

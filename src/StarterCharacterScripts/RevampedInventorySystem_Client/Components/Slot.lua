@@ -4,6 +4,7 @@ local playerGui : PlayerGui = game:GetService("Players").LocalPlayer:FindFirstCh
 local gui : ScreenGui = playerGui:WaitForChild("RevampingInventory") :: ScreenGui
 local Templates : Folder = gui:FindFirstChild("Templates") :: Folder
 local SlotTemplate : Frame = Templates:FindFirstChild("SlotTemplate") :: Frame
+local InventoryState = require("./InventoryState")
 
 local SlotType = require("./SlotType")
 local WearableCategory = require("./WearableCategory")
@@ -17,7 +18,8 @@ local Drag = require("./Drag")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local bindables = {
-    DropToolBindable = ToolSystem_Storage.Shared.Bindables.DropToolBindable
+    DropToolBindable = ToolSystem_Storage.Shared.Bindables.DropToolBindable,
+    ToggleWear = ToolSystem_Storage.Wearable.Bindables.ToggleWear
 }
 
 local EquipToolStateMachine = require("./EquipToolStateMachine")
@@ -25,6 +27,17 @@ local EquipToolStateMachine = require("./EquipToolStateMachine")
 local FilledSlots : {SlotType.SlotType} = {}
 
 local Slot = {}
+
+local SlotStateChangedBindable: BindableEvent = Instance.new("BindableEvent")
+Slot.StateChanged = SlotStateChangedBindable.Event
+
+Slot.StateChanged:Connect(function(thisSlot: SlotType)  
+    print("slot state changed")
+    if thisSlot.state == "BeingSwapped" then
+        
+    end
+end)
+
 ----    Local Functions
 
 ----    Methods
@@ -33,6 +46,7 @@ function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCatego
     local slot = SlotTemplate:Clone()
 
     local self : SlotType.SlotType = {
+        state = "Idle",
         _itself = slot :: Frame,
         _isEmpty = true :: boolean,
         InnerFrame = slot:FindFirstChild("innerFrame", true) :: Frame,
@@ -60,7 +74,19 @@ function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCatego
     return self
 end
 
+--[[
+    Wrapper method for changing state
+]]
+function Slot.ChangeState(self: SlotType.SlotType, state: SlotType.SlotState)
+    --fire bindable event when state changes
+    if self.state ~= state then
+        self.state = state
+        SlotStateChangedBindable:Fire(self)
+    end
+end
+
 function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
+    Slot.ChangeState(self, "Filling")
     -- print("Filling slot: ", self.HotbarNumber.Text)
     self.Quantity.Visible = if itemType == "Misc" then true else false
     self.ImageButton.Image = tool.TextureId
@@ -68,9 +94,12 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
     self.ImageButton.Visible = true
     self._isEmpty = false
 
-    self.connections.EquipFromClick = self.ImageButton.MouseButton1Click:Connect(function(...: any)  
-        EquipToolStateMachine.SetTargetTool(self)
-    end)
+    if not self.WearableCategory then
+        self.connections.EquipFromClick = self.ImageButton.MouseButton1Click:Connect(function(...: any)  
+            EquipToolStateMachine.SetTargetTool(self)
+        end)
+    end
+
     self.connections.DragFunctionality = self.ImageButton.MouseButton1Down:Connect(function()
         local startDrag: RBXScriptConnection?
     
@@ -91,7 +120,9 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
                     if Hover.currentSlot and Hover.currentSlot ~= self then
                         Slot.SwapSlots(self, Hover.currentSlot)    
                     elseif not Hover.IsInInventory and Hover.currentSlot == nil then
-                        bindables.DropToolBindable:Fire(self.tool)
+                        if self.state ~= "BeingSwapped" then
+                            bindables.DropToolBindable:Fire(self.tool)
+                        end
                     else
                         warn("doing nothing with dragged slot")                    
                     end
@@ -102,9 +133,11 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
         end)
     end)
     table.insert(FilledSlots, self)
+    Slot.ChangeState(self, "Idle")
 end
 
 function Slot.EmptySlot(self : SlotType.SlotType)
+    Slot.ChangeState(self, "Emptying")
     Select.removeEffect(self)
     Hover.removeEffect(self)
     self.Quantity.Visible = false
@@ -113,7 +146,7 @@ function Slot.EmptySlot(self : SlotType.SlotType)
     self.ImageButton.Visible = false
     self._isEmpty = true
     for name, v in self.connections do
-        if name ~= "hoverBegin" and name ~= "hoverend" then            
+        if name ~= "hoverBegin" and name ~= "hoverEnd" then            
             v:Disconnect()
         end
     end
@@ -124,6 +157,7 @@ function Slot.EmptySlot(self : SlotType.SlotType)
         self.ImageButton.Visible = true
         self.ImageButton.Image = WearableSlotInfo[self.WearableCategory].image
     end
+    Slot.ChangeState(self, "Idle")
 end
 
 function Slot.GetSlotFromTool(tool : Tool) : SlotType.SlotType?
@@ -158,23 +192,34 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
         if s1.WearableCategory and s2.WearableCategory == nil then
             wearableSlot = s1
             itemSlot = s2
-            
         elseif s2.WearableCategory and s1.WearableCategory == nil then
             wearableSlot = s2
             itemSlot = s1
         end
         --logic
         if wearableSlot.tool and itemSlot.tool then -- both are filled
-            local wearableSlotTool = wearableSlot.tool
-            Slot.EmptySlot(wearableSlot)
-            Slot.FillSlot(wearableSlot, itemSlot.tool, "")
-            Slot.EmptySlot(itemSlot)
-            Slot.FillSlot(itemSlot, wearableSlotTool, "")
+            if itemSlot.tool:GetAttribute("WearableCategory") == wearableSlot.WearableCategory then 
+                Slot.ChangeState(wearableSlot, "BeingSwapped")
+                Slot.ChangeState(itemSlot, "BeingSwapped")
+                InventoryState.ChangeState("SwappingSlots")
+                local currentTool = EquipToolStateMachine.GetCurrentTool()
+                -- if currentTool ~= itemSlot.tool
+                EquipToolStateMachine.SetTargetTool(itemSlot)
+                local wearableSlotTool = wearableSlot.tool
+                Slot.EmptySlot(wearableSlot)
+                Slot.FillSlot(wearableSlot, itemSlot.tool, "")
+                Slot.EmptySlot(itemSlot)
+                Slot.FillSlot(itemSlot, wearableSlotTool, "")
+            end
         elseif wearableSlot.tool == nil and itemSlot.tool == nil then -- both are empty
             -- do fucking nothing
         elseif wearableSlot.tool == nil then -- wearable slot is empty, item slot is filled
             if itemSlot.tool:GetAttribute("WearableCategory") == wearableSlot.WearableCategory then
-                print("This is the correct spot")
+                Slot.ChangeState(wearableSlot, "BeingSwapped")
+                Slot.ChangeState(itemSlot, "BeingSwapped")
+                InventoryState.ChangeState("SwappingSlots")
+                EquipToolStateMachine.SetTargetTool(itemSlot)
+                -- actually perform the swap slot
                 Slot.FillSlot(wearableSlot, itemSlot.tool, "")
                 Slot.EmptySlot(itemSlot)
             else
@@ -182,12 +227,13 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
             end
         else -- itemSlot.tool == nil; wearable slot is filled, item slot is empty
             Slot.FillSlot(itemSlot, wearableSlot.tool, "")
-            Slot.EmptySlot(s1)
+            Slot.EmptySlot(wearableSlot)
         end
     end
 end
 
 function Slot.destroy(self : SlotType.SlotType)
+    Slot.ChangeState(self, "Destroying")
     self._itself:Destroy()
     for _, v in self.connections do
         v:Disconnect()

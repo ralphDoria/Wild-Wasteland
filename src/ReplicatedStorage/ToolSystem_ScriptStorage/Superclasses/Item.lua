@@ -124,7 +124,6 @@ function Item.equip(self: ItemType, equipping: () -> ()?, equipped: () -> ()?, o
     equipTrack.Priority = Enum.AnimationPriority.Action2
     local vmEquipTrack : AnimationTrack = currentViewmodelManager.animManager.animationTracks[self.tool.Name].equip
     Item.toggleDropBind(self, true, onDropping, onDropped)
-    CrosshairGuiManager.toggleEnable(crosshairGuiObject)
     if equipping then equipping() end
     if equipTrack.IsPlaying then
         equipTrack:AdjustSpeed(1)
@@ -152,7 +151,6 @@ function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> 
     local equipTrack : AnimationTrack = currentAnimationManager.animationTracks[self.tool.Name].equip
     equipTrack.Priority = Enum.AnimationPriority.Action
     local vmEquipTrack : AnimationTrack = currentViewmodelManager.animManager.animationTracks[self.tool.Name].equip
-    CrosshairGuiManager.ForceDisable(crosshairGuiObject)
     if unequipping then unequipping() end
     if equipTrack.IsPlaying then
         equipTrack:AdjustSpeed(-1)
@@ -185,7 +183,6 @@ function Item.drop(self : ItemType, onDropping: () -> ()?, onDropped : () -> ()?
                 ActionManager.unbindAction(v)
             end 
         end
-        CrosshairGuiManager.ForceDisable(crosshairGuiObject) 
         if onDropping then
             onDropping()
         end

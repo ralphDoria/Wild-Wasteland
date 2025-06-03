@@ -20,6 +20,7 @@ local backpack : Backpack = player:FindFirstChild("Backpack") :: Backpack
 ----
 local gui : ScreenGui = playerGui:WaitForChild("RevampingInventory") :: ScreenGui
 local ForModal : GuiButton = gui:FindFirstChild("ForModal") :: GuiButton
+local UserInputService = game:GetService("UserInputService")
 local Hotbar : CanvasGroup = gui:FindFirstChild("Hotbar") :: CanvasGroup
 local MainInventory : Frame = gui:FindFirstChild("MainInventory") :: Frame
 local StoreSection : ScrollingFrame = MainInventory:FindFirstChild("StoreSection") :: ScrollingFrame
@@ -28,6 +29,7 @@ local WearableSection : Frame = MainInventory:FindFirstChild("WearableSection") 
 local Templates : Folder = gui:FindFirstChild("Templates") :: Folder
 local SlotTemplate : Frame = Templates:FindFirstChild("SlotTemplate") :: Frame
 local ItemGroupTemplate : Frame = Templates:FindFirstChild("ItemGroupTemplate") :: Frame
+local InventoryState = require("./Components/InventoryState")
 ----
 
 local InventorySystem = {}
@@ -54,6 +56,11 @@ function InventorySystem.init()
 			--highlight slot
 		end,
 		function(tool) --onUnequipped
+			if not tool:GetAttribute("IsWorn") then
+				-- do what you need to do
+			else
+				-- print("doing nothing because this is a worn slot")
+			end
 			--unhighlight slot
 		end,
 		function(tool) --onDropped
@@ -91,6 +98,14 @@ end
 function InventorySystem.toggleInventoryVisibility(toggle : boolean)
 	MainInventory.Visible = toggle
 	ForModal.Modal = toggle
+	if toggle then
+		game:GetService("RunService"):BindToRenderStep("OverrideCameraModeCursorLock", 201, function()
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		end)
+	else
+		game:GetService("RunService"):UnbindFromRenderStep("OverrideCameraModeCursorLock")
+	end
+	
 end
 
 return InventorySystem

@@ -153,6 +153,9 @@ function ViewportCharacter.handleCharacter(Viewport: ViewportFrame, character: M
             for Original, Clone in pairs(self.RenderObjects) do
                 if Original and Original.Parent then
                     Clone.CFrame = Original.CFrame
+					if Clone:IsA("BasePart") then
+						Clone.Transparency = Original.Transparency
+					end
                 else
                     ViewportCharacter._RemoveObject(self, Original)
                 end

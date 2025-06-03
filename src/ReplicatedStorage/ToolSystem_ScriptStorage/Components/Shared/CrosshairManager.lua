@@ -39,7 +39,12 @@ function CrosshairManager.new()
 end
 
 function CrosshairManager._initialize(self : CrosshairObject)
-    
+    table.insert(
+        self.connections,
+        UserInputService:GetPropertyChangedSignal("MouseBehavior"):Connect(function(...: any)
+            CrosshairManager.toggleEnable()
+        end)
+    )
 end
 
 function CrosshairManager.toggleCrosshairLines(self : CrosshairObject, toggle : boolean)
@@ -87,7 +92,7 @@ local function disable()
 	UserInputService.MouseIconEnabled = true
 end
 
-local function toggleEnable()
+function CrosshairManager.toggleEnable()
     if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
         enable()
     else
@@ -95,27 +100,12 @@ local function toggleEnable()
     end
 end
 
-function CrosshairManager.toggleEnable(self : CrosshairObject)
-	toggleEnable()
+function CrosshairManager.destroy(self: CrosshairObject)
     if #self.connections ~= 0 then
         for _, v in self.connections do
             v:Disconnect()
             v = nil
         end
-    end
-    table.insert(
-        self.connections,
-        UserInputService:GetPropertyChangedSignal("MouseBehavior"):Connect(function(...: any)
-            toggleEnable()
-        end)
-    )
-end
-
-function CrosshairManager.ForceDisable(self : CrosshairObject)
-	disable()
-    for _, v in self.connections do
-        v:Disconnect()
-        v = nil
     end
 end
 

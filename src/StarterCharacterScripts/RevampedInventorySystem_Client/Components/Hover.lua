@@ -62,7 +62,7 @@ function Hover.applyEffect(slot: SlotType.SlotType)
     if Hover.currentSlot ~= slot then
         Hover.currentSlot = slot
         SlotHoveredChangedBindable:Fire()
-        print("Hover.currentSlot: ", if Hover.currentSlot then Hover.currentSlot.HotbarNumber.Text else nil)
+        -- print("Hover.currentSlot: ", if Hover.currentSlot then Hover.currentSlot.HotbarNumber.Text else nil)
     end
 
     if not slot._isEmpty then

@@ -18,6 +18,10 @@ local currentlySelectedSlot: SlotType.SlotType? = nil
 local targetToolChangedBindable: BindableEvent = Instance.new("BindableEvent")
 local targetToolChanged: RBXScriptSignal = targetToolChangedBindable.Event
 
+function EquipToolStateMachine.GetCurrentTool(): Tool?
+    return character:FindFirstChildOfClass("Tool")
+end
+
 function EquipToolStateMachine.SetTargetTool(targetSlot: SlotType.SlotType)
     assert(targetSlot._isEmpty == false, "Target slot is empty")
 
@@ -43,8 +47,6 @@ function EquipToolStateMachine.SetTargetTool(targetSlot: SlotType.SlotType)
             Bindables.ToggleEquip:Fire(thisTargetTool, false)
         end
     else
-
-        -- warn("This feature isn't ready to be tested until you've implemented a tool with an animation different from the Barbed Bat's.")
         local currentToolState : state = currentTool:GetAttribute("State") :: state
         if currentToolState == "Equipping" or currentToolState == "Idle" then
 
@@ -69,7 +71,6 @@ function EquipToolStateMachine.SetTargetTool(targetSlot: SlotType.SlotType)
                 end
             end)
         elseif currentToolState == "Unequipping" then
-
             if currentlySelectedSlot then
                 Select.removeEffect(currentlySelectedSlot) 
             end
@@ -88,6 +89,8 @@ function EquipToolStateMachine.SetTargetTool(targetSlot: SlotType.SlotType)
                     Bindables.ToggleEquip:Fire(thisTargetTool, true)
                 end
             end)
+        else
+            warn("nothing happens")
         end
     end
 end

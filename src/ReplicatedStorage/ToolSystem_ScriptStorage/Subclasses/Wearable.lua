@@ -8,6 +8,9 @@ local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage"
 local remotes: {[string] : RemoteEvent} = {
     ToggleWear = ToolSystem_Storage.Wearable.Remotes.ToggleWear,
 }
+local bindables: {[string] : BindableEvent} = {
+    ToggleWear = ToolSystem_Storage.Wearable.Bindables.ToggleWear
+}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ToolCatalog: Folder = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
 export type WearableType = Item.ItemType & {
@@ -118,10 +121,19 @@ function Wearable.initialize(self: WearableType, appyWornEffects: () -> (), remo
             end
         end
     end)
+    self.connections.draggedToWear = bindables.ToggleWear.Event:Connect(function(key: Tool, toggle: boolean)  
+        if key == self.tool then
+            if toggle then
+                Wearable.wear(self)
+            else
+                Wearable.unwear(self)
+            end
+        end
+    end)
 end
 
 function Wearable.wear(self: WearableType)
-    if self.State == "Idle" or self.State == "Worn" or self.State == "Unwearing" then
+    if self.State == "Idle" or self.State == "Unwearing" then
         Item.ChangeState(self, "Wearing")
         local wearTrack = self.animManager.animationTracks[self.tool.Name].wear
         local vmWearTrack = self.ViewmodelManager.animManager.animationTracks[self.tool.Name].wear
@@ -139,6 +151,8 @@ function Wearable.wear(self: WearableType)
         wearTrack.Stopped:Wait()
         if self.State == "Wearing" then
             Item.ChangeState(self, "Worn")
+            self.tool:SetAttribute("IsWorn", true)
+            self.humanoid:UnequipTools()
         end
     end
 end
