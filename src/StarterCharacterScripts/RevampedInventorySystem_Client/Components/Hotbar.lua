@@ -3,6 +3,7 @@ local EquipToolStateMachine = require("./EquipToolStateMachine")
 
 local Slot = require("./Slot")
 local UserInputService = game:GetService("UserInputService")
+local InventoryState = require("./InventoryState")
 
 local Hotbar : CanvasGroup? = nil
 
@@ -80,5 +81,9 @@ function HotbarManager.toggleKeybindToHotbarSlot(toggle : boolean)
         HotbarManager.GroupTransparency = 0.5
     end
 end
+
+InventoryState.Changed:Connect(function(state: InventoryState.InventoryState)  
+    HotbarManager.toggleKeybindToHotbarSlot(state == "Idle")
+end)
 
 return HotbarManager

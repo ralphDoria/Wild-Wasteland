@@ -80,6 +80,9 @@ end
 
 function Wearable.initialize(self: WearableType, appyWornEffects: () -> (), removeWornEffects: () -> ())
 
+    local wearTrack = self.animManager.animationTracks[self.tool.Name].wear
+    Item.TrackAnimTrack(self, wearTrack, "Wear")
+
     self.applyWornEffects = appyWornEffects
     self.removeWornEffects = removeWornEffects
 
@@ -132,6 +135,15 @@ function Wearable.initialize(self: WearableType, appyWornEffects: () -> (), remo
     end)
 end
 
+function Wearable.onWorn(self: WearableType)
+    if self.State == "Worn" then
+        Item.toggleDropBind(self, false)
+        self.ToolGuiManager.hide()
+        self.humanoid:UnequipTools()
+        Item.toggleDropBind(self, false)
+    end
+end
+
 function Wearable.wear(self: WearableType)
     if self.State == "Idle" or self.State == "Unwearing" then
         Item.ChangeState(self, "Wearing")
@@ -151,8 +163,8 @@ function Wearable.wear(self: WearableType)
         wearTrack.Stopped:Wait()
         if self.State == "Wearing" then
             Item.ChangeState(self, "Worn")
+            Wearable.onWorn(self)
             self.tool:SetAttribute("IsWorn", true)
-            self.humanoid:UnequipTools()
         end
     end
 end
@@ -175,7 +187,7 @@ function Wearable.unwear(self: WearableType)
         vmIdleTrack:Stop()
         wearTrack.Stopped:Wait()
         if self.State == "Unwearing" then
-             idleTrack:Play()
+            idleTrack:Play()
             vmIdleTrack:Play()
             Item.ChangeState(self, "Idle")
         end

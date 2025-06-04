@@ -1,0 +1,3 @@
+local UnwearItemStateMachine = {}
+
+return UnwearItemStateMachine

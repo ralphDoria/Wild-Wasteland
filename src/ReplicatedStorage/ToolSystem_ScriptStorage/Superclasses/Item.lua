@@ -11,6 +11,7 @@ local ToolGuiManager = require("../Components/Shared/ToolGuiManager")
 local ActionManager = require("../../ActionManagerSystem/ActionManager")
 local ToolInfo = require("../Data/ToolInfo")
 local CrosshairGuiManager = require("../Components/Shared/CrosshairManager")
+local RunService = game:GetService("RunService")
 -- local Trove = require(ReplicatedStorage.Packages.Trove)
 
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
@@ -84,6 +85,9 @@ end
 
 function Item.initialize(self : ItemType, equipping: () -> ()?, equipped: () -> ()?, unequipping: () -> ()?, unequipped: () -> ()?, onDropping : () -> ()?, onDropped : () -> ()?)
 
+    local equipTrack : AnimationTrack = currentAnimationManager.animationTracks[self.tool.Name].equip
+    Item.TrackAnimTrack(self, equipTrack, "Equip")
+
     self.connections.ToggleEquip = bindables.ToggleEquip.Event:Connect(function(key : Tool, toggle: boolean)
         if key == self.tool then
             if toggle then
@@ -110,6 +114,27 @@ function Item.initialize(self : ItemType, equipping: () -> ()?, equipped: () -> 
     self.connections.bindableDrop = bindables.DropToolBindable.Event:Connect(function(key: Tool) 
         if key == self.tool then
             Item.drop(self)
+        end
+    end)
+end
+
+--[[
+    WARNING: THIS FUNCTION MAY YIELD. 
+    This will create and update custom attributes of the tool called [trackName]Length 
+    and [trackName]TimePosition. 
+]]
+function Item.TrackAnimTrack(self: ItemType, animTrack: AnimationTrack, trackName: string)
+    while animTrack.Length == 0 do
+        task.wait()
+    end
+    self.tool:SetAttribute(trackName .. "Time", animTrack.Length)
+    self.tool:SetAttribute(trackName .. "TimePosition", animTrack.TimePosition)
+
+    self.connections[trackName] = RunService.Heartbeat:Connect(function(a0: number)  
+        if not animTrack.IsPlaying then return end
+
+        if self.State ~= "Unequipped" and self.State ~= "Worn" then
+            self.tool:SetAttribute(trackName .. "TimePosition", animTrack.TimePosition)
         end
     end)
 end

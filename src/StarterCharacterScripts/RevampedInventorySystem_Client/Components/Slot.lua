@@ -9,6 +9,8 @@ local InventoryState = require("./InventoryState")
 local SlotType = require("./SlotType")
 local WearableCategory = require("./WearableCategory")
 local WearableSlotInfo = require("./WearableSlotInfo")
+local WearItemStateMachine = require("./WearItemStateMachine")
+local UnwearItemStateMachine = require("./UnwearItemStateMachine")
 export type SlotType = SlotType.SlotType
 local Hover = require("./Hover")
 local Select = require("./Select")
@@ -19,7 +21,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local bindables = {
     DropToolBindable = ToolSystem_Storage.Shared.Bindables.DropToolBindable,
-    ToggleWear = ToolSystem_Storage.Wearable.Bindables.ToggleWear
 }
 
 local EquipToolStateMachine = require("./EquipToolStateMachine")
@@ -32,9 +33,8 @@ local SlotStateChangedBindable: BindableEvent = Instance.new("BindableEvent")
 Slot.StateChanged = SlotStateChangedBindable.Event
 
 Slot.StateChanged:Connect(function(thisSlot: SlotType)  
-    print("slot state changed")
     if thisSlot.state == "BeingSwapped" then
-        
+        print("BeingSwapped")
     end
 end)
 
@@ -95,8 +95,10 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
     self._isEmpty = false
 
     if not self.WearableCategory then
-        self.connections.EquipFromClick = self.ImageButton.MouseButton1Click:Connect(function(...: any)  
-            EquipToolStateMachine.SetTargetTool(self)
+        self.connections.EquipFromClick = self.ImageButton.MouseButton1Click:Connect(function(...: any) 
+            if InventoryState.GetState() ~= "SwappingSlots" then
+                EquipToolStateMachine.SetTargetTool(self)
+            end
         end)
     end
 
@@ -117,16 +119,19 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
             connection = UserInputService.InputEnded:Connect(function(inputObject: InputObject, a1: boolean)  
                 if inputObject.UserInputType == Enum.UserInputType.MouseButton1 or inputObject.UserInputType == Enum.UserInputType.Touch then
                     connection:Disconnect()
-                    if Hover.currentSlot and Hover.currentSlot ~= self then
-                        Slot.SwapSlots(self, Hover.currentSlot)    
-                    elseif not Hover.IsInInventory and Hover.currentSlot == nil then
+                    -- reason for these cahced variables is because on touch inputs, hover coincides w/ drag via long presss
+                    local cachedHoverCurrentSlot = Hover.currentSlot
+                    local cachedHoverIsInInventory = Hover.IsInInventory
+                    Drag.stop(self)
+                    if cachedHoverCurrentSlot and cachedHoverCurrentSlot ~= self then
+                        Slot.SwapSlots(self, cachedHoverCurrentSlot)    
+                    elseif not cachedHoverIsInInventory and cachedHoverCurrentSlot == nil then
                         if self.state ~= "BeingSwapped" then
                             bindables.DropToolBindable:Fire(self.tool)
                         end
                     else
                         warn("doing nothing with dragged slot")                    
                     end
-                    Drag.stop(self)
                 end
             end)            
         end
@@ -197,6 +202,9 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
             itemSlot = s1
         end
         --logic
+        Slot.ChangeState(wearableSlot, "BeingSwapped")
+        Slot.ChangeState(itemSlot, "BeingSwapped")
+        InventoryState.ChangeState("SwappingSlots")
         if wearableSlot.tool and itemSlot.tool then -- both are filled
             if itemSlot.tool:GetAttribute("WearableCategory") == wearableSlot.WearableCategory then 
                 Slot.ChangeState(wearableSlot, "BeingSwapped")
@@ -215,20 +223,29 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
             -- do fucking nothing
         elseif wearableSlot.tool == nil then -- wearable slot is empty, item slot is filled
             if itemSlot.tool:GetAttribute("WearableCategory") == wearableSlot.WearableCategory then
-                Slot.ChangeState(wearableSlot, "BeingSwapped")
-                Slot.ChangeState(itemSlot, "BeingSwapped")
-                InventoryState.ChangeState("SwappingSlots")
-                EquipToolStateMachine.SetTargetTool(itemSlot)
-                -- actually perform the swap slot
+                local timeUntilWorn = WearItemStateMachine.SetTargetTool(itemSlot)
+                print(timeUntilWorn)
+                while timeUntilWorn > 0 do
+                    timeUntilWorn -= task.wait()
+                end
                 Slot.FillSlot(wearableSlot, itemSlot.tool, "")
                 Slot.EmptySlot(itemSlot)
             else
                 print("This is the not the correct spot")
             end
         else -- itemSlot.tool == nil; wearable slot is filled, item slot is empty
-            Slot.FillSlot(itemSlot, wearableSlot.tool, "")
-            Slot.EmptySlot(wearableSlot)
+            -- UnwearItemStateMachine.SetTargetTool(itemSlot)
+            -- while itemSlot.tool:GetAttribute("State"):: WearItemStateMachine.itemStates ~= "Worn" do
+            --     task.wait()
+            -- end
+            -- Slot.FillSlot(wearableSlot, itemSlot.tool, "")
+            -- Slot.EmptySlot(itemSlot)
         end
+        --make sure the statements above yields until wear/unwear process has been successfully completed, otherwise this'll bug out
+        warn("Finished wearing process")
+        Slot.ChangeState(wearableSlot, "Idle")
+        Slot.ChangeState(itemSlot, "Idle")
+        InventoryState.ChangeState("Idle")
     end
 end
 
