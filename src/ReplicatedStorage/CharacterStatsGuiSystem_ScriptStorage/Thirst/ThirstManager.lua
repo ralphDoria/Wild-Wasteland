@@ -13,7 +13,7 @@ local maxValue = 100
 local currentvalue = maxValue
 
 local Config = {
-    speed = 1/2,
+    speed = 1/3,
     increment = 1,
     damage = 1
 }

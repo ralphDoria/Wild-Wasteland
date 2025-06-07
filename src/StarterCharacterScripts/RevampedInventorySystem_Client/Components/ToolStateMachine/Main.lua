@@ -246,7 +246,7 @@ function ToolStateMachine.SetTargets(target_slot: SlotType.SlotType, target_stat
     if statePathToUnworn then
         estimatedPathsTime += CalculateExpectedPathTime(currentWornTool:: Tool, statePathToUnworn)
         if currentOperation.promise then
-            currentOperation.promise:andThen(function(result)
+            currentOperation.promise = currentOperation.promise:andThen(function(result)
                 print(result)
                 return GetToolToThisState(currentWornTool:: Tool, statePathToUnworn)
             end)
@@ -258,7 +258,7 @@ function ToolStateMachine.SetTargets(target_slot: SlotType.SlotType, target_stat
     if statePathToTarget then
         estimatedPathsTime += CalculateExpectedPathTime(target_tool, statePathToTarget)
         if currentOperation.promise then
-            currentOperation.promise:andThen(function(result)
+            currentOperation.promise = currentOperation.promise:andThen(function(result)
                 print(result)
                 return GetToolToThisState(target_tool:: Tool, statePathToTarget)
             end)

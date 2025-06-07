@@ -106,14 +106,12 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
 
     if not self.WearableCategory then
         self.connections.EquipFromClick = self.ImageButton.MouseButton1Click:Connect(function(...: any) 
-            if InventoryState.GetState() ~= "SwappingSlots" then
-                assert(self.tool ~= nil)
-                local state = self.tool:GetAttribute("State")
-                if state == "Unequipping" or state == "Unequipped" then
-                    ToolStateMachine.SetTargets(self, "Idle")
-                elseif state == "Equipping" or state == "Idle" then
-                    ToolStateMachine.SetTargets(self, "Unequipped")
-                end
+            assert(self.tool ~= nil)
+            local state = self.tool:GetAttribute("State")
+            if state == "Unequipping" or state == "Unequipped" then
+                ToolStateMachine.SetTargets(self, "Idle")
+            elseif state == "Equipping" or state == "Idle" then
+                ToolStateMachine.SetTargets(self, "Unequipped")
             end
         end)
     end
@@ -269,7 +267,7 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
         elseif wearableSlot.tool == nil and itemSlot.tool == nil then -- both are empty
             -- do fucking nothing
         elseif wearableSlot.tool == nil then -- wearable slot is empty, item slot is filled
-            if itemSlot.tool:GetAttribute("WearableCategory") == nil then return end
+            if itemSlot.tool:GetAttribute("WearableCategory") ~= wearableSlot.WearableCategory then return end
             
 
             local tweens: {Tween} = {}
@@ -309,7 +307,7 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
 
         else -- itemSlot.tool == nil; wearable slot is filled, item slot is empty
             local tweens: {Tween} = {}
-            ToolStateMachine.SetTargets(wearableSlot, "Idle", 
+            ToolStateMachine.SetTargets(wearableSlot, "Unequipped", 
                 function(timeUntilComplete: number)
                     table.insert(tweens, Slot.load(wearableSlot, timeUntilComplete))
                     table.insert(tweens, Slot.load(itemSlot, timeUntilComplete))

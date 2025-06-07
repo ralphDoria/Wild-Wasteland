@@ -38,7 +38,7 @@ RunService.RenderStepped:Connect(function(a0: number)
     else
         Hover.InDropArea = false
     end
-    print(Hover.InDropArea, filteredGuis)
+    -- print(Hover.InDropArea, filteredGuis)
 end)
 
 local itemInfoDisplays: {[SlotType.SlotType]: Frame} = {}
