@@ -127,7 +127,7 @@ function Item.TrackAnimTrack(self: ItemType, animTrack: AnimationTrack, trackNam
     while animTrack.Length == 0 do
         task.wait()
     end
-    self.tool:SetAttribute(trackName .. "Time", animTrack.Length)
+    self.tool:SetAttribute(trackName .. "Length", animTrack.Length)
     self.tool:SetAttribute(trackName .. "TimePosition", animTrack.TimePosition)
 
     self.connections[trackName] = RunService.Heartbeat:Connect(function(a0: number)  

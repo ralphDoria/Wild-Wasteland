@@ -14,7 +14,7 @@ return function()
         if not instance:IsA("Tool") then
             warn("tagged instance is not a tool")
         end
-        warn("creating new Instance of", instance.Name, "in", instance.Parent)
+        -- warn("creating new Instance of", instance.Name, "in", instance.Parent)
         task.spawn(function()
             class.new(instance, humanoid)
         end)

@@ -4,7 +4,8 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 ----
-local Slot = require("./Components/Slot")
+local Slot = require("./Components/Slot/Slot")
+local FilledSlotTracker = require("./Components/Slot/FilledSlotsTracker")
 local HotbarManager = require("./Components/Hotbar")
 local WearableInterface = require("./Components/WearableInterface")
 local RobloxStateMachine = require("../../../../ReplicatedStorage/Packages/RobloxStateMachine") :: any
@@ -65,7 +66,7 @@ function InventorySystem.init()
 		end,
 		function(tool) --onDropped
 			--empty slot
-			Slot.EmptySlot(Slot.GetSlotFromTool(tool) ::  Slot.SlotType)
+			Slot.EmptySlot(FilledSlotTracker.GetSlotFromTool(tool) ::  Slot.SlotType)
 		end
 	)
 

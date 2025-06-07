@@ -1,3 +1,0 @@
-local UnwearItemStateMachine = {}
-
-return UnwearItemStateMachine

@@ -2,6 +2,9 @@ local SlotType = require("./SlotType")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 Hover = require("./Hover")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local dropAreaIndicatorSound: Sound = ReplicatedStorage.InventorySystem_Storage.SFX.dropAreaIndicator
+local PlaySound = require(ReplicatedStorage.RojoManaged_RS.Utility.PlaySoundUtil)
 
 local Drag = {}
 
@@ -36,9 +39,12 @@ function Drag.start(slot: SlotType.SlotType)
         if Hover.currentSlot and Hover.currentSlot ~= slot then
             ghostSlot.ActionIndicator.Image = slot.ActionIndicator:GetAttribute("swapImage") :: string
             ghostSlot.ActionIndicator.Visible = true
-        elseif not Hover.IsInInventory and Hover.currentSlot == nil then
+        elseif Hover.InDropArea and Hover.currentSlot == nil then
             ghostSlot.ActionIndicator.Image = slot.ActionIndicator:GetAttribute("dropImage") :: string
-            ghostSlot.ActionIndicator.Visible = true
+            if ghostSlot.ActionIndicator.Visible == false then
+                ghostSlot.ActionIndicator.Visible = true
+                PlaySound(dropAreaIndicatorSound)
+            end
         else
             ghostSlot.ActionIndicator.Visible = false                 
         end

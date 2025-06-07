@@ -7,6 +7,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local remotes: {[string] : RemoteEvent} = {
     ToggleWear = ToolSystem_Storage.Wearable.Remotes.ToggleWear,
+    OnWorn = ToolSystem_Storage.Wearable.Remotes.OnWorn,
+    CreateWornItemStorage = ToolSystem_Storage.Wearable.Remotes.CreateWornItemStorage
 }
 local bindables: {[string] : BindableEvent} = {
     ToggleWear = ToolSystem_Storage.Wearable.Bindables.ToggleWear
@@ -23,6 +25,8 @@ export type WearableType = Item.ItemType & {
 }
 
 local Wearable = {}
+
+remotes.CreateWornItemStorage:FireServer(WearableCategory.ValidWearableCategories)
 
 function Wearable.new(tool: Tool, humanoid: Humanoid)
     local self = Item.new(tool, humanoid):: WearableType
@@ -104,21 +108,18 @@ function Wearable.initialize(self: WearableType, appyWornEffects: () -> (), remo
         function() --onDropped()
         end
     )
-    local wearTrack = self.animManager.animationTracks[self.tool.Name].wear
     self.connections.wearTrackOverlapped = wearTrack:GetMarkerReachedSignal("overlapped"):Connect(function(...: any)  
         if self.State == "Wearing" then
-            print("set tool accessory transparency to 1")
             for _, v in self.thisAccessory:GetDescendants() do
                 if v:IsA("BasePart") then
-                    remotes.ToggleWear:FireServer(true, self.humanoid.Parent, self.originalAccessory, self.thisAccessory)
+                    remotes.ToggleWear:FireServer(true, self.humanoid.Parent, self.originalAccessory, self.thisAccessory, self.tool, self.WearableCategory)
                     self.applyWornEffects()
                 end
             end
         elseif self.State == "Unwearing" then
-            print("set tool accessory transparency to 0")
             for _, v in self.thisAccessory:GetDescendants() do
                 if v:IsA("BasePart") then
-                    remotes.ToggleWear:FireServer(false, self.humanoid.Parent, self.originalAccessory, self.thisAccessory)
+                    remotes.ToggleWear:FireServer(false, self.humanoid.Parent, self.originalAccessory, self.thisAccessory, self.tool, self.WearableCategory)
                     self.removeWornEffects()
                 end
             end
@@ -137,10 +138,13 @@ end
 
 function Wearable.onWorn(self: WearableType)
     if self.State == "Worn" then
-        Item.toggleDropBind(self, false)
         self.ToolGuiManager.hide()
-        self.humanoid:UnequipTools()
-        Item.toggleDropBind(self, false)
+        -- remotes.OnWorn:FireServer(self.tool, self.WearableCategory)
+        for _, v in self.actionNames do
+            if ActionManager.isBinded(v) then
+                ActionManager.unbindAction(v)
+            end
+        end
     end
 end
 
@@ -162,6 +166,7 @@ function Wearable.wear(self: WearableType)
         vmIdleTrack:Stop()
         wearTrack.Stopped:Wait()
         if self.State == "Wearing" then
+            -- warn("running onWorn")
             Item.ChangeState(self, "Worn")
             Wearable.onWorn(self)
             self.tool:SetAttribute("IsWorn", true)

@@ -33,8 +33,32 @@ local function WhenToolEntersThisStateDo(tool: Tool, thisState: itemStates, doFu
     end)
 end
 
+local function getToolToThisState(tool: Tool, targetState: itemStates): number
+
+    local state: itemStates = tool:GetAttribute("State")::itemStates
+
+    if state == targetState then
+
+        return 0
+
+    else
+
+        --Before proceeding, if there is a tool other than the target tool being handled, then we need to get that tool unequipped
+        local currentlyHandledTool: Tool? = character:FindFirstChildOfClass("Tool")
+        if currentlyHandledTool and currentlyHandledTool ~= tool then
+            getToolToThisState(currentlyHandledTool, "Unequipped")
+        end
+
+        if state == "Unequipping" or state == "Unequipped" then
+            
+        elseif state == "Equipping" then
+        
+        end
+    end
+end
+
 --[[
-    THIS FUNCTION YIELDS
+    RECURSIVE
 ]]
 function WearItemStateMachine.SetTargetTool(targetSlot: SlotType.SlotType): number
     assert(targetSlot._isEmpty == false, "Target slot is empty")
@@ -72,6 +96,8 @@ function WearItemStateMachine.SetTargetTool(targetSlot: SlotType.SlotType): numb
             WhenToolEntersThisStateDo(thisTargetTool, "Worn", function()  
                 print("Worn")
             end)
+        elseif then
+        
         end
 
         local timeUntilEquip = 

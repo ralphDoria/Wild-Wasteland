@@ -159,6 +159,7 @@ end
     This function toggles the visibility of the viewmodel tool and does the opposite for the visibility of the actual tool.
 ]]
 function ViewmodelManager.toggleViewmodelToolVisibility(self : ViewmodelManager, tool: Tool, toggle: boolean?)
+    -- warn(`Getting ToolModel of {tool}`)
     local toolModel = tool:FindFirstChild("ToolModel") :: Model | MeshPart
     local vmToolModel = self.ToolToVMToolMapping[tool]:FindFirstChild("ToolModel") :: Model | MeshPart
     local vmToolTransparency

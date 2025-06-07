@@ -18,7 +18,7 @@ local function foo(self : ViewmodelManager.ViewmodelManager, tool : Tool)
         trail.Transparency = NumberSequence.new(1)
     else
         vmTrail.Transparency = NumberSequence.new(1)
-        trail.Transparency = NumberSequence.new(0.5)
+            trail.Transparency = NumberSequence.new(0.5)
     end
 end
 

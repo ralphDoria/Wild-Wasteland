@@ -9,7 +9,7 @@ local WearableSlotsContainer: Frame = WearableSection:FindFirstChild("WearableSl
 local Templates = WearableSection:FindFirstChild("Templates") :: Folder
 local circle = Templates:FindFirstChild("Circle"):: ImageLabel
 local line = Templates:FindFirstChild("Line"):: ImageLabel
-local Slot = require("./Slot")
+local Slot = require("./Slot/Slot")
 local ViewportCharacter = require("./ViewportCharacter")
 local ViewportFrame = WearableSection:FindFirstChildWhichIsA("ViewportFrame", true) :: ViewportFrame
 local RunService = game:GetService("RunService")
@@ -40,6 +40,7 @@ function WearableInterface.initialize(character: Model)
         v.slot.ImageButton.Image = v.image
         v.slot.ImageButton.Rotation = 0
         v.slot.ImageButton.Visible = true
+        v.slot._itself.Name = key
         v.slot._itself.Parent = WearableSlotsContainer
         v.circle = circle:Clone()
         v.circle.Visible = true

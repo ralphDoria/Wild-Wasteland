@@ -1,7 +1,7 @@
 --!strict
-local EquipToolStateMachine = require("./EquipToolStateMachine")
+local ToolStateMachine = require("./ToolStateMachine/Main")
 
-local Slot = require("./Slot")
+local Slot = require("./Slot/Slot")
 local UserInputService = game:GetService("UserInputService")
 local InventoryState = require("./InventoryState")
 
@@ -58,7 +58,13 @@ function HotbarManager.toggleKeybindToHotbarSlot(toggle : boolean)
                         if v.LayoutOrder == table.find(hotbarNumberToKeybind, input.KeyCode) then
                             local correspondingHotbarSlot = hotbarSlotToSlotData[v]
                             if correspondingHotbarSlot._isEmpty == false then
-                                EquipToolStateMachine.SetTargetTool(correspondingHotbarSlot)
+                                assert(correspondingHotbarSlot.tool ~= nil)
+                                local state = correspondingHotbarSlot.tool:GetAttribute("State")
+                                if state == "Unequipping" or state == "Unequipped" then
+                                    ToolStateMachine.SetTargets(correspondingHotbarSlot, "Idle")
+                                elseif state == "Equipping" or state == "Idle" then
+                                    ToolStateMachine.SetTargets(correspondingHotbarSlot, "Unequipped")
+                                end
                             end
                         end
                     end
@@ -82,8 +88,8 @@ function HotbarManager.toggleKeybindToHotbarSlot(toggle : boolean)
     end
 end
 
-InventoryState.Changed:Connect(function(state: InventoryState.InventoryState)  
-    HotbarManager.toggleKeybindToHotbarSlot(state == "Idle")
-end)
+-- InventoryState.Changed:Connect(function(state: InventoryState.InventoryState)  
+--     HotbarManager.toggleKeybindToHotbarSlot(state == "Idle")
+-- end)
 
 return HotbarManager

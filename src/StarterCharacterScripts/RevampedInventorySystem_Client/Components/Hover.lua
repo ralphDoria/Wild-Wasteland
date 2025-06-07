@@ -9,6 +9,10 @@ local ItemInfoDisplayTempalte = Templates:FindFirstChild("ItemInfoDisplayTemplat
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
 local MainInventory : Frame = gui:FindFirstChild("MainInventory") :: Frame
+local DropArea: Frame = gui:FindFirstChild("DropArea", true):: Frame
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
 
 local Hover = {}
 
@@ -16,14 +20,25 @@ Hover.currentSlot = nil
 SlotHoveredChangedBindable = Instance.new("BindableEvent")
 SlotHoveredChanged = SlotHoveredChangedBindable.Event
 
-Hover.IsInInventory = false
+Hover.InDropArea = false
 
-MainInventory.MouseEnter:Connect(function(a0: number, a1: number)  
-    Hover.IsInInventory = true
-end)
+RunService.RenderStepped:Connect(function(a0: number)  
+    local mousePos = UserInputService:GetMouseLocation()
+    local guis = playerGui:GetGuiObjectsAtPosition(mousePos.X, mousePos.Y - GuiService:GetGuiInset().Y)
+    local filteredGuis = {}
 
-MainInventory.MouseLeave:Connect(function(a0: number, a1: number)  
-    Hover.IsInInventory = false
+    for _, v in guis do 
+        if v.Parent == gui and v.Name ~= "innerFrame" then
+            table.insert(filteredGuis, v)
+        end
+    end
+
+    if filteredGuis[1] == DropArea then 
+        Hover.InDropArea = true 
+    else
+        Hover.InDropArea = false
+    end
+    print(Hover.InDropArea, filteredGuis)
 end)
 
 local itemInfoDisplays: {[SlotType.SlotType]: Frame} = {}
