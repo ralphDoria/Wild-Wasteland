@@ -127,7 +127,6 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
                 if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
                     print("dragging")
                     Drag.start(self, function()
-                        warn("From while loop:", Hover.currentSlot)
                         cachedHoverSlot = Hover.currentSlot
                     end)
                     PlaySound(SFX.pickUp)
@@ -138,8 +137,17 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
 
         local endDrag
         endDrag = UserInputService.InputEnded:Connect(function(inputObject: InputObject, a1: boolean)  
-            if not isDragging then return end
+
+
             if inputObject.UserInputType == Enum.UserInputType.MouseButton1 or inputObject.UserInputType == Enum.UserInputType.Touch then
+
+                if not isDragging then
+                    endDrag:Disconnect()
+                    startDrag:Disconnect()
+                    print("Cancelling drag functionality")
+                    return
+                end
+
                 endDrag:Disconnect()
                 isDragging = false
                 -- reason for these cahced variables is because on touch inputs, hover coincides w/ drag via long presss

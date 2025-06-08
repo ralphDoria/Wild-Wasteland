@@ -259,7 +259,7 @@ function ToolStateMachine.SetTargets(target_slot: SlotType.SlotType, target_stat
         estimatedPathsTime += CalculateExpectedPathTime(target_tool, statePathToTarget)
         if currentOperation.promise then
             currentOperation.promise = currentOperation.promise:andThen(function(result)
-                print(result)
+                -- print(result)
                 return GetToolToThisState(target_tool:: Tool, statePathToTarget)
             end)
         else
@@ -269,7 +269,7 @@ function ToolStateMachine.SetTargets(target_slot: SlotType.SlotType, target_stat
         currentOperation.promise:catch(function(error)
             warn("Error", tostring(error))
         end):finally(function(status)
-            warn("currentOperation finished, Status: ", status)
+            -- warn("currentOperation finished, Status: ", status)
             if onFinished then
                 onFinished(status)
             end
