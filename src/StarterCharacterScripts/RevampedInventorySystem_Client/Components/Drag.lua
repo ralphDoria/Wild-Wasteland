@@ -19,11 +19,12 @@ local function createGhostSlot(slot: SlotType.SlotType)
     local mousePosInVector2 : Vector2 = UserInputService:GetMouseLocation()
     ghostSlot.Position = UDim2.fromOffset(mousePosInVector2.X, mousePosInVector2.Y)
     ghostSlot.AnchorPoint = Vector2.new(0.5, 0.5)
+    ghostSlot.Interactable = false
     ghostSlot.Parent = slot._itself:FindFirstAncestorWhichIsA("ScreenGui")
     return ghostSlot
 end
 
-function Drag.start(slot: SlotType.SlotType)
+function Drag.start(slot: SlotType.SlotType, whileDragging: () -> ())
     -- slot._itself.Interactable = false
     slot.ImageButton.ImageTransparency = 1
     local ghostSlot = createGhostSlot(slot)
@@ -48,6 +49,7 @@ function Drag.start(slot: SlotType.SlotType)
         else
             ghostSlot.ActionIndicator.Visible = false                 
         end
+        whileDragging()
     end)
 end
 

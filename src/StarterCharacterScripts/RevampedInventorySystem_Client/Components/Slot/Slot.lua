@@ -117,42 +117,45 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
     end
 
     self.connections.DragFunctionality = self.ImageButton.MouseButton1Down:Connect(function()
-        local startDrag: RBXScriptConnection?
-    
+        local startDrag: RBXScriptConnection
+        print("mouse button 1 down registered")
+        local cachedHoverSlot
         startDrag = UserInputService.InputChanged:Connect(function(inputObject: InputObject, a1: boolean)  
-            if inputObject.UserInputType == Enum.UserInputType.MouseMovement then
-                if startDrag then
-                    startDrag:Disconnect()
+            if inputObject.UserInputType == Enum.UserInputType.MouseMovement
+                or inputObject.UserInputType == Enum.UserInputType.Touch then
+                startDrag:Disconnect()
+                if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                    print("dragging")
+                    Drag.start(self, function()
+                        warn("From while loop:", Hover.currentSlot)
+                        cachedHoverSlot = Hover.currentSlot
+                    end)
+                    PlaySound(SFX.pickUp)
+                    isDragging = true
                 end
             end
+        end)
 
-            if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-            -- print("dragging")
-            Drag.start(self)
-            PlaySound(SFX.pickUp)
-            isDragging = true
-            local connection
-            connection = UserInputService.InputEnded:Connect(function(inputObject: InputObject, a1: boolean)  
-                if inputObject.UserInputType == Enum.UserInputType.MouseButton1 or inputObject.UserInputType == Enum.UserInputType.Touch then
-                    connection:Disconnect()
-                    -- reason for these cahced variables is because on touch inputs, hover coincides w/ drag via long presss
-                    local cachedHoverCurrentSlot = Hover.currentSlot
-                    local cachedInDropArea = Hover.InDropArea
-                    Drag.stop(self)
-                    PlaySound(SFX.setDown)
-                    isDragging = false
-                    if cachedHoverCurrentSlot and cachedHoverCurrentSlot ~= self then
-                        Slot.SwapSlots(self, cachedHoverCurrentSlot)    
-                    elseif cachedInDropArea and cachedHoverCurrentSlot == nil then
-                        if self.state ~= "BeingSwapped" then
-                            bindables.DropToolBindable:Fire(self.tool)
-                        end
-                    else
-                        warn("doing nothing with dragged slot")                    
+        local endDrag
+        endDrag = UserInputService.InputEnded:Connect(function(inputObject: InputObject, a1: boolean)  
+            if not isDragging then return end
+            if inputObject.UserInputType == Enum.UserInputType.MouseButton1 or inputObject.UserInputType == Enum.UserInputType.Touch then
+                endDrag:Disconnect()
+                isDragging = false
+                -- reason for these cahced variables is because on touch inputs, hover coincides w/ drag via long presss
+                Drag.stop(self)
+                PlaySound(SFX.setDown)
+                isDragging = false
+                if cachedHoverSlot and cachedHoverSlot ~= self then
+                    Slot.SwapSlots(self, cachedHoverSlot)
+                elseif Hover.InDropArea and cachedHoverSlot == nil then
+                    if self.state ~= "BeingSwapped" then
+                        bindables.DropToolBindable:Fire(self.tool)
                     end
+                else
+                    warn("doing nothing with dragged slot")                    
                 end
-            end)            
-        end
+            end
         end)
     end)
     table.insert(FilledSlotsTracker.FilledSlots, self)
