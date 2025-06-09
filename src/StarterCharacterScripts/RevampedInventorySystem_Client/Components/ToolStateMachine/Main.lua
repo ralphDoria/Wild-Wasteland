@@ -200,7 +200,13 @@ function ToolStateMachine.SetTargets(target_slot: SlotType.SlotType, target_stat
     local currentTool: Tool?, currentState: ItemState.ItemState? = GetCurrentNonUnequippedToolAndItsState()
     local statePathToUnequipped
     if currentTool and currentTool ~= target_tool then
-        statePathToUnequipped = GetStatePath(currentState:: ItemState.ItemState, "Unequipped")
+        local transitioningFrom: ItemState.ItemState? = currentTool:GetAttribute("TransitioningFrom"):: ItemState.ItemState?
+        print(`currentState: {currentState} | transitioningFrom: {transitioningFrom}`)
+        if (currentState == "Unwearing" or currentState == "Unequipping") and transitioningFrom == "Worn" and target_state ~= "Worn" then
+            statePathToUnequipped = GetStatePath(currentState:: ItemState.ItemState, "Worn")
+        else
+            statePathToUnequipped = GetStatePath(currentState:: ItemState.ItemState, "Unequipped")
+        end
     end
 
     local currentWornTool: Tool?
@@ -208,7 +214,7 @@ function ToolStateMachine.SetTargets(target_slot: SlotType.SlotType, target_stat
     if target_state == "Worn" then
         currentWornTool = GetCurrentWornItemOfCategory(target_tool:GetAttribute("WearableCategory"):: WearableCategory.WearableCategoryType)
         if currentWornTool and currentWornTool ~= target_tool then
-            statePathToUnworn = GetStatePath("Worn", "Unequipped") 
+            statePathToUnworn = GetStatePath("Worn", "Unequipped")
         end
     end
 
@@ -232,6 +238,7 @@ function ToolStateMachine.SetTargets(target_slot: SlotType.SlotType, target_stat
     else
         -- warn("Proceeding and setting target slot")
         CancelCurrentOperation()
+        target_tool:SetAttribute("TransitioningFrom", target_tool:GetAttribute("State"))
         SetCurrentOperation(target_slot, target_state)
     end
 
@@ -242,8 +249,8 @@ function ToolStateMachine.SetTargets(target_slot: SlotType.SlotType, target_stat
         currentOperation.promise = GetToolToThisState(currentTool:: Tool, statePathToUnequipped)
     end
 
-
     if statePathToUnworn then
+        assert(currentWornTool ~= nil, "currentWornTool should not be nil if statePathToUnworn is not nil.")
         estimatedPathsTime += CalculateExpectedPathTime(currentWornTool:: Tool, statePathToUnworn)
         if currentOperation.promise then
             currentOperation.promise = currentOperation.promise:andThen(function(result)
