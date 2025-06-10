@@ -20,6 +20,7 @@ local GuiService = game:GetService("GuiService")
 local UserInputService = game:GetService("UserInputService")
 local WearableSlotInfo = require("./WearableSlotInfo")
 local WearableCategory = require("./WearableCategory")
+local FilledSlotsTracker = require("./Slot/FilledSlotsTracker")
 
 local WearableInterface = {}
 
@@ -34,6 +35,7 @@ function WearableInterface.initialize(character: Model)
     for key, v in WearableSlotInfo do
         WearableCategory.typeCheck(key)
         v.slot = Slot.new("Wearable", key:: WearableCategory.WearableCategoryType)
+        FilledSlotsTracker.WearableSlots[key] = v.slot
         v.slot._itself.AnchorPoint = Vector2.new(0.5, 0.5)
         v.slot._itself.ZIndex = 2
         v.slot._itself.LayoutOrder = v.LayoutOrder

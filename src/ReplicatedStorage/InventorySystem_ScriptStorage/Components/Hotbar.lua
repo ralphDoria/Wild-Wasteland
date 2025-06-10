@@ -33,7 +33,7 @@ end
 function HotbarManager.findMinimumEmptyHotbarSlot() : Slot.SlotType?
     local lowest: Slot.SlotType? = nil
     for _, v in hotbarSlotToSlotData do
-        if v._isEmpty == true then
+        if v._isEmpty == true and v.State ~= "BeingSwapped" then
             if lowest == nil then
                 lowest = v
             else

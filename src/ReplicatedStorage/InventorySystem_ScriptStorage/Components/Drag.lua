@@ -26,7 +26,6 @@ end
 
 function Drag.start(slot: SlotType.SlotType, whileDragging: () -> ())
     -- slot._itself.Interactable = false
-    print("Drag Start")
     slot.ImageButton.ImageTransparency = 1
     local ghostSlot = createGhostSlot(slot)
     table.insert(currentGhostSlots, ghostSlot)
@@ -56,7 +55,6 @@ end
 
 function Drag.stop(slot: SlotType.SlotType)
     -- slot._itself.Interactable = true
-    print("Drag Stop")
     slot.ImageButton.ImageTransparency = 0
     RunService:UnbindFromRenderStep("Drag")
     for _, v in currentGhostSlots do

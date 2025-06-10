@@ -61,7 +61,7 @@ local catalog : {[string] : ToolInfo} = {
             wear = nvGoggles.Anims.wear
         },
         soundObjects = {
-            activate = nvGoggles.Sounds.activate,
+            nightVision = nvGoggles.Sounds.activate,
             offSwitch = nvGoggles.Sounds.offSwitch,
             onSwitch = nvGoggles.Sounds.onSwitch,
             equip = nvGoggles.Sounds.equip,

@@ -8,7 +8,6 @@ local Slot = require("./Components/Slot/Slot")
 local FilledSlotTracker = require("./Components/Slot/FilledSlotsTracker")
 local HotbarManager = require("./Components/Hotbar")
 local WearableInterface = require("./Components/WearableInterface")
-local RobloxStateMachine = require("../../../../ReplicatedStorage/Packages/RobloxStateMachine") :: any
 local ItemGroup = require("./Components/ItemGroup")
 local Config = require("./Config")
 local ItemMovementTracker = require("./Components/ItemMovementTracker")
@@ -36,7 +35,7 @@ local InventoryState = require("./Components/InventoryState")
 local InventorySystem = {}
 
 function InventorySystem.init()
-	-- warn("initializing revamped inventory")
+	warn("initializing revamped inventory")
 	gui.Enabled = true
 	Hotbar.Visible = true
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) --disables Roblox's default backpack

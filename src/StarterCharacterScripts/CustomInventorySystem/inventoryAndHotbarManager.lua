@@ -628,7 +628,7 @@ local function getEmptyHotbarSlots()
     for _, v in ipairs(hotbar:GetChildren()) do
         if v:IsA(slotTemplate.ClassName) and v ~= slotTemplate then
             local hotbarSlot = v -- for readability
-            if hotbarSlot:FindFirstChildOfClass("ObjectValue").Value == nil then
+            if hotbarSlot:FindFirstChildOfClass("ObjectValue").Value == nil and hotbar:GetAttribute("State") == nil then
                 table.insert(emptySlots, hotbarSlot)
             end
         end

@@ -7,7 +7,7 @@ local WearableCategory = require("./WearableCategory")
 export type SlotState = "Idle" | "BeingSwapped" | "Dragging" | "Emptying" | "Filling" | "Destroying"
 
 export type SlotType = {
-    state: SlotState,
+    State: SlotState,
     _itself : Frame,
     _isEmpty : boolean,
     WearableCategory: WearableCategory.WearableCategoryType?, 

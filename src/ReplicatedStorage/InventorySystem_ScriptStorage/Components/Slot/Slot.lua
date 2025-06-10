@@ -40,7 +40,7 @@ local SlotStateChangedBindable: BindableEvent = Instance.new("BindableEvent")
 Slot.StateChanged = SlotStateChangedBindable.Event
 
 -- Slot.StateChanged:Connect(function(thisSlot: SlotType)  
---     if thisSlot.state == "BeingSwapped" then
+--     if thisSlot.State == "BeingSwapped" then
 --         print("BeingSwapped")
 --     end
 -- end)
@@ -53,7 +53,7 @@ function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCatego
     local slot = SlotTemplate:Clone()
 
     local self : SlotType.SlotType = {
-        state = "Idle",
+        State = "Idle",
         _itself = slot :: Frame,
         _isEmpty = true :: boolean,
         InnerFrame = slot:FindFirstChild("innerFrame", true) :: Frame,
@@ -89,8 +89,8 @@ end
 ]]
 function Slot.ChangeState(self: SlotType.SlotType, state: SlotType.SlotState)
     --fire bindable event when state changes
-    if self.state ~= state then
-        self.state = state
+    if self.State ~= state then
+        self.State = state
         SlotStateChangedBindable:Fire(self)
     end
 end
@@ -108,9 +108,12 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
         self.connections.EquipFromClick = self.ImageButton.MouseButton1Click:Connect(function(...: any) 
             assert(self.tool ~= nil)
             local state = self.tool:GetAttribute("State")
+            warn("Checkpoint 1", state)
             if state == "Unequipping" or state == "Unequipped" then
+                warn("Checkpoint 2a")
                 ToolStateMachine.SetTargets(self, "Idle")
             elseif state == "Equipping" or state == "Idle" then
+                warn("Checkpoint 2b")
                 ToolStateMachine.SetTargets(self, "Unequipped")
             end
         end)
@@ -118,14 +121,12 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
 
     self.connections.DragFunctionality = self.ImageButton.MouseButton1Down:Connect(function()
         local startDrag: RBXScriptConnection
-        print("mouse button 1 down registered")
         local cachedHoverSlot
         startDrag = UserInputService.InputChanged:Connect(function(inputObject: InputObject, a1: boolean)  
             if inputObject.UserInputType == Enum.UserInputType.MouseMovement
                 or inputObject.UserInputType == Enum.UserInputType.Touch then
                 startDrag:Disconnect()
                 if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-                    print("dragging")
                     Drag.start(self, function()
                         cachedHoverSlot = Hover.currentSlot
                     end)
@@ -157,7 +158,7 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
                 if cachedHoverSlot and cachedHoverSlot ~= self then
                     Slot.SwapSlots(self, cachedHoverSlot)
                 elseif Hover.InDropArea and cachedHoverSlot == nil then
-                    if self.state ~= "BeingSwapped" then
+                    if self.State ~= "BeingSwapped" then
                         bindables.DropToolBindable:Fire(self.tool)
                     end
                 else
