@@ -11,6 +11,9 @@ local ToolCatalog = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
 local barbedBat = ToolCatalog["Barbed Bat"]
 local healingInjection = ToolCatalog["Healing Injection"]
 local nvGoggles = ToolCatalog["NV Goggles"]
+local raiderAxe = ToolCatalog["Raider Axe"]
+local capStash = ToolCatalog["Cap Stash"]
+local backpack = ToolCatalog["Backpack"]
 
 local ToolInfo = {}
 
@@ -70,8 +73,57 @@ local catalog : {[string] : ToolInfo} = {
                 soft = healingInjection.Sounds.drop.soft
             }
         }
-    }
+    },
+    [raiderAxe.Name] = {
+        animObjects = {
+            equip = raiderAxe.Anims.equip,
+            idle = raiderAxe.Anims.idle,
+            swing = raiderAxe.Anims.swing
+        },
+        soundObjects = {
+            swing = raiderAxe.Sounds.swing,
+            equip = raiderAxe.Sounds.equip,
+            drop = {
+                hard = raiderAxe.Sounds.drop.hard,
+                soft = raiderAxe.Sounds.drop.soft
+            },
+            impact = {
+                flesh = raiderAxe.Sounds.impact.flesh,
+                metal = raiderAxe.Sounds.impact.metal,
+                dirt = raiderAxe.Sounds.impact.dirt
+            }
+        }
+    },
+    [capStash.Name] = {
+        animObjects = {
+            equip = capStash.Anims.equip,
+            idle = capStash.Anims.idle,
+        },
+        soundObjects = {
+            equip = capStash.Sounds.equip,
+            unequip = capStash.Sounds.unequip,
+            move = {
+                ["1"] = capStash.Sounds.move.move1,
+                ["2"] = capStash.Sounds.move.move2,
+                ["3"] = capStash.Sounds.move.move3,
+                ["4"] = capStash.Sounds.move.move4
 
+            },
+        }
+    },
+    [backpack.Name] = {
+        animObjects = {
+            equip = backpack.Anims.equip,
+            idle = backpack.Anims.idle,
+            wear = backpack.Anims.wear
+        },
+        soundObjects = {
+            equip = backpack.Sounds.equip,
+            unequip = backpack.Sounds.unequip,
+            wear = backpack.Sounds.wear,
+            unwear = backpack.Sounds.unwear,
+        }
+    },
 }
 
 function ToolInfo.get(toolName : string) : ToolInfo

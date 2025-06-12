@@ -172,7 +172,8 @@ function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> 
     ToolGuiManager.hide()
     currentAnimationManager.animationTracks[self.tool.Name].idle:Stop()
     currentViewmodelManager.animManager.animationTracks[self.tool.Name].idle:Stop()
-    SoundManager.playSound("Server", SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach", true), 0)
+    local unequipSFX: Sound? = SoundManager.Sounds[self.tool.Name].unequip
+    SoundManager.playSound("Server", if unequipSFX then unequipSFX else SoundManager.Sounds[self.tool.Name].equip :: Sound, self.tool:FindFirstChild("BodyAttach", true), 0)
     local equipTrack : AnimationTrack = currentAnimationManager.animationTracks[self.tool.Name].equip
     equipTrack.Priority = Enum.AnimationPriority.Action
     local vmEquipTrack : AnimationTrack = currentViewmodelManager.animManager.animationTracks[self.tool.Name].equip

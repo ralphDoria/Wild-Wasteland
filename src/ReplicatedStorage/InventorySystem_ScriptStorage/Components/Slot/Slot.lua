@@ -2,6 +2,7 @@
 
 local playerGui : PlayerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui") :: PlayerGui
 local gui : ScreenGui = playerGui:WaitForChild("RevampingInventory") :: ScreenGui
+local Hotbar : CanvasGroup = gui:FindFirstChild("Hotbar") :: CanvasGroup
 local Templates : Folder = gui:FindFirstChild("Templates") :: Folder
 local SlotTemplate : Frame = Templates:FindFirstChild("SlotTemplate") :: Frame
 local InventoryState = require("./../InventoryState")
@@ -81,6 +82,8 @@ function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCatego
         Hover.removeEffect(self)
     end)
 
+    table.insert(FilledSlotsTracker.InitializedSlots, self)
+
     return self
 end
 
@@ -121,7 +124,7 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
 
     self.connections.DragFunctionality = self.ImageButton.MouseButton1Down:Connect(function()
         local startDrag: RBXScriptConnection
-        local cachedHoverSlot
+        local cachedHoverSlot: SlotType
         startDrag = UserInputService.InputChanged:Connect(function(inputObject: InputObject, a1: boolean)  
             if inputObject.UserInputType == Enum.UserInputType.MouseMovement
                 or inputObject.UserInputType == Enum.UserInputType.Touch then
@@ -156,6 +159,35 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
                 PlaySound(SFX.setDown)
                 isDragging = false
                 if cachedHoverSlot and cachedHoverSlot ~= self then
+
+                    local tool1: Tool? = self.tool
+                    local tool2: Tool? = cachedHoverSlot.tool
+                    local itemGroup1: Frame?
+                    local itemGroup2: Frame?
+                    if tool1 then
+                        local objValue = tool1:FindFirstChildOfClass("ObjectValue")
+                        if objValue then
+                            itemGroup1 = objValue.Value:: Frame?
+                        end
+                    end
+                    if tool2 then
+                        local objValue = tool2:FindFirstChildOfClass("ObjectValue")
+                        if objValue then
+                            itemGroup2 = objValue.Value:: Frame?
+                        end
+                    end
+
+                    if cachedHoverSlot._itself.Parent then
+                        if itemGroup1 == cachedHoverSlot._itself.Parent.Parent then
+                            return
+                        end
+                    end
+                    if self._itself.Parent then
+                        if itemGroup2 == self._itself.Parent.Parent then
+                            return
+                        end
+                    end
+                    
                     Slot.SwapSlots(self, cachedHoverSlot)
                 elseif Hover.InDropArea and cachedHoverSlot == nil then
                     if self.State ~= "BeingSwapped" then
@@ -209,8 +241,8 @@ end
 
 function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
     if s1.WearableCategory == nil and s2.WearableCategory == nil then
+
         if s2._itself.Parent ~= s1._itself.Parent then
-            print("switching slot parents", s1._itself.Parent, s2._itself.Parent)
             local s2_savedParent = s2._itself.Parent
             s2._itself.Parent = s1._itself.Parent
             s1._itself.Parent = s2_savedParent
@@ -222,6 +254,16 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
         s2.HotbarNumber.Text = tostring(s1LO)
         s1._itself.LayoutOrder = s2LO
         s1.HotbarNumber.Text = tostring(s2LO)
+        if s1._itself.Parent == Hotbar then
+            s1.HotbarNumber.Visible = true
+        else
+            s1.HotbarNumber.Visible = false
+        end
+        if s2._itself.Parent == Hotbar then
+            s2.HotbarNumber.Visible = true
+        else
+            s2.HotbarNumber.Visible = false
+        end
     else
         --defining
         local wearableSlot: SlotType.SlotType
@@ -233,6 +275,8 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
         elseif s2.WearableCategory and s1.WearableCategory == nil then
             wearableSlot = s2
             itemSlot = s1
+        else
+            return
         end
         --logic
         if wearableSlot.tool and itemSlot.tool then -- both are filled
@@ -357,6 +401,10 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
 end
 
 function Slot.destroy(self : SlotType.SlotType)
+    table.remove(FilledSlotsTracker.InitializedSlots, table.find(FilledSlotsTracker.InitializedSlots, self))
+    if not self._isEmpty then
+        Slot.EmptySlot(self)
+    end
     Slot.ChangeState(self, "Destroying")
     self._itself:Destroy()
     for _, v in self.connections do

@@ -17,7 +17,7 @@ export type SlotType = {
     HotbarNumber : TextLabel,
     Quantity : TextLabel,
     tool : Tool?,
-    connections : {[string]: RBXScriptConnection}
+    connections : {[string]: RBXScriptConnection},
 }
 
 return nil

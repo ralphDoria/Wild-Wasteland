@@ -6,7 +6,8 @@ local humanoid = player.Character:FindFirstChildOfClass("Humanoid", true) or pla
 local toolTags = {
      ["Melee"] = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage.Subclasses.Melee),--the tool tag is just going to be the name of the tool
      ["HealingInjection"] = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage.Items.Consumables.HealingInjection),
-     ["NV Goggles"] = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage.Items.Wearables.NVGoggles)
+     ["NV Goggles"] = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage.Items.Wearables.NVGoggles),
+     ["StorageWearable"] = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage.Subclasses.StorageWearable)
 }
 
 return function()

@@ -4,8 +4,9 @@ local ToolStateMachine = require("./ToolStateMachine/Main")
 local Slot = require("./Slot/Slot")
 local UserInputService = game:GetService("UserInputService")
 local InventoryState = require("./InventoryState")
+local FilledSlotsTracker = require("./Slot/FilledSlotsTracker")
 
-local Hotbar : CanvasGroup? = nil
+local Hotbar : CanvasGroup
 
 local hotbarNumberToKeybind = {
 	[1] = Enum.KeyCode.One,
@@ -17,6 +18,7 @@ local hotbarNumberToKeybind = {
 local hotbarSlotToSlotData : {[Frame]: Slot.SlotType} = {}
 
 local HotbarManager = {}
+HotbarManager.Connections = {}
 
 function HotbarManager.init(SlotTemplate : Frame, hotbar : CanvasGroup)
     Hotbar = hotbar
@@ -27,6 +29,30 @@ function HotbarManager.init(SlotTemplate : Frame, hotbar : CanvasGroup)
 		hotbarSlotToSlotData[slot._itself].HotbarNumber.Text = tostring(i)
         hotbarSlotToSlotData[slot._itself]._itself.LayoutOrder = i
 	end
+    
+    table.insert(
+        HotbarManager.Connections,
+        Hotbar.ChildAdded:Connect(function(child: Instance)  
+            if child:IsA("Frame") then
+                local slotData = FilledSlotsTracker.GetSlotFromInstanceSlot(child)
+                if slotData then
+                    hotbarSlotToSlotData[child] = slotData 
+                else
+                    error("Couldn't find slot data of given slot instance")
+                end
+            end
+        end)
+    )
+
+    table.insert(
+        HotbarManager.Connections,
+        Hotbar.ChildRemoved:Connect(function(child: Instance)  
+            if child:IsA("Frame") then
+                hotbarSlotToSlotData[child] = nil
+            end
+        end)
+    )
+
     HotbarManager.toggleKeybindToHotbarSlot(true)
 end
 
@@ -71,7 +97,7 @@ function HotbarManager.toggleKeybindToHotbarSlot(toggle : boolean)
                 end
             end
         end)
-        if Hotbar ~= nil then
+        if Hotbar then
             if Hotbar.GroupTransparency > 0 then
                 HotbarManager.GroupTransparency = 0
             end

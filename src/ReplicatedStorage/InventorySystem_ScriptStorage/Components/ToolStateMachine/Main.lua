@@ -88,7 +88,7 @@ local function GetToolToThisState(tool: Tool, statePath: {ItemState.ItemState}) 
         local startState: ItemState.ItemState = statePath[1]
 
         onCancel(function() -- Registering a callback to be called if this promise gets cancelled
-            print(`Cancelled: ({tool.Name}) {startState} --> {targetState}`)
+            -- print(`Cancelled: ({tool.Name}) {startState} --> {targetState}`)
         end)
 
         if statePath then
@@ -201,7 +201,7 @@ function ToolStateMachine.SetTargets(target_slot: SlotType.SlotType, target_stat
     local statePathToUnequipped
     if currentTool and currentTool ~= target_tool then
         local transitioningFrom: ItemState.ItemState? = currentTool:GetAttribute("TransitioningFrom"):: ItemState.ItemState?
-        print(`currentState: {currentState} | transitioningFrom: {transitioningFrom}`)
+        -- print(`currentState: {currentState} | transitioningFrom: {transitioningFrom}`)
         if (currentState == "Unwearing" or currentState == "Unequipping") and transitioningFrom == "Worn" and target_state ~= "Worn" then
             statePathToUnequipped = GetStatePath(currentState:: ItemState.ItemState, "Worn")
         else
