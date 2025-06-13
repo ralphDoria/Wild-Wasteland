@@ -52,12 +52,39 @@ function WearableInterface.initialize(character: Model)
         v.line.Parent = wearableGuiInstances
     end
 
-    MainInventory:GetPropertyChangedSignal("Visible"):Connect(function(...: any)  
-        for _, v in wearableGuiInstances:GetChildren() do
-            if v:IsA("GuiObject") then
-                v.Visible = MainInventory.Visible
+    local savedVisibilityValue: boolean
+    local function boolFilter(): boolean
+        local x = MainInventory.Visible
+        local y: boolean
+        if x == false then
+            y = false
+        else
+            local z = WearableSection.Visible
+            if z == false then
+                y = false
+            else
+                y = true
             end
         end
+
+        return y
+    end
+    local function foo() --actually don't know what to call this function lol
+        local visibility = boolFilter()
+        if savedVisibilityValue == visibility then return end
+        for _, v in wearableGuiInstances:GetChildren() do
+            if v:IsA("GuiObject") then
+                v.Visible = visibility
+            end
+        end
+        savedVisibilityValue = visibility
+    end
+    MainInventory:GetPropertyChangedSignal("Visible"):Connect(function(...: any)  
+        foo()
+    end)
+
+    WearableSection:GetPropertyChangedSignal("Visible"):Connect(function(...: any)  
+        foo()
     end)
 
     local UIS = game:GetService("UserInputService")
