@@ -113,10 +113,8 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
             local state = self.tool:GetAttribute("State")
             warn("Checkpoint 1", state)
             if state == "Unequipping" or state == "Unequipped" then
-                warn("Checkpoint 2a")
                 ToolStateMachine.SetTargets(self, "Idle")
             elseif state == "Equipping" or state == "Idle" then
-                warn("Checkpoint 2b")
                 ToolStateMachine.SetTargets(self, "Unequipped")
             end
         end)

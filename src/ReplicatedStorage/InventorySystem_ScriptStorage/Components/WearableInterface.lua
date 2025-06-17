@@ -5,7 +5,8 @@ local playerGui : PlayerGui = player:FindFirstChild("PlayerGui") :: PlayerGui
 local gui : ScreenGui = playerGui:WaitForChild("RevampingInventory") :: ScreenGui
 local MainInventory : Frame = gui:FindFirstChild("MainInventory") :: Frame
 local WearableSection : Frame = MainInventory:FindFirstChild("WearableSection") :: Frame
-local WearableSlotsContainer: Frame = WearableSection:FindFirstChild("WearableSlotsContainer", true) :: Frame
+local container1: Frame = WearableSection:FindFirstChild("WearableSlotsContainer1", true) :: Frame
+local container2: Frame = WearableSection:FindFirstChild("WearableSlotsContainer2", true) :: Frame
 local Templates = WearableSection:FindFirstChild("Templates") :: Folder
 local circle = Templates:FindFirstChild("Circle"):: ImageLabel
 local line = Templates:FindFirstChild("Line"):: ImageLabel
@@ -43,7 +44,11 @@ function WearableInterface.initialize(character: Model)
         v.slot.ImageButton.Rotation = 0
         v.slot.ImageButton.Visible = true
         v.slot._itself.Name = key
-        v.slot._itself.Parent = WearableSlotsContainer
+        if v.LayoutOrder % 2 == 0 then
+            v.slot._itself.Parent = container1
+        else
+            v.slot._itself.Parent = container2
+        end
         v.circle = circle:Clone()
         v.circle.Visible = true
         v.circle.Parent = wearableGuiInstances

@@ -13,7 +13,7 @@ local accessing = {}
 local initialized = {}
 
 local function generateRandomLootableData()
-    
+     
 end
 
 remotes.OpenLootable.OnServerEvent:Connect(function(player: Player, taggedInstance: Instance, tag: string)  
