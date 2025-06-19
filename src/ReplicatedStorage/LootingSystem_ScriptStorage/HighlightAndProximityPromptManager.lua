@@ -4,7 +4,7 @@ local Trove = require(ReplicatedStorage.Packages.Trove)
 local player = game:GetService("Players").LocalPlayer
 local LootingSystem_Storage = ReplicatedStorage.LootingSystem_Storage
 local highlight: Highlight = LootingSystem_Storage.Instances.Highlight
-local ToggleOVerrideCamModeCursorLock = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.ToggleOverrideCamModeCursorLock)
+local ToggleOVerrideCamModeCursorLock = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Misc.ToggleOverrideCamModeCursorLock)
 
 local bindables : {[string] : BindableEvent} = {
     -- OnPickUp = LootingSystem_Storage.Shared.Bindables.OnPickUp

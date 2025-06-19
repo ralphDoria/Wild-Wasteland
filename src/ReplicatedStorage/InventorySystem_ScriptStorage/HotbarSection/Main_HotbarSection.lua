@@ -1,10 +1,9 @@
 --!strict
-local ToolStateMachine = require("./ToolStateMachine/Main")
+local ToolStateMachine = require("./../Components/ToolStateMachine/Main_ToolStateMachine")
 
-local Slot = require("./Slot/Slot")
+local Slot = require("./../Components/Slot/Slot")
 local UserInputService = game:GetService("UserInputService")
-local InventoryState = require("./InventoryState")
-local FilledSlotsTracker = require("./Slot/FilledSlotsTracker")
+local SlotObjectsCacher = require("./../Components/Slot/SlotObjectsCacher")
 
 local Hotbar : CanvasGroup
 
@@ -34,7 +33,7 @@ function HotbarManager.init(SlotTemplate : Frame, hotbar : CanvasGroup)
         HotbarManager.Connections,
         Hotbar.ChildAdded:Connect(function(child: Instance)  
             if child:IsA("Frame") then
-                local slotData = FilledSlotsTracker.GetSlotFromInstanceSlot(child)
+                local slotData = SlotObjectsCacher.GetSlotFromInstanceSlot(child)
                 if slotData then
                     hotbarSlotToSlotData[child] = slotData 
                 else

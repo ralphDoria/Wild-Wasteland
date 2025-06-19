@@ -1,25 +1,18 @@
-local References_CharacterSection = require("./Components/References_CharacterSection")
-local Vitals = require("./Components/Vitals")
+local characterSectionComponents = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage.CharacterSection.Components
+local Vitals = require(characterSectionComponents.Vitals)
+local ViewportController = require(characterSectionComponents.ViewportController)
+local EquipmentSlots = require(characterSectionComponents.EquipmentSlots)
 
 local CharacterSection = {}
 
-CharacterSection.Connections = {}
-
-function CharacterSection.resizegui()
-    local x = References_CharacterSection.InventoryScreenGui.AbsoluteSize.X
-    local y = References_CharacterSection.InventoryScreenGui.AbsoluteSize.Y
-
-
-
+function CharacterSection.ResizeGui()
+    Vitals.ResizeGui()
 end
 
 function CharacterSection.init()
     Vitals.init()
-    table.insert(
-        CharacterSection.Connections,
-        References_CharacterSection.InventoryScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(Vitals.ResizeGui)
-    )
-    -- EquipmentSlots.init()
+    ViewportController.init()
+    EquipmentSlots.init()
 end
 
 return CharacterSection

@@ -1,7 +1,5 @@
-local References_CharacterSection = require("./../Components/References_CharacterSection")
-local VitalsGui = References_CharacterSection.Vitals
-local Template = VitalsGui.VitalTemplate:: Frame
-Template.Visible = false
+local References_Inventory = require("./../../Components/References_Inventory")
+References_Inventory.TemplateVital.Visible = false
 
 local VitalsData = {
     Health = {
@@ -30,12 +28,12 @@ Vitals.initialized = false
 
 function Vitals.init()
     for vitalName, v in VitalsData do
-        local vital = Template:Clone()
+        local vital = References_Inventory.TemplateVital:Clone()
         vital.TextDisplay.Text = vitalName
         vital.Visible = true
         local Icon = vital:FindFirstChild("Icon", true):: ImageLabel
         Icon.Image = v.ImageId
-        vital.Parent = VitalsGui
+        vital.Parent = References_Inventory.Vitals
         currentVitalGuis[vitalName] = vital
     end
     Vitals.initialized = true
@@ -44,16 +42,20 @@ end
 
 
 function Vitals.ResizeGui()
-    assert(Vitals.initialized, "Vitals needs to be initialized first before calling this function.")
+    if not Vitals.initialized then 
+        warn("Vitals must be initialized before being resized")
+        return
+    end
+    
     for key, v in currentVitalGuis do
-        local viewportWidth = References_CharacterSection.Viewport.AbsoluteSize.X
-        local equipmentSlotsWidth = References_CharacterSection.EquipmentSlots.AbsoluteSize.X
+        local viewportWidth = References_Inventory.Viewport.AbsoluteSize.X
+        local equipmentSlotsWidth = References_Inventory.CharacterEquipmentSlots.AbsoluteSize.X
         local width = viewportWidth - equipmentSlotsWidth
 
-        local viewportHeight = References_CharacterSection.Viewport.AbsoluteSize.Y
-        local height = viewportHeight * 1/3
+        local viewportHeight = References_Inventory.Viewport.AbsoluteSize.Y
+        local height = viewportHeight * 1/5
 
-        VitalsGui.Size = UDim2.fromOffset(width, height)
+        References_Inventory.Vitals.Size = UDim2.fromOffset(width, height)
         local individualVitalSize: UDim2 = UDim2.fromOffset(width/2, height/2 - 5)
 
         --apply new size
@@ -64,7 +66,7 @@ function Vitals.ResizeGui()
         v.TextDisplay.Position = 
             UDim2.fromOffset(ProgressBarAndIcon.AbsoluteSize.X, 0)
         v.TextDisplay.Size = 
-            UDim2.new(0, VitalsGui.AbsoluteSize.X - ProgressBarAndIcon.AbsoluteSize.X, 1, 0)
+            UDim2.new(0, References_Inventory.Vitals.AbsoluteSize.X - ProgressBarAndIcon.AbsoluteSize.X, 1, 0)
 
 
         --apply new position

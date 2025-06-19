@@ -1,10 +1,10 @@
-local SlotType = require("./SlotType")
+local Type_Slot = require("./Type_Slot")
 
 local Select = {}
 
 Select.current = nil
 
-function Select.applyEffect(slot: SlotType.SlotType)
+function Select.applyEffect(slot: Type_Slot.SlotObject)
     local uiCorner = slot.InnerFrame:FindFirstChildOfClass("UICorner")
     if uiCorner then
         warn("select effect already applied to this slot") 
@@ -16,7 +16,7 @@ function Select.applyEffect(slot: SlotType.SlotType)
     corner.Parent = slot.InnerFrame
 end
 
-function Select.removeEffect(slot: SlotType.SlotType)
+function Select.removeEffect(slot: Type_Slot.SlotObject)
     local uiCorner = slot.InnerFrame:FindFirstChildOfClass("UICorner")
     if uiCorner then
         uiCorner:Destroy()

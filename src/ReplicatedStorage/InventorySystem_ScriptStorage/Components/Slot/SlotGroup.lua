@@ -1,13 +1,10 @@
 --!strict
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory)
 
-local playerGui : PlayerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui") :: PlayerGui
-local gui : ScreenGui = playerGui:WaitForChild("RevampingInventory") :: ScreenGui
-local MainInventory : Frame = gui:FindFirstChild("MainInventory") :: Frame
-local StoreSection : ScrollingFrame = MainInventory:FindFirstChild("StoreSection", true) :: ScrollingFrame
-local Templates : Folder = gui:FindFirstChild("Templates") :: Folder
-local ItemGroupTemplate : Frame = Templates:FindFirstChild("ItemGroupTemplate") :: Frame
-local Slot = require("./Slot/Slot")
-local FilledSlotsTracker = require("./Slot/FilledSlotsTracker")
+local ScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
+local Slot = require("./Slot")
+local SlotObjectsCacher = require("./SlotObjectsCacher")
 
 export type ItemGroupState = "Empty" | "Filled"
 
@@ -21,11 +18,11 @@ export type ItemGroupObject = {
     Connections: {RBXScriptConnection}
 }
 
-local ItemGroup = {}
-ItemGroup.__index = ItemGroup
+local SlotGroup = {}
+SlotGroup.__index = SlotGroup
 
-function ItemGroup.new(name: string, space: number): ItemGroupObject
-    local clone = ItemGroupTemplate:Clone()
+function SlotGroup.new(name: string, space: number): ItemGroupObject
+    local clone = References_Inventory.TemplateSlotGroup:Clone()
     local itemsFrame = clone:FindFirstChildOfClass("Frame"):: Frame
     local self: ItemGroupObject = {
         _itself = clone,
@@ -37,12 +34,12 @@ function ItemGroup.new(name: string, space: number): ItemGroupObject
         Connections = {}
     }
 
-    ItemGroup._initialize(self)
+    SlotGroup._initialize(self)
 
     return self
 end
 
-function ItemGroup._initialize(self: ItemGroupObject)
+function SlotGroup._initialize(self: ItemGroupObject)
     for i = 1, self.Space, 1 do
         local slot = Slot.new("Inventory")
         slot._itself.LayoutOrder = i
@@ -52,12 +49,12 @@ function ItemGroup._initialize(self: ItemGroupObject)
     local textLabel = self._itself:FindFirstChildOfClass("TextLabel"):: TextLabel
     textLabel.Text = self.Name
     self._itself.Visible = true
-    self._itself.Parent = StoreSection
+    self._itself.Parent = References_Inventory.InventoryScrollingFrame
     table.insert(
         self.Connections,
         self.ItemsFrame.ChildAdded:Connect(function(child: Instance)  
             assert(child:IsA("Frame"))
-            self.ItemSlots[child] = FilledSlotsTracker.GetSlotFromInstanceSlot(child):: Slot.SlotType
+            self.ItemSlots[child] = SlotObjectsCacher.GetSlotFromInstanceSlot(child):: Slot.SlotType
         end)
     )
     table.insert(
@@ -70,7 +67,7 @@ function ItemGroup._initialize(self: ItemGroupObject)
 end
 
 
-function ItemGroup.Destroy(self: ItemGroupObject)
+function SlotGroup.Destroy(self: ItemGroupObject)
     for _, v in self.Connections do
         v:Disconnect()
     end
@@ -84,4 +81,4 @@ function ItemGroup.Destroy(self: ItemGroupObject)
     end)
 end
 
-return ItemGroup
+return SlotGroup

@@ -1,16 +1,16 @@
-export type WearableCategoryType = "Head" | "Torso" | "Backpack" | "Legs" | "Feet"
+export type EquipmentCategory = "Head" | "Torso" | "Backpack" | "Legs" | "Feet"
 
-local WearableCategory = {}
+local Type_Equipment = {}
 
-WearableCategory.ValidWearableCategories = {"Head", "Torso", "Backpack", "Legs", "Feet"}
+Type_Equipment.validWearableCategories = {"Head", "Torso", "Backpack", "Legs", "Feet"}
 
 --[[
     This function errors if value passed is not of a valid type
 ]]
-function WearableCategory.typeCheck(value)
+function Type_Equipment.typeCheck(value)
     assert(typeof(value) == "string")
     local valid = false
-    for _, v in WearableCategory.ValidWearableCategories do
+    for _, v in Type_Equipment.validWearableCategories do
         if tostring(value) == v then
             valid = true
         end
@@ -20,4 +20,4 @@ function WearableCategory.typeCheck(value)
     end
 end
 
-return WearableCategory
+return Type_Equipment

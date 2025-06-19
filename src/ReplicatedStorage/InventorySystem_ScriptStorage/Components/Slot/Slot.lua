@@ -1,38 +1,30 @@
 --!strict
 
-local playerGui : PlayerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui") :: PlayerGui
-local gui : ScreenGui = playerGui:WaitForChild("RevampingInventory") :: ScreenGui
-local Hotbar : CanvasGroup = gui:FindFirstChild("Hotbar") :: CanvasGroup
-local Templates : Folder = gui:FindFirstChild("Templates") :: Folder
-local SlotTemplate : Frame = Templates:FindFirstChild("SlotTemplate") :: Frame
-local InventoryState = require("./../InventoryState")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local InventorySystem_Storage = ReplicatedStorage:FindFirstChild("InventorySystem_Storage", true)
-local SFX: {pickUp: Sound, hover: Sound, setDown: Sound} = {
-    pickUp = InventorySystem_Storage.SFX.pickUp,
-    hover = InventorySystem_Storage.SFX.hover,
-    setDown = InventorySystem_Storage.SFX.setDown,
-}
+local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory)
 local PlaySound = require(ReplicatedStorage.RojoManaged_RS.Utility.PlaySoundUtil)
 
-local SlotType = require("./../SlotType")
-local WearableCategory = require("./../WearableCategory")
-local WearableSlotInfo = require("./../WearableSlotInfo")
-local FilledSlotsTracker = require("./FilledSlotsTracker")
--- local WearItemStateMachine = require("./WearItemStateMachine")
-export type SlotType = SlotType.SlotType
-local Hover = require("./../Hover")
-local Select = require("./../Select")
-local Config = require("./../Config")
-local UserInputService = game:GetService("UserInputService")
-local Drag = require("./../Drag")
-local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local ToolSystem_Storage = References_Inventory.ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local bindables = {
     DropToolBindable = ToolSystem_Storage.Shared.Bindables.DropToolBindable,
 }
+local SFX: {pickUp: Sound, hover: Sound, setDown: Sound} = {
+    pickUp = References_Inventory.Storage.SFX.pickUp,
+    hover = References_Inventory.Storage.SFX.hover,
+    setDown = References_Inventory.Storage.SFX.setDown,
+}
 
-local ToolStateMachine = require("./../ToolStateMachine/Main")
+local Type_Slot = require("./../Slot/Type_Slot")
+local Type_Equipment = require("./../../CharacterSection/Components/Type_Equipment")
+local EquipmentInitData = require("./../../CharacterSection/Components/EquipmentInitData")
+local SlotObjectsCacher = require("./SlotObjectsCacher")
+local Hover = require("./../Slot/Hover")
+local Select = require("./../Slot/Select")
+local UserInputService = game:GetService("UserInputService")
+local Drag = require("./../Slot/Drag")
+local ToolStateMachine = require("./../ToolStateMachine/Main_ToolStateMachine")
 
+export type SlotType = Type_Slot.SlotObject
 local Slot = {}
 
 local isDragging: boolean = false
@@ -50,10 +42,17 @@ Slot.StateChanged = SlotStateChangedBindable.Event
 
 ----    Methods
 
-function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCategory: WearableCategory.WearableCategoryType?) : SlotType.SlotType
-    local slot = SlotTemplate:Clone()
+--[[
+    For 
+]]
+function Slot.start()
+    
+end
 
-    local self : SlotType.SlotType = {
+function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCategory: Type_Equipment.EquipmentCategory?) : Type_Slot.SlotObject
+    local slot = References_Inventory.TemplateSlot:Clone()
+
+    local self : Type_Slot.SlotObject = {
         State = "Idle",
         _itself = slot :: Frame,
         _isEmpty = true :: boolean,
@@ -82,7 +81,7 @@ function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCatego
         Hover.removeEffect(self)
     end)
 
-    table.insert(FilledSlotsTracker.InitializedSlots, self)
+    table.insert(SlotObjectsCacher.InitializedSlots, self)
 
     return self
 end
@@ -90,7 +89,7 @@ end
 --[[
     Wrapper method for changing state
 ]]
-function Slot.ChangeState(self: SlotType.SlotType, state: SlotType.SlotState)
+function Slot.ChangeState(self: Type_Slot.SlotObject, state: Type_Slot.SlotState)
     --fire bindable event when state changes
     if self.State ~= state then
         self.State = state
@@ -98,7 +97,7 @@ function Slot.ChangeState(self: SlotType.SlotType, state: SlotType.SlotState)
     end
 end
 
-function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
+function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool, itemType : string)
     Slot.ChangeState(self, "Filling")
     -- print("Filling slot: ", self.HotbarNumber.Text)
     self.Quantity.Visible = if itemType == "Misc" then true else false
@@ -197,12 +196,12 @@ function Slot.FillSlot(self : SlotType.SlotType, tool : Tool, itemType : string)
             end
         end)
     end)
-    table.insert(FilledSlotsTracker.FilledSlots, self)
+    table.insert(SlotObjectsCacher.FilledSlots, self)
     Slot.ChangeState(self, "Idle")
 end
 
 local TweenService = game:GetService("TweenService")
-function Slot.load(self: SlotType.SlotType, duration: number)
+function Slot.load(self: Type_Slot.SlotObject, duration: number)
     local progressBar = Instance.new("Frame")
     progressBar.Transparency = 0.5
     progressBar.Size = UDim2.fromScale(1, 1)
@@ -214,7 +213,7 @@ function Slot.load(self: SlotType.SlotType, duration: number)
     return tween
 end
 
-function Slot.EmptySlot(self : SlotType.SlotType)
+function Slot.EmptySlot(self : Type_Slot.SlotObject)
     Slot.ChangeState(self, "Emptying")
     Select.removeEffect(self)
     Hover.removeEffect(self)
@@ -228,16 +227,16 @@ function Slot.EmptySlot(self : SlotType.SlotType)
             v:Disconnect()
         end
     end
-    table.remove(FilledSlotsTracker.FilledSlots, table.find(FilledSlotsTracker.FilledSlots, self))
+    table.remove(SlotObjectsCacher.FilledSlots, table.find(SlotObjectsCacher.FilledSlots, self))
 
     if self.WearableCategory then
         self.ImageButton.Visible = true
-        self.ImageButton.Image = WearableSlotInfo[self.WearableCategory].image
+        self.ImageButton.Image = EquipmentInitData[self.WearableCategory].image
     end
     Slot.ChangeState(self, "Idle")
 end
 
-function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
+function Slot.SwapSlots(s1: Type_Slot.SlotObject, s2: Type_Slot.SlotObject)
     if s1.WearableCategory == nil and s2.WearableCategory == nil then
 
         if s2._itself.Parent ~= s1._itself.Parent then
@@ -252,20 +251,20 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
         s2.HotbarNumber.Text = tostring(s1LO)
         s1._itself.LayoutOrder = s2LO
         s1.HotbarNumber.Text = tostring(s2LO)
-        if s1._itself.Parent == Hotbar then
+        if s1._itself.Parent == References_Inventory.Hotbar then
             s1.HotbarNumber.Visible = true
         else
             s1.HotbarNumber.Visible = false
         end
-        if s2._itself.Parent == Hotbar then
+        if s2._itself.Parent == References_Inventory.Hotbar then
             s2.HotbarNumber.Visible = true
         else
             s2.HotbarNumber.Visible = false
         end
     else
         --defining
-        local wearableSlot: SlotType.SlotType
-        local itemSlot: SlotType.SlotType
+        local wearableSlot: Type_Slot.SlotObject
+        local itemSlot: Type_Slot.SlotObject
         --initializing
         if s1.WearableCategory and s2.WearableCategory == nil then
             wearableSlot = s1
@@ -285,7 +284,6 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
                 function(estimatedPathsTime: number) -- onValidated
                     Slot.ChangeState(wearableSlot, "BeingSwapped")
                     Slot.ChangeState(itemSlot, "BeingSwapped")
-                    InventoryState.ChangeState("SwappingSlots")
 
                     table.insert(tweens, Slot.load(wearableSlot, estimatedPathsTime))
                     table.insert(tweens, Slot.load(itemSlot, estimatedPathsTime))
@@ -297,7 +295,6 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
 
                     Slot.ChangeState(wearableSlot, "Idle")
                     Slot.ChangeState(itemSlot, "Idle")
-                    InventoryState.ChangeState("Idle")
 
                     if status == "Resolved" then
                         local wearableSlotTool = wearableSlot.tool
@@ -329,7 +326,6 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
                 function(timeUntilComplete: number) -- onValidated
                     Slot.ChangeState(wearableSlot, "BeingSwapped")
                     Slot.ChangeState(itemSlot, "BeingSwapped")
-                    InventoryState.ChangeState("SwappingSlots")
 
                     table.insert(tweens, Slot.load(wearableSlot, timeUntilComplete))
                     table.insert(tweens, Slot.load(itemSlot, timeUntilComplete))
@@ -354,7 +350,6 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
                     if status == "Resolved" or status == "Never Ran" then
                         Slot.ChangeState(wearableSlot, "Idle")
                         Slot.ChangeState(itemSlot, "Idle")
-                        InventoryState.ChangeState("Idle")
                     end
                 end
             )
@@ -371,7 +366,6 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
 
                     Slot.ChangeState(wearableSlot, "BeingSwapped")
                     Slot.ChangeState(itemSlot, "BeingSwapped")
-                    InventoryState.ChangeState("SwappingSlots")
                 end,
                 function(status: string)  
                     if status == "Resolved" then
@@ -390,16 +384,15 @@ function Slot.SwapSlots(s1: SlotType.SlotType, s2: SlotType.SlotType)
                     if status == "Resolved" or status == "Never Ran" then
                         Slot.ChangeState(wearableSlot, "Idle")
                         Slot.ChangeState(itemSlot, "Idle")
-                        InventoryState.ChangeState("Idle")
                     end
                 end
-            )
+            )                
         end
     end
 end
 
-function Slot.destroy(self : SlotType.SlotType)
-    table.remove(FilledSlotsTracker.InitializedSlots, table.find(FilledSlotsTracker.InitializedSlots, self))
+function Slot.destroy(self : Type_Slot.SlotObject)
+    table.remove(SlotObjectsCacher.InitializedSlots, table.find(SlotObjectsCacher.InitializedSlots, self))
     if not self._isEmpty then
         Slot.EmptySlot(self)
     end

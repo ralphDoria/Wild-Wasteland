@@ -7,27 +7,26 @@ local Bindables : {[string] : BindableEvent} = {
     ToggleEquip = ReplicatedStorage.ToolSystem_Storage.Shared:FindFirstChild("ToggleEquip", true),
     ToggleWear = ToolSystem_Storage.Wearable.Bindables.ToggleWear
 }
-local WearableCategory = require("./../WearableCategory")
-local Select = require("./../Select")
-local SlotType = require("./../SlotType")
-local FilledSlotsTracker = require("./../Slot/FilledSlotsTracker")
+local Type_Equipment = require("./../../CharacterSection/Components/Type_Equipment")
+local Select = require("./../Slot/Select")
+local Types_Slot = require("./../../Components/Slot/Type_Slot")
 
 local Promise = require(ReplicatedStorage.Packages.Promise)
 
-local ItemState = require("./ItemState")
+local Type_Item = require("./Type_Item")
 local GetStatePath = require("./GetStatePath")
 
-local currentOperation: {targetSlot: SlotType.SlotType?, targetState: ItemState.ItemState?, connections: {RBXScriptConnection}, promise: any} = {
+local currentOperation: {targetSlot: Types_Slot.SlotObject?, targetState: Type_Item.ItemState?, connections: {RBXScriptConnection}, promise: any} = {
     targetSlot = nil,
     targetState = nil,
     connections = {},
     promise = nil
 }
 
-local function CalculateExpectedPathTime(tool: Tool, statePath: {ItemState.ItemState}): number
+local function CalculateExpectedPathTime(tool: Tool, statePath: {Type_Item.ItemState}): number
 
     local totalTime: number = 0
-    for _, state: ItemState.ItemState in statePath do
+    for _, state: Type_Item.ItemState in statePath do
         if state == "Equipping" then
             totalTime += tool:GetAttribute("EquipLength"):: number - tool:GetAttribute("EquipTimePosition"):: number
         elseif state == "Unequipping" then
@@ -42,10 +41,10 @@ local function CalculateExpectedPathTime(tool: Tool, statePath: {ItemState.ItemS
     return totalTime
 end
 
-local function WhenToolEntersThisStateDo(tool: Tool, thisState: ItemState.ItemState, doFunction: () -> ()): RBXScriptConnection
+local function WhenToolEntersThisStateDo(tool: Tool, thisState: Type_Item.ItemState, doFunction: () -> ()): RBXScriptConnection
     local WaitUntilThisStateEntered: RBXScriptConnection
     WaitUntilThisStateEntered = tool:GetAttributeChangedSignal("State"):Connect(function()
-        if tool:GetAttribute("State")::ItemState.ItemState == thisState then
+        if tool:GetAttribute("State")::Type_Item.ItemState == thisState then
             WaitUntilThisStateEntered:Disconnect()
             doFunction()
         end
@@ -66,7 +65,7 @@ end
 
 local targetsChangedBindable: BindableEvent = Instance.new("BindableEvent")
 local targetsChanged: RBXScriptSignal = targetsChangedBindable.Event
-local function SetCurrentOperation(slot: SlotType.SlotType, state: ItemState.ItemState)
+local function SetCurrentOperation(slot: Types_Slot.SlotObject, state: Type_Item.ItemState)
     targetsChangedBindable:Fire(currentOperation.targetSlot, slot, state)
     currentOperation.targetState = state
     currentOperation.targetSlot = slot
@@ -81,11 +80,11 @@ targetsChanged:Connect(function(oldSlot, newSlot, newTargetState)
     end
 end)
 
-local function GetToolToThisState(tool: Tool, statePath: {ItemState.ItemState}) --:: Promise (don't know if there is a Promise type)
+local function GetToolToThisState(tool: Tool, statePath: {Type_Item.ItemState}) --:: Promise (don't know if there is a Promise type)
     return Promise.new(function(resolve, reject, onCancel)
 
         local targetState = statePath[#statePath]
-        local startState: ItemState.ItemState = statePath[1]
+        local startState: Type_Item.ItemState = statePath[1]
 
         onCancel(function() -- Registering a callback to be called if this promise gets cancelled
             -- print(`Cancelled: ({tool.Name}) {startState} --> {targetState}`)
@@ -95,8 +94,8 @@ local function GetToolToThisState(tool: Tool, statePath: {ItemState.ItemState}) 
             -- warn(tool.Name, statePath)
 
             for i = 2, #statePath, 1 do -- start at 2 to ignore the startState
-                local previousState: ItemState.ItemState = statePath[i - 1]
-                local thisState: ItemState.ItemState = statePath[i]
+                local previousState: Type_Item.ItemState = statePath[i - 1]
+                local thisState: Type_Item.ItemState = statePath[i]
 
                 if thisState == targetState then
                     table.insert(
@@ -169,16 +168,16 @@ local function GetToolToThisState(tool: Tool, statePath: {ItemState.ItemState}) 
     end)
 end
 
-local function GetCurrentWornItemOfCategory(category: WearableCategory.WearableCategoryType): Tool?
+local function GetCurrentWornItemOfCategory(category: Type_Equipment.EquipmentCategory): Tool?
     local WornItems: Folder = player.Backpack:FindFirstChild("WornItems")
     local wearableCategoryFolder: Folder = WornItems:FindFirstChild(category):: Folder
     local currentlyWornTool: Tool? = wearableCategoryFolder:FindFirstChildOfClass("Tool"):: Tool?
     return currentlyWornTool
 end
 
-local function GetCurrentNonUnequippedToolAndItsState(): (Tool?, ItemState.ItemState?)
+local function GetCurrentNonUnequippedToolAndItsState(): (Tool?, Type_Item.ItemState?)
     local currentNonUnequippedTool = character:FindFirstChildOfClass("Tool")
-    local state: ItemState.ItemState?
+    local state: Type_Item.ItemState?
     if currentNonUnequippedTool then
         state = currentNonUnequippedTool:GetAttribute("State")
     end
@@ -187,40 +186,40 @@ end
 
 local ToolStateMachine = {}
 
-function ToolStateMachine.SetTargets(target_slot: SlotType.SlotType, target_state: ItemState.ItemState, onValidated: ((number) -> ())?,onFinished: ((string) -> ())?)
+function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_state: Type_Item.ItemState, onValidated: ((number) -> ())?,onFinished: ((string) -> ())?)
 
     local target_tool: Tool = target_slot.tool:: Tool
 
     -- Checks to immediately end function
-    local targetToolIsInTargetState: boolean = target_tool:GetAttribute("State"):: ItemState.ItemState == target_state
+    local targetToolIsInTargetState: boolean = target_tool:GetAttribute("State"):: Type_Item.ItemState == target_state
     local targetsAreAlreadyInOperation: boolean = target_slot == currentOperation.targetSlot and target_state == currentOperation.targetState
     if targetToolIsInTargetState or targetsAreAlreadyInOperation then return end
 
 
-    local currentTool: Tool?, currentState: ItemState.ItemState? = GetCurrentNonUnequippedToolAndItsState()
+    local currentTool: Tool?, currentState: Type_Item.ItemState? = GetCurrentNonUnequippedToolAndItsState()
     local statePathToUnequipped
     if currentTool and currentTool ~= target_tool then
-        local transitioningFrom: ItemState.ItemState? = currentTool:GetAttribute("TransitioningFrom"):: ItemState.ItemState?
+        local transitioningFrom: Type_Item.ItemState? = currentTool:GetAttribute("TransitioningFrom"):: Type_Item.ItemState?
         -- print(`currentState: {currentState} | transitioningFrom: {transitioningFrom}`)
         if (currentState == "Unwearing" or currentState == "Unequipping") and transitioningFrom == "Worn" and target_state ~= "Worn" then
-            statePathToUnequipped = GetStatePath(currentState:: ItemState.ItemState, "Worn")
+            statePathToUnequipped = GetStatePath(currentState:: Type_Item.ItemState, "Worn")
         else
-            statePathToUnequipped = GetStatePath(currentState:: ItemState.ItemState, "Unequipped")
+            statePathToUnequipped = GetStatePath(currentState:: Type_Item.ItemState, "Unequipped")
         end
     end
 
     local currentWornTool: Tool?
     local statePathToUnworn
     if target_state == "Worn" then
-        currentWornTool = GetCurrentWornItemOfCategory(target_tool:GetAttribute("WearableCategory"):: WearableCategory.WearableCategoryType)
+        currentWornTool = GetCurrentWornItemOfCategory(target_tool:GetAttribute("WearableCategory"):: Type_Equipment.EquipmentCategory)
         if currentWornTool and currentWornTool ~= target_tool then
             statePathToUnworn = GetStatePath("Worn", "Unequipped")
         end
     end
 
-    local statePathToTarget = GetStatePath(target_tool:GetAttribute("State"):: ItemState.ItemState, target_state)
+    local statePathToTarget = GetStatePath(target_tool:GetAttribute("State"):: Type_Item.ItemState, target_state)
 
-    local function isEmptyTable(tbl: {ItemState.ItemState}?)
+    local function isEmptyTable(tbl: {Type_Item.ItemState}?)
         if tbl then
             return #tbl == 0
         else

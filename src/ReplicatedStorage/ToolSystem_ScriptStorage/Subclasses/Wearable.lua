@@ -2,9 +2,9 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Item = require("./../Superclasses/Item")
-local ItemState = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.ToolStateMachine.ItemState)
+local Type_Item = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.ToolStateMachine.Type_Item)
 local ActionManager = require("../../ActionManagerSystem/ActionManager")
-local WearableCategory = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.WearableCategory)
+local Type_Equipment = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.CharacterSection.Components.Type_Equipment)
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local remotes: {[string] : RemoteEvent} = {
     ToggleWear = ToolSystem_Storage.Wearable.Remotes.ToggleWear,
@@ -20,17 +20,17 @@ export type WearableType = Item.ItemType & {
     originalAccessory: Accessory,
     thisAccessory: Accessory,
     WearSpeed: number,
-    WearableCategory: WearableCategory.WearableCategoryType,
+    WearableCategory: Type_Equipment.EquipmentCategory,
     onWearing: () -> (),
     onUnwearing: () -> (),
     applyWornEffects: () -> (),
     removeWornEffects: () -> ()
 }
-local FilledSlotsTracker = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.FilledSlotsTracker)
+local SlotObjectsCacher = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.SlotObjectsCacher)
 local Slot = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.Slot)
 local player = game:GetService("Players").LocalPlayer
 
-remotes.CreateWornItemStorage:FireServer(WearableCategory.ValidWearableCategories)
+remotes.CreateWornItemStorage:FireServer(Type_Equipment.validWearableCategories)
 local WornItems: Folder = player.Backpack:WaitForChild("WornItems")
 
 local Wearable = {}
@@ -39,7 +39,7 @@ function Wearable.new(tool: Tool, humanoid: Humanoid)
     local self = Item.new(tool, humanoid):: WearableType
     
     local thisWearableCategory = tool:GetAttribute("WearableCategory")
-    WearableCategory.typeCheck(thisWearableCategory)
+    Type_Equipment.typeCheck(thisWearableCategory)
 
     -- instance variables inherited from Item
     self.actionNames.wearUnwear = "Wear/Unwear"
@@ -51,7 +51,7 @@ function Wearable.new(tool: Tool, humanoid: Humanoid)
     end
     self.originalAccessory = toolFolder:FindFirstChildWhichIsA("Accessory", true):: Accessory
     self.thisAccessory = self.tool:FindFirstChildWhichIsA("Accessory", true):: Accessory
-    self.WearableCategory = tool:GetAttribute("WearableCategory"):: WearableCategory.WearableCategoryType
+    self.WearableCategory = tool:GetAttribute("WearableCategory"):: Type_Equipment.EquipmentCategory
     self.WearSpeed = 1
 
     return self
@@ -64,12 +64,12 @@ local function toggleWearBind(self : WearableType, toggle : boolean)
             function(): (() -> (), () -> (), () -> ())  
 
                 local function onActivated()
-                    local slot = FilledSlotsTracker.GetSlotFromTool(self.tool)
+                    local slot = SlotObjectsCacher.GetSlotFromTool(self.tool)
                     if slot then
                         local category: Folder = WornItems:FindFirstChild(self.WearableCategory):: Folder
                         local wornToolOfCategory = category:FindFirstChildOfClass("Tool")
                         if wornToolOfCategory == nil then
-                            Slot.SwapSlots(slot, FilledSlotsTracker.WearableSlots[self.WearableCategory])
+                            Slot.SwapSlots(slot, SlotObjectsCacher.WearableSlots[self.WearableCategory])
                         else
                             -- @TODO display ui warning indicator by cursor stating "gear slot already filled"
                         end
@@ -184,7 +184,7 @@ function Wearable.wear(self: WearableType)
         idleTrack:Stop()
         vmIdleTrack:Stop()
         wearTrack.Stopped:Wait()
-        if self.State:: ItemState.ItemState == "Wearing" then -- have to do a recheck here because this is an cancellable asynchronous operation
+        if self.State:: Type_Item.ItemState == "Wearing" then -- have to do a recheck here because this is an cancellable asynchronous operation
             Item.ChangeState(self, "Worn")
             Wearable.onWorn(self)
             self.tool:SetAttribute("IsWorn", true)
@@ -210,7 +210,7 @@ function Wearable.unwear(self: WearableType)
         idleTrack:Stop()
         vmIdleTrack:Stop()
         wearTrack.Stopped:Wait()
-        if self.State:: ItemState.ItemState == "Unwearing" then -- have to do a recheck here because this is an cancellable asynchronous operation
+        if self.State:: Type_Item.ItemState == "Unwearing" then -- have to do a recheck here because this is an cancellable asynchronous operation
             idleTrack:Play()
             vmIdleTrack:Play()
             Item.ChangeState(self, "Idle")

@@ -1,6 +1,6 @@
-local ItemState = require("./ItemState")
+local Type_Item = require("./Type_Item")
 
-local STATE_ORDER: {ItemState.ItemState} = {
+local STATE_ORDER: {Type_Item.ItemState} = {
     [1] = "Unequipped",
     [2] = "Equipping",
     [3] = "Idle",
@@ -8,7 +8,7 @@ local STATE_ORDER: {ItemState.ItemState} = {
     [5] = "Worn"
 }
 
-local INVERSE_STATES: {[ItemState.ItemState]: ItemState.ItemState} = {
+local INVERSE_STATES: {[Type_Item.ItemState]: Type_Item.ItemState} = {
     ["Unequipping"] = "Equipping",
     ["Unwearing"] = "Wearing"
 }
@@ -16,10 +16,10 @@ local INVERSE_STATES: {[ItemState.ItemState]: ItemState.ItemState} = {
 --[[
     This function gets the states that the tool has to go through to go from it's start state to the target end state.
 ]]
-local function GetStatePath(start: ItemState.ItemState, target: ItemState.ItemState): {ItemState.ItemState}
+local function GetStatePath(start: Type_Item.ItemState, target: Type_Item.ItemState): {Type_Item.ItemState}
     assert(start ~= target, "Start index cannot equal target index")
     
-    local function getInverseState(state: ItemState.ItemState): ItemState.ItemState?
+    local function getInverseState(state: Type_Item.ItemState): Type_Item.ItemState?
         local inverseState = INVERSE_STATES[state]
         if inverseState then
             return inverseState
@@ -35,7 +35,7 @@ local function GetStatePath(start: ItemState.ItemState, target: ItemState.ItemSt
 
     local startIndex = table.find(STATE_ORDER, start)
     if startIndex == nil then
-        local inverseStartState: ItemState.ItemState? = getInverseState(start)
+        local inverseStartState: Type_Item.ItemState? = getInverseState(start)
         if inverseStartState then
             startIndex = table.find(STATE_ORDER, inverseStartState)
             if startIndex == nil then
@@ -50,7 +50,7 @@ local function GetStatePath(start: ItemState.ItemState, target: ItemState.ItemSt
     
     local targetIndex = table.find(STATE_ORDER, target)
     if targetIndex == nil then
-        local inverseTargetState: ItemState.ItemState? = getInverseState(target)
+        local inverseTargetState: Type_Item.ItemState? = getInverseState(target)
         if inverseTargetState then
             targetIndex = table.find(STATE_ORDER, inverseTargetState)
             if targetIndex == nil then
@@ -65,7 +65,7 @@ local function GetStatePath(start: ItemState.ItemState, target: ItemState.ItemSt
 
     local direction: "Forward" | "Backward" = if startIndex < targetIndex then "Forward" else "Backward"
     
-    local statePath: {ItemState.ItemState} = {}
+    local statePath: {Type_Item.ItemState} = {}
     if direction == "Forward" then
         for i = startIndex, targetIndex, 1 do
             table.insert(statePath, STATE_ORDER[i])
@@ -73,7 +73,7 @@ local function GetStatePath(start: ItemState.ItemState, target: ItemState.ItemSt
     else
         for i = startIndex, targetIndex, -1 do
             local originalState = STATE_ORDER[i]
-            local inverseState: ItemState.ItemState? = getInverseState(originalState)
+            local inverseState: Type_Item.ItemState? = getInverseState(originalState)
             table.insert(statePath, inverseState or originalState)
         end
     end

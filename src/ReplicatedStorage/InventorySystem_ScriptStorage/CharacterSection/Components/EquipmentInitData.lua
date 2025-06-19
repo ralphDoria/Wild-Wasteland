@@ -1,7 +1,7 @@
-local SlotType = require("./SlotType")
+local Type_Slot = require("./../../Components/Slot/Type_Slot")
 
 type x = {
-    slot: SlotType.SlotType, 
+    slot: Type_Slot.SlotObject, 
     circle: ImageLabel, 
     line: ImageLabel, 
     image: string,

@@ -1,18 +1,8 @@
-local SlotType = require("./SlotType")
-local Config = require("./Config")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory)
 
-local player = game:GetService("Players").LocalPlayer
-local playerGui : PlayerGui = player:FindFirstChild("PlayerGui") :: PlayerGui
-local gui : ScreenGui = playerGui:WaitForChild("RevampingInventory") :: ScreenGui
-local Templates : Folder = gui:FindFirstChild("Templates") :: Folder
-local ItemInfoDisplayTempalte = Templates:FindFirstChild("ItemInfoDisplayTemplate")
-local GuiService = game:GetService("GuiService")
-local TweenService = game:GetService("TweenService")
-local MainInventory : Frame = gui:FindFirstChild("MainInventory") :: Frame
-local DropArea: Frame = gui:FindFirstChild("DropArea", true):: Frame
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local GuiService = game:GetService("GuiService")
+local ScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
+local Type_Slot = require(ScriptStorage.Components.Slot.Type_Slot)
 
 local Hover = {}
 
@@ -22,18 +12,18 @@ SlotHoveredChanged = SlotHoveredChangedBindable.Event
 
 Hover.InDropArea = false
 
-RunService.RenderStepped:Connect(function(a0: number)  
-    local mousePos = UserInputService:GetMouseLocation()
-    local guis = playerGui:GetGuiObjectsAtPosition(mousePos.X, mousePos.Y - GuiService:GetGuiInset().Y)
+References_Inventory.RunService.RenderStepped:Connect(function(a0: number)  
+    local mousePos = References_Inventory.UserInputService:GetMouseLocation()
+    local guis = References_Inventory.PlayerGui:GetGuiObjectsAtPosition(mousePos.X, mousePos.Y - References_Inventory.GuiService:GetGuiInset().Y)
     local filteredGuis = {}
 
     for _, v in guis do 
-        if v.Parent == gui and v.Name ~= "innerFrame" then
+        if v.Parent == References_Inventory.InventoryScreenGui and v.Name ~= "innerFrame" then
             table.insert(filteredGuis, v)
         end
     end
 
-    if filteredGuis[1] == DropArea then 
+    if filteredGuis[1] == References_Inventory.DropArea then 
         Hover.InDropArea = true 
     else
         Hover.InDropArea = false
@@ -41,10 +31,10 @@ RunService.RenderStepped:Connect(function(a0: number)
     -- print(Hover.InDropArea, filteredGuis)
 end)
 
-local itemInfoDisplays: {[SlotType.SlotType]: Frame} = {}
+local itemInfoDisplays: {[Type_Slot.SlotObject]: Frame} = {}
 
-local function createItemInfoDisplay(slot: SlotType.SlotType)
-    local clone: Frame = ItemInfoDisplayTempalte:Clone()
+local function createItemInfoDisplay(slot: Type_Slot.SlotObject)
+    local clone: Frame = References_Inventory.TemplateItemInfoDisplay:Clone()
     local textbox = clone:FindFirstChildWhichIsA("TextBox", true)
     local tool = slot.tool :: Tool
     if textbox then
@@ -57,15 +47,15 @@ local function createItemInfoDisplay(slot: SlotType.SlotType)
     clone.AnchorPoint = Vector2.new(0.5, 1)
     clone.Position = UDim2.fromOffset(
         slot._itself.AbsolutePosition.X - slot._itself.AnchorPoint.X*slot._itself.AbsoluteSize.X + 0.5*slot._itself.AbsoluteSize.X, 
-        slot._itself.AbsolutePosition.Y - slot._itself.AnchorPoint.Y*slot._itself.AbsoluteSize.Y + GuiService:GetGuiInset().Y
+        slot._itself.AbsolutePosition.Y - slot._itself.AnchorPoint.Y*slot._itself.AbsoluteSize.Y + References_Inventory.GuiService:GetGuiInset().Y
     )
 
     clone.Visible = true
-    clone.Parent = gui
+    clone.Parent = References_Inventory.InventoryScreenGui
     local finalSize = UDim2.new(0, clone.AbsoluteSize.X, 0, clone.AbsoluteSize.Y)
     clone.AutomaticSize = Enum.AutomaticSize.None
     clone.Size = UDim2.new(0, clone.AbsoluteSize.X, 0, 0)
-    TweenService:Create(clone, TweenInfo.new(0.1), {Size = finalSize}):Play()
+    References_Inventory.TweenService:Create(clone, TweenInfo.new(0.1), {Size = finalSize}):Play()
     return clone
 end
 
@@ -73,7 +63,7 @@ local function destroyItemInfoDisplay(itemInfoDisplay)
     itemInfoDisplay:Destroy()
 end
 
-function Hover.applyEffect(slot: SlotType.SlotType)
+function Hover.applyEffect(slot: Type_Slot.SlotObject)
     if Hover.currentSlot ~= slot then
         Hover.currentSlot = slot
         SlotHoveredChangedBindable:Fire()
@@ -86,7 +76,7 @@ function Hover.applyEffect(slot: SlotType.SlotType)
             local accumulatedTime = 0
             while Hover.currentSlot == slot do
                 accumulatedTime += task.wait()
-                if accumulatedTime >= Config.KBM_Touch.dragThreshold then
+                if accumulatedTime >= 0.5 then
                     itemInfoDisplays[slot] = createItemInfoDisplay(slot)
                     break
                 end
@@ -94,7 +84,7 @@ function Hover.applyEffect(slot: SlotType.SlotType)
         end)
 
         if slot.WearableCategory == nil then 
-            TweenService:Create(
+            References_Inventory.TweenService:Create(
                 slot.ImageButton, 
                 TweenInfo.new(10, Enum.EasingStyle.Linear, Enum.EasingDirection.In, math.huge), 
                 {Rotation = 180}
@@ -104,7 +94,7 @@ function Hover.applyEffect(slot: SlotType.SlotType)
     end
 end
 
-function Hover.removeEffect(slot: SlotType.SlotType)
+function Hover.removeEffect(slot: Type_Slot.SlotObject)
     if Hover.currentSlot == slot then
         Hover.currentSlot = nil
     else
@@ -118,7 +108,7 @@ function Hover.removeEffect(slot: SlotType.SlotType)
     if not slot._isEmpty then
 
         if slot.WearableCategory == nil then 
-            TweenService:Create(
+            References_Inventory.TweenService:Create(
                 slot.ImageButton, 
                 TweenInfo.new(0.2), 
                 {Rotation = -180}
