@@ -1,6 +1,8 @@
 local InventoryScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
 local Type_Equipment = require(InventoryScriptStorage.CharacterSection.Components.Type_Equipment)
 
+warn("Test commit from macbook")
+
 export type SingleLootItem = {
     [Tool]: {
         Grabbed: boolean,
