@@ -20,22 +20,17 @@ export type StorageEquipment = {
     }
 }
 
+export type Regular = {
+    [Instance | Tool]: SingleLootItem
+}
+
 export type Corpse = {
     [Instance]: {
         StorageEquipment
     } 
 }
 
-export type Regular = {
-    [Instance]: {
-        [Tool]: {
-            Grabbed: boolean,
-            LayoutOrder: number
-        }
-    }
-}
-
-export type LootCategory = "Regular" | "Corpse" | "StorageEquipment"
+export type LootCategory = "Regular" | "Corpse"
 
 
 
