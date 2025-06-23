@@ -1,4 +1,5 @@
-local References_Inventory = require("./../../Components/References_Inventory")
+local RS = game:GetService("ReplicatedStorage")
+local References_Inventory = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
 References_Inventory.TemplateVital.Visible = false
 
 local VitalsData = {

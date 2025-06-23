@@ -1,0 +1,3 @@
+local CorpseLootable = {}
+
+return CorpseLootable

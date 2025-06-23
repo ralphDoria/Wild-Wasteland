@@ -42,6 +42,7 @@ References_Inventory_Client.InventoryScrollingFrame = References_Inventory_Clien
 -- Looting Section
 References_Inventory_Client.LootingSection = References_Inventory_Client.MainInventory:WaitForChild("LootingSection"):: Frame
 References_Inventory_Client._frame = References_Inventory_Client.LootingSection:WaitForChild("Frame"):: Frame
+References_Inventory_Client.LootingSectionTitle = References_Inventory_Client.LootingSection:WaitForChild("SectionTitle"):: TextLabel
 References_Inventory_Client.LootingScrollingFrame = References_Inventory_Client._frame:WaitForChild("ScrollingFrame"):: ScrollingFrame
 References_Inventory_Client.LootingEquipmentSlots = References_Inventory_Client._frame:WaitForChild("EquipmentSlots"):: Frame
 

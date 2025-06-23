@@ -21,6 +21,11 @@ local targetTint = Color3.fromRGB(152, 152, 152)
 InventoryCC.Parent = Lighting
 local cachedToggle: boolean
 
+export type InventoryForms = "Closed" | "InventoryForm" | "LootingForm"
+InventoryToggle.currentForm = "Closed":: InventoryForms
+local InventoryFormChangedBindable = Instance.new("BindableEvent")
+InventoryToggle.InventoryFormChanged = InventoryFormChangedBindable.Event
+
 local function toggleInventoryLightingFX(toggle: boolean)
 	if cachedToggle ~= toggle then
 		cachedToggle = toggle
@@ -38,23 +43,41 @@ local function toggleInventoryLightingFX(toggle: boolean)
 	end
 end
 
-function InventoryToggle.Visible(toggle: boolean)
-    if toggle then
-		References_Inventory.MainInventory.Visible = true
-        local screenHeight = References_Inventory.InventoryScreenGui.AbsoluteSize.Y
-        local HotbarHeight = References_Inventory.Hotbar.AbsoluteSize.Y
-		TweenService:Create(References_Inventory.MainInventory, tweenInfo, {Size = UDim2.new(1, 0, 0, screenHeight - HotbarHeight)}):Play()
-	else
-		local tween = TweenService:Create(References_Inventory.MainInventory, tweenInfo, {Size = UDim2.fromScale(1, 0)})
+function InventoryToggle.ChangeForm(form: InventoryForms)
+
+    if form == InventoryToggle.currentForm then return end
+
+    InventoryToggle.currentForm = form
+    InventoryFormChangedBindable:Fire()
+
+    if form == "Closed" then
+        toggleInventoryLightingFX(false)
+	    ToggleOVerrideCamModeCursorLock(false)
+        local tween = TweenService:Create(References_Inventory.MainInventory, tweenInfo, {Size = UDim2.fromScale(1, 0)})
 		tween:Play()
 		tween.Completed:Once(function(a0: Enum.PlaybackState)  
 			if References_Inventory.MainInventory.Size.Y.Scale == 0 then
 				References_Inventory.MainInventory.Visible = false
 			end
 		end)
-	end
-	toggleInventoryLightingFX(toggle)
-	ToggleOVerrideCamModeCursorLock(toggle)
+    elseif form == "InventoryForm" or form == "LootingForm" then
+        toggleInventoryLightingFX(true)
+	    ToggleOVerrideCamModeCursorLock(true)
+        References_Inventory.MainInventory.Visible = true
+        local screenHeight = References_Inventory.InventoryScreenGui.AbsoluteSize.Y
+        local HotbarHeight = References_Inventory.Hotbar.AbsoluteSize.Y
+		TweenService:Create(References_Inventory.MainInventory, tweenInfo, {Size = UDim2.new(1, 0, 0, screenHeight - HotbarHeight)}):Play()
+    end
+
+    References_Inventory.LootingSection.Visible = if form == "LootingForm" then true else false
+end
+
+local function inventoryStateMachine(form: InventoryForms): InventoryForms
+    if InventoryToggle.currentForm:: InventoryForms == "Closed" then
+        return "InventoryForm"
+    else
+        return "Closed"
+    end
 end
 
 function InventoryToggle.Bind()
@@ -62,7 +85,7 @@ function InventoryToggle.Bind()
         "Inventory", 
         function(actionName, inputState, _inputObject)
             if actionName == "Inventory" and inputState == Enum.UserInputState.Begin then
-                InventoryToggle.Visible(if References_Inventory.MainInventory.Visible then false else true)
+                InventoryToggle.ChangeForm(inventoryStateMachine(InventoryToggle.currentForm))
             end
             return Enum.ContextActionResult.Sink
         end,
@@ -73,11 +96,50 @@ function InventoryToggle.Bind()
     if button then
         touchBackpackSlotConnection = button.MouseButton1Click:Connect(function()  
             print("touch tap input registered")
-            InventoryToggle.Visible(if References_Inventory.MainInventory.Visible then false else true)
+            InventoryToggle.ChangeForm(inventoryStateMachine(InventoryToggle.currentForm))
         end)
     else
         warn("button not found")
     end
+end
+
+function InventoryToggle.connectOnCloseAreaClicked(callback: () -> ()): RBXScriptConnection
+
+    local function _inCloseArea(): boolean
+        local mousePos = References_Inventory.UserInputService:GetMouseLocation()
+        local guis = References_Inventory.PlayerGui:GetGuiObjectsAtPosition(mousePos.X, mousePos.Y - References_Inventory.GuiService:GetGuiInset().Y)
+        warn(guis)
+        local filteredGuis = {}
+
+        for _, v in guis do 
+            if v == References_Inventory.CharacterSection
+                or v == References_Inventory.InventorySection
+                or v == References_Inventory.LootingSection then
+                table.insert(filteredGuis, v)
+            end
+        end
+
+        if #filteredGuis == 0 then 
+            return true
+        else
+            return false
+        end
+    end
+
+    local function _inputAndAreaChecks(inputObject: InputObject)
+        return (inputObject.UserInputType == Enum.UserInputType.MouseButton1 or inputObject.UserInputType == Enum.UserInputType.Touch) and _inCloseArea()
+    end
+
+    return References_Inventory.UserInputService.InputBegan:Connect(function(io1: InputObject)  
+        if _inputAndAreaChecks(io1) then
+            References_Inventory.UserInputService.InputEnded:Once(function(io2: InputObject, a1: boolean)  
+                if _inputAndAreaChecks(io2) then
+                    callback()
+                end
+            end)
+        end
+    end)
+
 end
 
 function InventoryToggle.Unbind()
@@ -85,6 +147,10 @@ function InventoryToggle.Unbind()
     if touchBackpackSlotConnection then
         touchBackpackSlotConnection:Disconnect()
         touchBackpackSlotConnection = nil
+    end
+    if outsideClickCheck then
+        outsideClickCheck:Disconnect()
+        outsideClickCheck = nil
     end
 end
 

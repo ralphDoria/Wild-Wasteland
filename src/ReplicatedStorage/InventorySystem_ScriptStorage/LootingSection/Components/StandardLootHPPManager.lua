@@ -1,39 +1,33 @@
 --!strict
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Trove = require(ReplicatedStorage.Packages.Trove)
-local player = game:GetService("Players").LocalPlayer
-local LootingSystem_Storage = ReplicatedStorage.LootingSystem_Storage
-local highlight: Highlight = LootingSystem_Storage.Instances.Highlight
-local ToggleOVerrideCamModeCursorLock = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Misc.ToggleOverrideCamModeCursorLock)
+local References_Inventory_Client = require(game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
+local LootingSystem_Storage = References_Inventory_Client.ReplicatedStorage.LootingSystem_Storage
+local InventoryScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
 
-local bindables : {[string] : BindableEvent} = {
-    -- OnPickUp = LootingSystem_Storage.Shared.Bindables.OnPickUp
-}
-local remotes: {[string] : RemoteEvent} = {
-    -- PickUpTool = LootingSystem_Storage.Shared.Remotes.PickUpTool
-}
+local highlight: Highlight = LootingSystem_Storage.Instances.Highlight
 
 export type HighlightAndProximityPromptManagerObject = {
     instance : Instance,
     highlight : Highlight,
     pp : ProximityPrompt,
+    onTriggered: (ProximityPrompt) -> (),
     connections : {RBXScriptConnection?}
 }
 
-local HighlighAndProximityPromptManager = {}
+local StandardLootHPPManager = {}
 
-function HighlighAndProximityPromptManager.new(instance: Instance, proximityPromptParent) : HighlightAndProximityPromptManagerObject
+function StandardLootHPPManager.new(instance: Instance, proximityPromptParent, onTriggered: (pp: ProximityPrompt) -> ()) : HighlightAndProximityPromptManagerObject
     local self : HighlightAndProximityPromptManagerObject = {
         instance = instance,
         highlight = highlight:Clone(),
         pp = Instance.new("ProximityPrompt"),
+        onTriggered = onTriggered,
         connections = {}
     }
 
     self.highlight.Enabled = false
     self.highlight.Parent = instance
     self.pp.ObjectText = instance.Name
-    self.pp.ActionText = "Pick Up"
+    self.pp.ActionText = "Loot"
     self.pp.MaxActivationDistance = 5
     self.pp.Style = Enum.ProximityPromptStyle.Custom
     self.pp.Enabled = false
@@ -42,12 +36,16 @@ function HighlighAndProximityPromptManager.new(instance: Instance, proximityProm
     self.pp.Enabled = true
     self.pp.Parent = proximityPromptParent
 
-    HighlighAndProximityPromptManager._initialize(self)
+    StandardLootHPPManager._initialize(self)
 
     return self
 end
 
-function HighlighAndProximityPromptManager._initialize(self : HighlightAndProximityPromptManagerObject)
+function StandardLootHPPManager._initialize(self : HighlightAndProximityPromptManagerObject)
+    self.pp.Triggered:Connect(function()  
+        self.pp.Enabled = false
+        self.onTriggered(self.pp)
+    end)
     table.insert(
         self.connections,
         self.pp.PromptShown:Connect(function(a0: Enum.ProximityPromptInputType)
@@ -62,7 +60,7 @@ function HighlighAndProximityPromptManager._initialize(self : HighlightAndProxim
     )
 end
 
-function HighlighAndProximityPromptManager.Destroy(self: HighlightAndProximityPromptManagerObject)
+function StandardLootHPPManager.Destroy(self: HighlightAndProximityPromptManagerObject)
     for _, v in self.connections do
         if typeof(v) == "RBXScriptConnection" then
             v:Disconnect()    
@@ -75,4 +73,4 @@ function HighlighAndProximityPromptManager.Destroy(self: HighlightAndProximityPr
 end
 
 
-return HighlighAndProximityPromptManager
+return StandardLootHPPManager

@@ -1,11 +1,13 @@
 --!strict
 
-local References_Inventory = require("./Components/References_Inventory")
+local RS = game:GetService("ReplicatedStorage")
+local References_Inventory = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
 
 -- Sections
 local ScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
 local CharacterSection = require(ScriptStorage.CharacterSection.Main_CharacterSection)
 local HotbarSection = require(ScriptStorage.HotbarSection.Main_HotbarSection)
+local LootingSection = require(ScriptStorage.LootingSection.Main_LootingSection)
 
 -- Universal Inventory Components
 local Slot = require("./Components/Slot/Slot")
@@ -36,7 +38,8 @@ function InventorySystem.init()
 
 	CharacterSection.init()
 	HotbarSection.init(References_Inventory.TemplateSlot, References_Inventory.Hotbar)
-	InventoryToggle.Visible(false)
+	InventoryToggle.ChangeForm("Closed")
+	LootingSection.init()
 	
 	ItemMovementTracker(
 		function(tool) --onAdded
@@ -71,12 +74,23 @@ function InventorySystem.init()
 	InventoryToggle.Bind()
 end
 
+local cachedScreenSize = {
+	width = nil,
+	height = nil
+}
 function InventorySystem.ResizeGui()
+	local screenWidth = References_Inventory.InventoryScreenGui.AbsoluteSize.X
+
 	local screenHeight = References_Inventory.InventoryScreenGui.AbsoluteSize.Y
 	local HotbarHeight = References_Inventory.Hotbar.AbsoluteSize.Y
 	References_Inventory.MainInventory.Size = UDim2.new(1, 0, 0, screenHeight - HotbarHeight)
 
 	CharacterSection.ResizeGui()
+
+	if screenWidth ~= cachedScreenSize.width then
+		cachedScreenSize.width = screenWidth
+		LootingSection.ResizeGui()
+	end
 
 	local characterSectionHeight = References_Inventory.CharacterSection.AbsoluteSize.Y
 	local fifthSection = characterSectionHeight/5

@@ -1,72 +1,64 @@
-local Types_LootData = require(game:GetService("ServerScriptService").RojoManaged_SSS.LootingSystem_Server.Types_LootData)
-local Type_Equipment = require(InventoryScriptStorage.CharacterSection.Components.Type_Equipment)
+-- local InventoryScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
 
-local LootDataService = {}
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local handleTaggedInstances = require(ReplicatedStorage.RojoManaged_RS.Utility.handleTaggedInstances)
+local InventoryScriptStorage = ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage
+local TAGS_LOOT = require(InventoryScriptStorage.LootingSection.Components.TAGS_LOOT)
+local Types_LootSystem = require(InventoryScriptStorage.LootingSection.Components.Types_LootSystem)
 
-local RegularLoot: Types_LootData.Regular = {}
+local LootingSystem_Server = game:GetService("ServerScriptService").RojoManaged_SSS.LootingSystem_Server
+local StandardLootable = require(LootingSystem_Server.Components.StandardLootable)
 
-local CorpseLoot: Types_LootData.Corpse = {}
-
-type entry = {
-    category: Types_LootData.LootCategory,
-    DataStructure: {Types_LootData.Regular | Types_LootData.StorageEquipment | Types_LootData.Corpse}
+local LootingSystem_Storage = ReplicatedStorage.LootingSystem_Storage
+local rfn: {[string] : RemoteFunction} = {
+    WaitForServersideInit = LootingSystem_Storage.Remotes.WaitForServersideInit,
+    GetLootData = LootingSystem_Storage.Remotes.GetLootData,
+    RequestDataChange = LootingSystem_Storage.Remotes.RequestDataChange
 }
 
-function LootDataService.Register(category: Types_LootData.LootCategory, lootable: Instance)    
-    if category == "Regular" then
-        if RegularLoot[lootable] == nil then
-            RegularLoot[lootable] = {}
+local LootDataService = {
+    initialized = false
+}
+
+local MasterList: {[Instance | Tool]: Types_LootSystem.StandardLootableObject} = {}
+
+function LootDataService.init()
+    local connections = handleTaggedInstances(TAGS_LOOT.STANDARD_CONTAINER, 
+        function(taggedInstance: Instance)  
+            LootDataService.Register(taggedInstance, StandardLootable.new(5))
+        end,
+        function(taggedInstance: Instance)  
+            LootDataService.Deregister(taggedInstance)
         end
-    elseif category == "Corpse" then
-        if CorpseLoot[lootable] == nil then
-            CorpseLoot[lootable] = {}        
+    )
+
+    rfn.GetLootData.OnServerInvoke = function(player, lootable: Model | Instance): Types_LootSystem.StandardLootableObject?
+        return MasterList[lootable]
+    end
+
+    LootDataService.initialized = true
+
+    rfn.WaitForServersideInit.OnServerInvoke = function(player)
+        while LootDataService.initialized == false do
+            task.wait(1)
         end
+        return true
+    end
+end
+
+function LootDataService.Register(lootable: Instance, lootableObject: Types_LootSystem.StandardLootableObject)    
+    if MasterList[lootable] == nil then
+        MasterList[lootable] = lootableObject
     else
-        warn(`Unrecognized category type {category}`)
+        warn(`{lootable} is already registered`)
     end
 end
 
-type ItemData_Regular = {
-    tool: Tool,
-    LayoutOrder: number
-}
-
-function LootDataService.AddItemToRegular(lootable, , ...: ItemData_Regular)
-    assert(RegularLoot[lootable] ~= nil, `{lootable} is not registered as a regular lootable.`)
-
-    local args = {...}
-    for _, v: ItemData_Regular in args do
-        RegularLoot[lootable][v.tool] = {
-            v.Grabbed = false,
-            v.LayoutOrder = v.LayoutOrder
-        }
+function LootDataService.Deregister(lootable: Instance)
+    if MasterList[lootable] then
+        StandardLootable.Destroy(MasterList[lootable])
+        MasterList[lootable] = nil
     end
-end
-
-type ItemData_Corpse = {
-    tool: Tool,
-    EquipmentCategory: 
-    location: {
-        SlotGroup: Tool?,
-        LayoutOrder: number
-    }
-}
-
-function LootDataService.WearOnCorpse(lootable, , ...: ItemData_Corpse)
-    assert(CorpseLoot[lootable] ~= nil, `{lootable} is not registered as a corpse lootable.`)
-
-    local args = {...}
-    for _, v: ItemData_Regular in args do
-        RegularLoot[lootable][v.tool] = {
-            Grabbed = v.Grabbed,
-            EquipmentCategory = v.
-            Slotgroup = {}            
-        }
-    end
-end
-
-function LootDataService.GetData(lootable: Instance): Types_LootData.Regular | Types_LootData.StorageEquipment | Types_LootData.Corpse
-    return MasterList[lootable]
 end
 
 return LootDataService
