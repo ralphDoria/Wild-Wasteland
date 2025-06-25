@@ -13,7 +13,7 @@ export type ItemGroupObject = {
     State: ItemGroupState,
     Name: string,
     Space: number,
-    ItemSlots: {[Frame]: Slot.SlotType},
+    ItemSlots: {[Frame]: Slot.SlotObject},
     ItemsFrame: Frame,
     Connections: {RBXScriptConnection}
 }

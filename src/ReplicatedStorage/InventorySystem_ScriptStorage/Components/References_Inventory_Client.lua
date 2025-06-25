@@ -28,7 +28,7 @@ References_Inventory_Client.TouchBackpackSlot = References_Inventory_Client.Hotb
 References_Inventory_Client.CharacterSection = References_Inventory_Client.MainInventory:WaitForChild("CharacterSection"):: Frame
 References_Inventory_Client.Vitals = References_Inventory_Client.CharacterSection:WaitForChild("Vitals"):: Frame
 References_Inventory_Client.Viewport = References_Inventory_Client.CharacterSection:WaitForChild("ViewportFrame"):: ViewportFrame
-References_Inventory_Client.CharacterEquipmentSlots = References_Inventory_Client.CharacterSection:WaitForChild("EquipmentSlots"):: Frame
+References_Inventory_Client.CharacterEquipmentSlots = References_Inventory_Client.CharacterSection:WaitForChild("CharacterEquipmentSlots"):: Frame
     -- Vitals
     References_Inventory_Client.Vitals = References_Inventory_Client.CharacterSection:WaitForChild("Vitals"):: Frame
     References_Inventory_Client.TemplateVital = References_Inventory_Client.Vitals:WaitForChild("TemplateVital"):: Frame
@@ -37,14 +37,14 @@ References_Inventory_Client.CharacterEquipmentSlots = References_Inventory_Clien
 -- Inventory Section
 References_Inventory_Client.InventorySection = References_Inventory_Client.MainInventory:WaitForChild("InventorySection")
 References_Inventory_Client.SearchTools = References_Inventory_Client.InventorySection:WaitForChild("SearchTools")
-References_Inventory_Client.InventoryScrollingFrame = References_Inventory_Client.InventorySection:WaitForChild("ScrollingFrame"):: ScrollingFrame
+References_Inventory_Client.InventoryScrollingFrame = References_Inventory_Client.InventorySection:WaitForChild("InventoryScrollingFrame"):: ScrollingFrame
 
 -- Looting Section
 References_Inventory_Client.LootingSection = References_Inventory_Client.MainInventory:WaitForChild("LootingSection"):: Frame
 References_Inventory_Client._frame = References_Inventory_Client.LootingSection:WaitForChild("Frame"):: Frame
 References_Inventory_Client.LootingSectionTitle = References_Inventory_Client.LootingSection:WaitForChild("SectionTitle"):: TextLabel
-References_Inventory_Client.LootingScrollingFrame = References_Inventory_Client._frame:WaitForChild("ScrollingFrame"):: ScrollingFrame
-References_Inventory_Client.LootingEquipmentSlots = References_Inventory_Client._frame:WaitForChild("EquipmentSlots"):: Frame
+References_Inventory_Client.LootingScrollingFrame = References_Inventory_Client._frame:WaitForChild("LootingScrollingFrame"):: ScrollingFrame
+References_Inventory_Client.LootingEquipmentSlots = References_Inventory_Client._frame:WaitForChild("LootingEquipmentSlots"):: Frame
 
 -- Templates
 References_Inventory_Client.Templates = References_Inventory_Client.InventoryScreenGui:WaitForChild("Templates")

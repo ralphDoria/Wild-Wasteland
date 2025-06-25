@@ -2,6 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
 
 local ScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
+local Hover = require(ScriptStorage.Components.Slot.Hover)
 local ToggleOVerrideCamModeCursorLock = require(ScriptStorage.Components.Misc.ToggleOverrideCamModeCursorLock)
 
 local touchBackpackSlotConnection: RBXScriptConnection?
@@ -105,29 +106,8 @@ end
 
 function InventoryToggle.connectOnCloseAreaClicked(callback: () -> ()): RBXScriptConnection
 
-    local function _inCloseArea(): boolean
-        local mousePos = References_Inventory.UserInputService:GetMouseLocation()
-        local guis = References_Inventory.PlayerGui:GetGuiObjectsAtPosition(mousePos.X, mousePos.Y - References_Inventory.GuiService:GetGuiInset().Y)
-        warn(guis)
-        local filteredGuis = {}
-
-        for _, v in guis do 
-            if v == References_Inventory.CharacterSection
-                or v == References_Inventory.InventorySection
-                or v == References_Inventory.LootingSection then
-                table.insert(filteredGuis, v)
-            end
-        end
-
-        if #filteredGuis == 0 then 
-            return true
-        else
-            return false
-        end
-    end
-
     local function _inputAndAreaChecks(inputObject: InputObject)
-        return (inputObject.UserInputType == Enum.UserInputType.MouseButton1 or inputObject.UserInputType == Enum.UserInputType.Touch) and _inCloseArea()
+        return (inputObject.UserInputType == Enum.UserInputType.MouseButton1 or inputObject.UserInputType == Enum.UserInputType.Touch) and Hover.isOutsideInventory()
     end
 
     return References_Inventory.UserInputService.InputBegan:Connect(function(io1: InputObject)  

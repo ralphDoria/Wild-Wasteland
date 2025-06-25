@@ -44,7 +44,7 @@ function InventorySystem.init()
 	ItemMovementTracker(
 		function(tool) --onAdded
 			-- warn("calling onAdded")
-			local emptyHotbarslot : Slot.SlotType? =  HotbarSection.findMinimumEmptyHotbarSlot()
+			local emptyHotbarslot : Slot.SlotObject? =  HotbarSection.findMinimumEmptyHotbarSlot()
 			if emptyHotbarslot ~= nil then
 				Slot.FillSlot(emptyHotbarslot, tool, tool:GetAttribute("Type") :: string)
 			end
@@ -62,7 +62,7 @@ function InventorySystem.init()
 		end,
 		function(tool) --onDropped
 			--empty slot
-			Slot.EmptySlot(SlotObjectsCacher.GetSlotFromTool(tool) ::  Slot.SlotType)
+			Slot.EmptySlot(SlotObjectsCacher.GetSlotFromTool(tool) ::  Slot.SlotObject)
 		end
 	)
 
@@ -95,7 +95,7 @@ function InventorySystem.ResizeGui()
 	local characterSectionHeight = References_Inventory.CharacterSection.AbsoluteSize.Y
 	local fifthSection = characterSectionHeight/5
 	if  fifthSection < 50 then
-		for _, v: Slot.SlotType in SlotObjectsCacher.InitializedSlots do
+		for _, v: Slot.SlotObject in SlotObjectsCacher.InitializedSlots do
 			v._itself.Size = UDim2.fromOffset(fifthSection, fifthSection)
 		end
 		References_Inventory.TouchBackpackSlot.Size = UDim2.fromOffset(fifthSection, fifthSection)

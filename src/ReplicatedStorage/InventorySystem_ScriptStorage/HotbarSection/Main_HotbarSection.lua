@@ -55,8 +55,8 @@ function HotbarManager.init(SlotTemplate : Frame, hotbar : CanvasGroup)
     HotbarManager.toggleKeybindToHotbarSlot(true)
 end
 
-function HotbarManager.findMinimumEmptyHotbarSlot() : Slot.SlotType?
-    local lowest: Slot.SlotType? = nil
+function HotbarManager.findMinimumEmptyHotbarSlot() : Slot.SlotObject?
+    local lowest: Slot.SlotObject? = nil
     for _, v in hotbarSlotToSlotData do
         if v._isEmpty == true and v.State ~= "BeingSwapped" then
             if lowest == nil then

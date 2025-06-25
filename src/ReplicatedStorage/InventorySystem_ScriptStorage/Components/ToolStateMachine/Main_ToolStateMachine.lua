@@ -186,7 +186,7 @@ end
 
 local ToolStateMachine = {}
 
-function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_state: Type_Item.ItemState, onValidated: ((number) -> ())?,onFinished: ((string) -> ())?)
+function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_state: Type_Item.ItemState, onValidated: ((number) -> ())?, onCancelled, onFinished: ((string) -> ())?)
 
     local target_tool: Tool = target_slot.tool:: Tool
 

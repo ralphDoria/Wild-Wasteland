@@ -4,7 +4,6 @@ local isOverriding: boolean = false
 
 return function(toggle: boolean)
   if isOverriding == toggle then return end
-  warn("changed")
 
   isOverriding = toggle
   if toggle then

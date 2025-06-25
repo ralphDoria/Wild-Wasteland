@@ -25,7 +25,7 @@ local MasterList: {[Instance | Tool]: Types_LootSystem.StandardLootableObject} =
 function LootDataService.init()
     local connections = handleTaggedInstances(TAGS_LOOT.STANDARD_CONTAINER, 
         function(taggedInstance: Instance)  
-            LootDataService.Register(taggedInstance, StandardLootable.new(5))
+            LootDataService.Register(taggedInstance, StandardLootable.new(20))
         end,
         function(taggedInstance: Instance)  
             LootDataService.Deregister(taggedInstance)
@@ -35,6 +35,8 @@ function LootDataService.init()
     rfn.GetLootData.OnServerInvoke = function(player, lootable: Model | Instance): Types_LootSystem.StandardLootableObject?
         return MasterList[lootable]
     end
+
+    -- rfn.RequestDataChange.OnServerInvoke =
 
     LootDataService.initialized = true
 

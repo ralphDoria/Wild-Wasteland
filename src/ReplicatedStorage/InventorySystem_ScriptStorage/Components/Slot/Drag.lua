@@ -8,6 +8,10 @@ local Hover = require(ScriptStorage.Components.Slot.Hover)
 local dropAreaIndicatorSound: Sound = ReplicatedStorage.InventorySystem_Storage.SFX.dropAreaIndicator
 local PlaySound = require(ReplicatedStorage.RojoManaged_RS.Utility.PlaySoundUtil)
 
+local SFX = {
+    pickUp = References_Inventory.Storage.SFX.pickUp,
+    setDown = References_Inventory.Storage.SFX.setDown,
+}
 
 local Drag = {}
 
@@ -43,7 +47,7 @@ function Drag.start(slot: Type_Slot.SlotObject, whileDragging: () -> ())
         if Hover.currentSlot and Hover.currentSlot ~= slot then
             ghostSlot.ActionIndicator.Image = slot.ActionIndicator:GetAttribute("swapImage") :: string
             ghostSlot.ActionIndicator.Visible = true
-        elseif Hover.InDropArea and Hover.currentSlot == nil then
+        elseif Hover.isOutsideInventory() and Hover.currentSlot == nil then
             ghostSlot.ActionIndicator.Image = slot.ActionIndicator:GetAttribute("dropImage") :: string
             if ghostSlot.ActionIndicator.Visible == false then
                 ghostSlot.ActionIndicator.Visible = true
@@ -64,6 +68,53 @@ function Drag.stop(slot: Type_Slot.SlotObject)
         v:Destroy()
     end
     Drag.currentSlot = nil
+end
+
+function Drag.InitForSlot(slot: Type_Slot.SlotObject, onDraggedStopped: (hoverSlot: Type_Slot.SlotObject?, isOutsideInventory: boolean) -> ()): RBXScriptConnection
+    return slot.ImageButton.MouseButton1Down:Connect(function()
+
+        -- reason for these cached variables is because on touch inputs, hover coincides w/ drag via long presss
+        local cached: {hoverSlot: Type_Slot.SlotObject?, isOutsideInventory: boolean} = {
+            hoverSlot = nil,
+            isOutsideInventory = false
+        }
+
+        local startDrag: RBXScriptConnection
+        startDrag = References_Inventory.UserInputService.InputChanged:Connect(function(inputObject: InputObject, a1: boolean)  
+            if inputObject.UserInputType == Enum.UserInputType.MouseMovement
+                or inputObject.UserInputType == Enum.UserInputType.Touch then
+                startDrag:Disconnect()
+                if References_Inventory.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                    Drag.start(slot, function()
+                        cached.hoverSlot = Hover.currentSlot
+                        cached.isOutsideInventory = Hover.isOutsideInventory()
+                    end)
+                    PlaySound(SFX.pickUp)
+                end
+            end
+        end)
+
+        local endDrag
+        endDrag = References_Inventory.UserInputService.InputEnded:Connect(function(inputObject: InputObject, a1: boolean)  
+
+
+            if inputObject.UserInputType == Enum.UserInputType.MouseButton1 or inputObject.UserInputType == Enum.UserInputType.Touch then
+
+                if Drag.currentSlot == nil then
+                    endDrag:Disconnect()
+                    startDrag:Disconnect()
+                    print("Cancelling drag functionality")
+                    return
+                end
+
+                endDrag:Disconnect()
+                Drag.stop(slot)
+                PlaySound(SFX.setDown)
+
+                onDraggedStopped(cached.hoverSlot, cached.isOutsideInventory)
+            end
+        end)
+    end)
 end
 
 return Drag

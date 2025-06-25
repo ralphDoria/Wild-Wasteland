@@ -10,26 +10,28 @@ Hover.currentSlot = nil
 SlotHoveredChangedBindable = Instance.new("BindableEvent")
 SlotHoveredChanged = SlotHoveredChangedBindable.Event
 
-Hover.InDropArea = false
-
-References_Inventory.RunService.RenderStepped:Connect(function(a0: number)  
+function Hover.isOutsideInventory(): boolean
     local mousePos = References_Inventory.UserInputService:GetMouseLocation()
     local guis = References_Inventory.PlayerGui:GetGuiObjectsAtPosition(mousePos.X, mousePos.Y - References_Inventory.GuiService:GetGuiInset().Y)
+    -- warn(guis)
     local filteredGuis = {}
 
     for _, v in guis do 
-        if v.Parent == References_Inventory.InventoryScreenGui and v.Name ~= "innerFrame" then
+        if v == References_Inventory.CharacterSection
+            or v == References_Inventory.InventorySection
+            or v == References_Inventory.LootingSection 
+            or v == References_Inventory.Hotbar
+            then
             table.insert(filteredGuis, v)
         end
     end
 
-    if filteredGuis[1] == References_Inventory.DropArea then 
-        Hover.InDropArea = true 
+    if #filteredGuis == 0 then 
+        return true
     else
-        Hover.InDropArea = false
+        return false
     end
-    -- print(Hover.InDropArea, filteredGuis)
-end)
+end
 
 local itemInfoDisplays: {[Type_Slot.SlotObject]: Frame} = {}
 
