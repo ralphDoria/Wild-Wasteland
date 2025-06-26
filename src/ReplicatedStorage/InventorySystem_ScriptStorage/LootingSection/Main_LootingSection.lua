@@ -29,7 +29,6 @@ function LootingSection.init()
         function(taggedInstance: Model | Tool) 
 
             local changeReplicator: RemoteEvent? = rfn.GetChangeReplicatorRemote:InvokeServer(taggedInstance)
-            warn(`client: {changeReplicator}`)
             local onLootDataChanged: RBXScriptConnection?
 
             local function getDistanceBetween2Points(point1: Vector3, point2: Vector3)

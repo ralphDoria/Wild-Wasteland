@@ -18,7 +18,8 @@ local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage"
 local bindables : {[string] : BindableEvent} = {
     ToggleEquip = ToolSystem_Storage.Shared:FindFirstChild("ToggleEquip", true),
     OnPickUp = ToolSystem_Storage.Shared.Bindables.OnPickUp,
-    DropToolBindable = ToolSystem_Storage.Shared.Bindables.DropToolBindable
+    DropToolBindable = ToolSystem_Storage.Shared.Bindables.DropToolBindable,
+    ImmediateUnequip = ToolSystem_Storage.Shared.Bindables.ImmediateUnequip,
 }
 local remotes: {[string] : RemoteEvent} = {
     ToggleToolCanCollide = ToolSystem_Storage.Shared.Remotes.ToggleToolCanCollide,
@@ -116,6 +117,11 @@ function Item.initialize(self : ItemType, equipping: () -> ()?, equipped: () -> 
             Item.drop(self)
         end
     end)
+    self.connections.bindableImmediateUnequip = bindables.ImmediateUnequip.Event:Connect(function(key: Tool)  
+        if key == self.tool then
+            Item.immediateUnequip(self)
+        end
+    end)
 end
 
 --[[
@@ -195,6 +201,20 @@ function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> 
     end
 end
 
+function Item.immediateUnequip(self: ItemType)
+    if self.State == "Unequipped" then return end
+    
+    for _, v in self.actionNames do
+        if ActionManager.isBinded(v) then
+            ActionManager.unbindAction(v)
+        end 
+    end
+    AnimationManager.StopAllAnimsForTool(currentAnimationManager, self.tool)
+    AnimationManager.StopAllAnimsForTool(self.ViewmodelManager.animManager, self.tool)
+    Item.ChangeState(self, "Unequipped")
+    ToolGuiManager.hide()
+end
+
 function Item.ChangeState(self: ItemType, state: state)
     self.tool:SetAttribute("State", state)
     self.State = state
@@ -203,7 +223,6 @@ end
 function Item.drop(self : ItemType, onDropping: () -> ()?, onDropped : () -> ()?)
     if self.State == "Idle" or self.State == "Equipping" or self.State == "Unequipped" then
         Item.ChangeState(self, "Dropping")
-        -- Item.toggleDropBind(self, false)
         for _, v in self.actionNames do
             if ActionManager.isBinded(v) then
                 ActionManager.unbindAction(v)

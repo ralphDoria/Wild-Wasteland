@@ -7,6 +7,7 @@ local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventoryS
 local ToolSystem_Storage = References_Inventory.ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local bindables = {
     DropToolBindable = ToolSystem_Storage.Shared.Bindables.DropToolBindable,
+    ImmediateUnequip = ToolSystem_Storage.Shared.Bindables.ImmediateUnequip,
 }
 
 local InventoryScriptStorage = ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage
@@ -185,11 +186,16 @@ local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlo
     )
 end
 
-local function globalSimpleSlotSwap(inventoryOrHotbarSlotData: slotData, lootScrollingSlotData: slotData, fillSlot, emptySlot)
+local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData: slotData, lootScrollingSlotData: slotData, fillSlot, emptySlot)
+    local inventoryOrHotbarSlotTool: Tool? = inventoryOrHotbarSlotData.slotObject.tool
+    if inventoryOrHotbarSlotTool and inventoryOrHotbarSlotTool:GetAttribute("State") ~= "Unequipped" then
+        warn(`immediately unequipping {inventoryOrHotbarSlotTool} because it is not unequipped`)
+        bindables.ImmediateUnequip:Fire(inventoryOrHotbarSlotTool)
+    end
     LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
         LayoutOrder = lootScrollingSlotData.slotObject._itself.LayoutOrder,
         syncCheck = lootScrollingSlotData.slotObject.tool,
-        newTool = inventoryOrHotbarSlotData.slotObject.tool
+        newTool = inventoryOrHotbarSlotTool
     }):andThen(function(lootedTool: Tool?)
         print("success")
         if lootedTool then
@@ -198,6 +204,18 @@ local function globalSimpleSlotSwap(inventoryOrHotbarSlotData: slotData, lootScr
         else
             emptySlot(inventoryOrHotbarSlotData.slotObject)
         end
+    end):catch(function(error)
+        warn("Error", tostring(error))
+    end)
+end
+
+local function lootScrolling_drop(lootScrollingSlotData: slotData)
+    LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
+        LayoutOrder = lootScrollingSlotData.slotObject._itself.LayoutOrder,
+        syncCheck = lootScrollingSlotData.slotObject.tool,
+        newTool = nil
+    }):andThen(function(lootedTool: Tool?)
+        bindables.DropToolBindable:Fire(lootedTool)
     end):catch(function(error)
         warn("Error", tostring(error))
     end)
@@ -255,7 +273,7 @@ local ActionHandlers = {
     outsideInventory = {
         [SlotType.LOOTING_SCROLLING] = function(dragData)
             print("Action: Drop on crate/corpse or open drop menu")
-            bindables.DropToolBindable:Fire(dragData.slotObject.tool)
+            lootScrolling_drop(dragData)
         end,
         
         [SlotType.LOOTING_EQUIPMENT] = function(dragData)
@@ -287,7 +305,7 @@ local ActionHandlers = {
             end,
             [SlotType.INVENTORY_OR_HOTBAR] = function(dragData: slotData, hoverData: slotData, _, fillSlot, emptySlot)
                 print("Action: Looting scrolling to inventory/hotbar")
-                globalSimpleSlotSwap(hoverData, dragData, fillSlot, emptySlot)
+                inventoryOrHotbar_x_lootScrolling_swap(hoverData, dragData, fillSlot, emptySlot)
             end
         },
         
@@ -329,7 +347,7 @@ local ActionHandlers = {
         [SlotType.INVENTORY_OR_HOTBAR] = {
             [SlotType.LOOTING_SCROLLING] = function(dragData: slotData, hoverData: slotData, _, fillSlot, emptySlot)
                 print("Action: Inventory/hotbar to looting scrolling")
-                globalSimpleSlotSwap(dragData, hoverData, fillSlot, emptySlot)
+                inventoryOrHotbar_x_lootScrolling_swap(dragData, hoverData, fillSlot, emptySlot)
             end,
             [SlotType.LOOTING_EQUIPMENT] = function(dragData: slotData, hoverData: slotData)
                 print("Action: Inventory/hotbar to looting equipment")

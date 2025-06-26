@@ -129,7 +129,11 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool, itemType : stri
     Slot.ChangeState(self, "Idle")
 end
 
-function Slot.EmptySlot(self : Type_Slot.SlotObject)
+function Slot.EmptySlot(self : Type_Slot.SlotObject?)
+    if self == nil then 
+        warn("Cannot empty slot, SlotObject is nil")
+        return 
+    end
     Slot.ChangeState(self, "Emptying")
     Select.removeEffect(self)
     Hover.removeEffect(self)
@@ -155,9 +159,6 @@ end
 
 function Slot.destroy(self : Type_Slot.SlotObject)
     table.remove(SlotObjectsCacher.InitializedSlots, table.find(SlotObjectsCacher.InitializedSlots, self))
-    if not self._isEmpty then
-        Slot.EmptySlot(self)
-    end
     Slot.ChangeState(self, "Destroying")
     if self._itself.Parent ~= nil then
         self._itself:Destroy()    

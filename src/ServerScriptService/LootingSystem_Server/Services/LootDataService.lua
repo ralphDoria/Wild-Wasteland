@@ -64,7 +64,6 @@ function LootDataService.init()
             task.wait()
             print(`Waiting for {Instance} to be initialized`)
         end
-        print(`returning {onLootDataChangedRemotes[lootable]}`)
         return onLootDataChangedRemotes[lootable]
     end
 end

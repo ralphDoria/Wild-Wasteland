@@ -49,7 +49,7 @@ function StandardLootable.makeDataChange(player: Player, self: Types_LootSystem.
             end)
         end
         changeReplicator:FireAllClients(dataChangeRequestPacket.LayoutOrder, newTool, lootTool)
-        return true, lootTool
+        return true
     else
         return false
     end
