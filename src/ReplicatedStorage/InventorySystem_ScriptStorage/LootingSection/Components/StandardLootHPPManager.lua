@@ -10,12 +10,12 @@ export type HighlightAndProximityPromptManagerObject = {
     highlight : Highlight,
     pp : ProximityPrompt,
     onTriggered: (ProximityPrompt) -> (),
-    connections : {RBXScriptConnection?}
+    connections : {[string]: RBXScriptConnection?}
 }
 
 local StandardLootHPPManager = {}
 
-function StandardLootHPPManager.new(instance: Instance, proximityPromptParent, onTriggered: (pp: ProximityPrompt) -> ()) : HighlightAndProximityPromptManagerObject
+function StandardLootHPPManager.new(instance: Instance, proximityPromptParent, onTriggered: (pp: ProximityPrompt) -> ()): HighlightAndProximityPromptManagerObject
     local self : HighlightAndProximityPromptManagerObject = {
         instance = instance,
         highlight = highlight:Clone(),
@@ -46,18 +46,26 @@ function StandardLootHPPManager._initialize(self : HighlightAndProximityPromptMa
         self.pp.Enabled = false
         self.onTriggered(self.pp)
     end)
-    table.insert(
-        self.connections,
-        self.pp.PromptShown:Connect(function(a0: Enum.ProximityPromptInputType)
-            self.highlight.Enabled = true
-        end)
-    )
-    table.insert(
-        self.connections,
-        self.pp.PromptHidden:Connect(function(a0: Enum.ProximityPromptInputType)
-            self.highlight.Enabled = false
-        end)
-    )
+    self.connections.onPromptShown = self.pp.PromptShown:Connect(function(a0: Enum.ProximityPromptInputType)
+        if not self.highlight then return end
+
+        self.highlight.Enabled = true
+    end)
+    self.connections.onPromptHidden = self.pp.PromptHidden:Connect(function(a0: Enum.ProximityPromptInputType)
+        if not self.highlight then return end
+
+        self.highlight.Enabled = false
+    end)
+    self.connections.onHighlightDestroying = self.highlight.Destroying:Once(function(...: any)  
+        local shownConnection = self.connections.onPromptShown
+        local hiddenConnection = self.connections.onPromptHidden
+        if shownConnection then
+            shownConnection:Disconnect()
+        end
+        if hiddenConnection then
+            hiddenConnection:Disconnect()
+        end
+    end)
 end
 
 function StandardLootHPPManager.Destroy(self: HighlightAndProximityPromptManagerObject)

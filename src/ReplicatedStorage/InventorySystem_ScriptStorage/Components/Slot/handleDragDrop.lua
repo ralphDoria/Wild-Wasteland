@@ -331,6 +331,10 @@ local function characterEquipment_drop(characterEquipmentSlotData: slotData, cha
     )
 end
 
+local function lootScrolling_x_characterEquipment_swap()
+    
+end
+
 -- Action handlers for different drag-drop combinations
 local ActionHandlers = {
     -- Outside inventory actions (when isOutsideInventory is true)

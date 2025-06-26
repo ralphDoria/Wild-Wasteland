@@ -3,14 +3,16 @@ export type itemEntry = {
     tool: Tool
 }
 
+export type StandardLootableObjectItems = {
+    [number]: {
+        tool: Tool?,
+        isGrabbed: boolean
+    }
+}
+
 export type StandardLootableObject = {
     Space: number,
-    items: {
-        [number]: {
-            tool: Tool?,
-            isGrabbed: boolean
-        }
-    }
+    items: StandardLootableObjectItems
 }
 
 export type dataChangeRequestPacket = {

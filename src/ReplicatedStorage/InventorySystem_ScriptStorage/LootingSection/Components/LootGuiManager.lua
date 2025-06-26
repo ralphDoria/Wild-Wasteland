@@ -9,7 +9,7 @@ local Slot = require(InventoryScriptStorage.Components.Slot.Slot)
 local Types_LootSystem = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.LootingSection.Components.Types_LootSystem)
 local ToggleOVerrideCamModeCursorLock = require(InventoryScriptStorage.Components.Misc.ToggleOverrideCamModeCursorLock)
 
-local currentlyRendering: {lootableInstance: (Model | Tool)?, SlotGroup: (SlotGroup.ItemGroupObject)?} = {
+local currentlyRendering: {lootableInstance: (Model | Tool)?, SlotGroup: (SlotGroup.object)?} = {
     lootableInstance = nil,
     SlotGroup = nil
 }

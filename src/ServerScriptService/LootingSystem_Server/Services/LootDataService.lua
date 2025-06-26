@@ -14,7 +14,8 @@ local LootingSystem_Storage = ReplicatedStorage.LootingSystem_Storage
 local rfn: {[string] : RemoteFunction} = {
     GetChangeReplicatorRemote = LootingSystem_Storage.Remotes.GetChangeReplicatorRemote,
     GetLootData = LootingSystem_Storage.Remotes.GetLootData,
-    TrySlotInteraction = LootingSystem_Storage.Remotes.TrySlotInteraction
+    TrySlotInteraction = LootingSystem_Storage.Remotes.TrySlotInteraction,
+    OverrideItemData = LootingSystem_Storage.Remotes.OverrideItemData
 }
 
 local LootDataService = {
@@ -26,8 +27,17 @@ local onLootDataChangedRemotes: {[Instance | Tool]: RemoteEvent} = {}
 
 function LootDataService.init()
     local connections = handleTaggedInstances(TAGS_LOOT.STANDARD_CONTAINER, 
-        function(taggedInstance: Instance)  
-            LootDataService.Register(taggedInstance, StandardLootable.new(20))
+        function(taggedInstance: Instance)
+            local space
+            if taggedInstance:HasTag("StorageWearable") then
+                space = taggedInstance:GetAttribute("Space")
+                if space == nil then
+                    error(`{taggedInstance.Name} is missing attribute "Space"`)
+                end
+            else
+                space = 20
+            end
+            LootDataService.Register(taggedInstance, StandardLootable.new(space))
             onLootDataChangedRemotes[taggedInstance] = Instance.new("RemoteEvent")
             onLootDataChangedRemotes[taggedInstance].Parent = ReplicatedStorage
         end,
@@ -55,6 +65,11 @@ function LootDataService.init()
             return false
         end
 
+    end
+
+    rfn.OverrideItemData.OnServerInvoke = function(player, lootable, itemData: Types_LootSystem.StandardLootableObjectItems)
+        MasterList[lootable].items = itemData
+        return true
     end
 
     LootDataService.initialized = true

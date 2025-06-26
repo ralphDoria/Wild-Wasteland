@@ -3,29 +3,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
 
 local ScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
-local Slot = require("./Slot")
+local Slot = require(ScriptStorage.Components.Slot.Slot)
 local SlotObjectsCacher = require("./SlotObjectsCacher")
 local Types_LootSystem = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.LootingSection.Components.Types_LootSystem)
+local Type_SlotGroup = require(ScriptStorage.Components.Slot.Type_SlotGroup)
 
-export type ItemGroupState = "Empty" | "Filled"
-
-export type ItemGroupObject = {
-    _itself: Frame,
-    State: ItemGroupState,
-    Name: string,
-    Space: number,
-    ItemSlots: {[Frame]: Slot.SlotObject},
-    ItemsFrame: Frame,
-    Connections: {RBXScriptConnection}
-}
+export type object = Type_SlotGroup.object
 
 local SlotGroup = {}
 SlotGroup.__index = SlotGroup
 
-function SlotGroup.new(name: string, space: number, lootData: Types_LootSystem.StandardLootableObject?): ItemGroupObject
+function SlotGroup.new(name: string, space: number, lootData: Types_LootSystem.StandardLootableObject?): Type_SlotGroup.object
     local clone = References_Inventory.TemplateSlotGroup:Clone()
     local itemsFrame = clone:FindFirstChildOfClass("Frame"):: Frame
-    local self: ItemGroupObject = {
+    local self: Type_SlotGroup.object = {
         _itself = clone,
         State = "Empty",
         ItemsFrame = itemsFrame,
@@ -40,7 +31,7 @@ function SlotGroup.new(name: string, space: number, lootData: Types_LootSystem.S
     return self
 end
 
-function SlotGroup._initialize(self: ItemGroupObject, lootData: Types_LootSystem.StandardLootableObject?)
+function SlotGroup._initialize(self: Type_SlotGroup.object, lootData: Types_LootSystem.StandardLootableObject?)
     for i = 1, self.Space, 1 do
         local slot = Slot.new("Inventory")
         slot._itself.LayoutOrder = i
@@ -74,7 +65,7 @@ function SlotGroup._initialize(self: ItemGroupObject, lootData: Types_LootSystem
     )
 end
 
-function SlotGroup.Destroy(self: ItemGroupObject)
+function SlotGroup.Destroy(self: Type_SlotGroup.object)
     for _, v in self.Connections do
         v:Disconnect()
     end
