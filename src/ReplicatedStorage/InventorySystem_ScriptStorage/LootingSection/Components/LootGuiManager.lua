@@ -32,19 +32,40 @@ end
 function LootGuiManager.RenderData(lootable: Model | Tool, lootData: Types_LootSystem.StandardLootableObject)
     LootGuiManager.StopRendering()
 
-    currentlyRendering.lootableInstance = lootable
+    References_Inventory_Client.LootableInstanceObjectValue.Value = lootable
     References_Inventory_Client.LootingSectionTitle.Text = lootable.Name
-    local slotGroup = SlotGroup.new("", lootData.Space)
+    local slotGroup = SlotGroup.new("", lootData.Space, lootData)
+    
     slotGroup._itself.Parent = References_Inventory_Client.LootingScrollingFrame
     currentlyRendering.SlotGroup = slotGroup
 end
 
+function LootGuiManager.replaceSlot(layoutOrder: number, toolReplacement: Tool?)
+    if currentlyRendering.SlotGroup == nil then
+        warn("Slot group is nil")
+        return
+    end
+
+    for _, v in currentlyRendering.SlotGroup.ItemsFrame:GetChildren() do
+        if v:IsA("Frame") and v.LayoutOrder == layoutOrder then
+            local lootSlot = Slot.new("Inventory") 
+            lootSlot._itself.LayoutOrder = v.LayoutOrder
+            if toolReplacement then
+                Slot.FillSlot(lootSlot, toolReplacement, "")
+            end
+            lootSlot._itself.Parent = v.Parent
+            v:Destroy()
+            break
+        end
+    end
+end
+
 function LootGuiManager.StopRendering()
-    if currentlyRendering.lootableInstance and currentlyRendering.SlotGroup then
+    if References_Inventory_Client.LootableInstanceObjectValue.Value and currentlyRendering.SlotGroup then
         SlotGroup.Destroy(currentlyRendering.SlotGroup)
         currentlyRendering.SlotGroup = nil
 
-        currentlyRendering.lootableInstance = nil
+        References_Inventory_Client.LootableInstanceObjectValue.Value = nil
     end
 end
 

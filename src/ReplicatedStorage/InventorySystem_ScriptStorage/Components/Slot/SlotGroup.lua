@@ -5,6 +5,7 @@ local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventoryS
 local ScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
 local Slot = require("./Slot")
 local SlotObjectsCacher = require("./SlotObjectsCacher")
+local Types_LootSystem = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.LootingSection.Components.Types_LootSystem)
 
 export type ItemGroupState = "Empty" | "Filled"
 
@@ -21,7 +22,7 @@ export type ItemGroupObject = {
 local SlotGroup = {}
 SlotGroup.__index = SlotGroup
 
-function SlotGroup.new(name: string, space: number): ItemGroupObject
+function SlotGroup.new(name: string, space: number, lootData: Types_LootSystem.StandardLootableObject): ItemGroupObject
     local clone = References_Inventory.TemplateSlotGroup:Clone()
     local itemsFrame = clone:FindFirstChildOfClass("Frame"):: Frame
     local self: ItemGroupObject = {
@@ -34,18 +35,25 @@ function SlotGroup.new(name: string, space: number): ItemGroupObject
         Connections = {}
     }
 
-    SlotGroup._initialize(self)
+    SlotGroup._initialize(self, lootData)
 
     return self
 end
 
-function SlotGroup._initialize(self: ItemGroupObject)
+function SlotGroup._initialize(self: ItemGroupObject, lootData: Types_LootSystem.StandardLootableObject)
     for i = 1, self.Space, 1 do
         local slot = Slot.new("Inventory")
         slot._itself.LayoutOrder = i
+
+        local tool = if lootData and lootData.items[i].tool then lootData.items[i].tool else nil
+        if tool then
+            Slot.FillSlot(slot, tool, "")
+        end
+        
         slot._itself.Parent = self._itself:FindFirstChildOfClass("Frame")
         self.ItemSlots[slot._itself] = slot
     end
+    
     local textLabel = self._itself:FindFirstChildOfClass("TextLabel"):: TextLabel
     textLabel.Text = self.Name
     self._itself.Visible = true
@@ -54,7 +62,7 @@ function SlotGroup._initialize(self: ItemGroupObject)
         self.Connections,
         self.ItemsFrame.ChildAdded:Connect(function(child: Instance)  
             assert(child:IsA("Frame"))
-            self.ItemSlots[child] = SlotObjectsCacher.GetSlotFromInstanceSlot(child):: Slot.SlotType
+            self.ItemSlots[child] = SlotObjectsCacher.GetSlotFromInstanceSlot(child):: Slot.SlotObject
         end)
     )
     table.insert(
@@ -65,7 +73,6 @@ function SlotGroup._initialize(self: ItemGroupObject)
         end)
     )
 end
-
 
 function SlotGroup.Destroy(self: ItemGroupObject)
     for _, v in self.Connections do

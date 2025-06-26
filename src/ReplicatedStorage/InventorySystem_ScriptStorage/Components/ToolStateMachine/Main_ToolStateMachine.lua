@@ -60,24 +60,28 @@ local function CancelCurrentOperation()
     for _, v in currentOperation.connections do
         v:Disconnect()
     end
+    currentOperation.targetSlot = nil
+    currentOperation.targetState = nil
     currentOperation.connections = {}
 end
 
 local targetsChangedBindable: BindableEvent = Instance.new("BindableEvent")
 local targetsChanged: RBXScriptSignal = targetsChangedBindable.Event
 local function SetCurrentOperation(slot: Types_Slot.SlotObject, state: Type_Item.ItemState)
-    targetsChangedBindable:Fire(currentOperation.targetSlot, slot, state)
+    targetsChangedBindable:Fire(slot, state)
     currentOperation.targetState = state
     currentOperation.targetSlot = slot
 end
 
-targetsChanged:Connect(function(oldSlot, newSlot, newTargetState)  
+local oldSlot = nil
+targetsChanged:Connect(function(newSlot, newTargetState)  
     if oldSlot then
         Select.removeEffect(oldSlot)
     end
     if newSlot and newTargetState == "Idle" then
         Select.applyEffect(newSlot)
     end
+    oldSlot = newSlot
 end)
 
 local function GetToolToThisState(tool: Tool, statePath: {Type_Item.ItemState}) --:: Promise (don't know if there is a Promise type)
@@ -193,8 +197,14 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
     -- Checks to immediately end function
     local targetToolIsInTargetState: boolean = target_tool:GetAttribute("State"):: Type_Item.ItemState == target_state
     local targetsAreAlreadyInOperation: boolean = target_slot == currentOperation.targetSlot and target_state == currentOperation.targetState
-    if targetToolIsInTargetState or targetsAreAlreadyInOperation then return end
-
+    if targetToolIsInTargetState then
+        warn("target tool is already in target state")
+        return
+    elseif targetsAreAlreadyInOperation then 
+        warn("targets are already in operation to get to that target state")
+        print(currentOperation)
+        return 
+    end
 
     local currentTool: Tool?, currentState: Type_Item.ItemState? = GetCurrentNonUnequippedToolAndItsState()
     local statePathToUnequipped
@@ -277,10 +287,10 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
         end):finally(function(status)
             -- warn("currentOperation finished, Status: ", status)
             if onFinished then
+                CancelCurrentOperation()
                 onFinished(status)
             end
         end)
-
     end
 
     if onValidated then

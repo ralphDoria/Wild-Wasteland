@@ -12,6 +12,7 @@ local bindables = {
 local InventoryScriptStorage = ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage
 local Types_Slot = require(InventoryScriptStorage.Components.Slot.Type_Slot)
 local ToolStateMachine = require(InventoryScriptStorage.Components.ToolStateMachine.Main_ToolStateMachine)
+local LootActions = require(InventoryScriptStorage.LootingSection.Components.LootActions)
 
 -- Enum for slot types to avoid string comparisons and improve readability
 type enumSlotType = {
@@ -63,12 +64,19 @@ export type slotData = {
 local function getSlotData(slot): slotData?
     if not slot then return nil end
     
+    local slotType = getSlotType(slot)
+
     local objValue = slot.tool and slot.tool:FindFirstChildOfClass("ObjectValue")
-    local slotGroup = objValue and objValue.Value
+    local slotGroup
+    if slotType == SlotType.CHARACTER_EQUIPMENT or slotType == SlotType.LOOTING_EQUIPMENT then
+        slotGroup = objValue and objValue.Value
+    else
+        slotGroup = if slot._itself.Parent then slot._itself.Parent.Parent else nil
+    end
     return {
         slotObject = slot,
         slotGroup = slotGroup,
-        slotType = getSlotType(slot)
+        slotType = slotType
     }
 end
 
@@ -117,13 +125,17 @@ local function loadSlot(slot: Types_Slot.SlotObject, duration: number)
     end)
     return tween
 end
- 
+
 -- helper function to wear the current drag slot
 local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, changeSlotState, fillSlot, emptySlot)
+
+    -- warn(`wearable slot group: {wearableSlotData.slotGroup}; inventory/hotbar slot group: {inventoryOrHotbarSlotData.slotGroup}`) 
+    if wearableSlotData.slotGroup ~= nil and wearableSlotData.slotGroup == inventoryOrHotbarSlotData.slotGroup then return end
 
     local wearableSlot = wearableSlotData.slotObject
     local inventoryOrHotbarSlot = inventoryOrHotbarSlotData.slotObject
 
+    -- print(`wearable category: {wearableSlot.WearableCategory}; inventory/hotbar tool's wearable category: {if inventoryOrHotbarSlot.tool and inventoryOrHotbarSlot.tool:GetAttribute("WearableCategory") then inventoryOrHotbarSlot.tool:GetAttribute("WearableCategory") else nil}`)
     if inventoryOrHotbarSlot.tool and wearableSlot.WearableCategory ~= inventoryOrHotbarSlot.tool:GetAttribute("WearableCategory") then return end
 
     local tweens: {Tween} = {}
@@ -142,7 +154,6 @@ local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlo
             
         end,
         function(status: string) --onFinished
-
             changeSlotState(wearableSlot, "Idle")
             changeSlotState(inventoryOrHotbarSlot, "Idle")
             if status == "Resolved" then
@@ -174,8 +185,29 @@ local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlo
     )
 end
 
+local function globalSimpleSlotSwap(inventoryOrHotbarSlotData: slotData, lootScrollingSlotData: slotData, fillSlot, emptySlot)
+    LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
+        LayoutOrder = lootScrollingSlotData.slotObject._itself.LayoutOrder,
+        syncCheck = lootScrollingSlotData.slotObject.tool,
+        newTool = inventoryOrHotbarSlotData.slotObject.tool
+    }):andThen(function(lootedTool: Tool?)
+        print("success")
+        if lootedTool then
+            -- when the server takes the newTool, the ItemMovementTracker should have automatically emptied newTool's previous slot
+            fillSlot(inventoryOrHotbarSlotData.slotObject, lootedTool)
+        else
+            emptySlot(inventoryOrHotbarSlotData.slotObject)
+        end
+    end):catch(function(error)
+        warn("Error", tostring(error))
+    end)
+end
+
 -- helper function to take off the current drag slot
 local function localUnwearAndSwapWithEmpty(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, changeSlotState, fillSlot, emptySlot)
+
+    -- warn(`wearable slot group: {wearableSlotData.slotGroup}; inventory/hotbar slot group: {inventoryOrHotbarSlotData.slotGroup}`)
+    if wearableSlotData.slotGroup ~= nil and wearableSlotData.slotGroup == inventoryOrHotbarSlotData.slotGroup then return end
 
     local wearableSlot = wearableSlotData.slotObject
     local inventoryOrHotbarSlot = inventoryOrHotbarSlotData.slotObject
@@ -253,8 +285,9 @@ local ActionHandlers = {
             [SlotType.CHARACTER_EQUIPMENT] = function(dragData: slotData, hoverData: slotData)
                 print("Action: Looting scrolling to character equipment")
             end,
-            [SlotType.INVENTORY_OR_HOTBAR] = function(dragData: slotData, hoverData: slotData)
+            [SlotType.INVENTORY_OR_HOTBAR] = function(dragData: slotData, hoverData: slotData, _, fillSlot, emptySlot)
                 print("Action: Looting scrolling to inventory/hotbar")
+                globalSimpleSlotSwap(hoverData, dragData, fillSlot, emptySlot)
             end
         },
         
@@ -294,8 +327,9 @@ local ActionHandlers = {
         },
         
         [SlotType.INVENTORY_OR_HOTBAR] = {
-            [SlotType.LOOTING_SCROLLING] = function(dragData: slotData, hoverData: slotData)
+            [SlotType.LOOTING_SCROLLING] = function(dragData: slotData, hoverData: slotData, _, fillSlot, emptySlot)
                 print("Action: Inventory/hotbar to looting scrolling")
+                globalSimpleSlotSwap(dragData, hoverData, fillSlot, emptySlot)
             end,
             [SlotType.LOOTING_EQUIPMENT] = function(dragData: slotData, hoverData: slotData)
                 print("Action: Inventory/hotbar to looting equipment")

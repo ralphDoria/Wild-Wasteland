@@ -44,13 +44,19 @@ function InventorySystem.init()
 	ItemMovementTracker(
 		function(tool) --onAdded
 			-- warn("calling onAdded")
+
+			if tool:HasTag("Looted") then
+				warn("has loot tag, not filling slot here")
+				-- fire a remote back to the server to remove the tag
+				return
+			end
+
 			local emptyHotbarslot : Slot.SlotObject? =  HotbarSection.findMinimumEmptyHotbarSlot()
 			if emptyHotbarslot ~= nil then
 				Slot.FillSlot(emptyHotbarslot, tool, tool:GetAttribute("Type") :: string)
 			end
 		end,
 		function(tool) --onEquipping
-			--highlight slot
 		end,
 		function(tool) --onUnequipped
 			if not tool:GetAttribute("IsWorn") then
@@ -58,7 +64,6 @@ function InventorySystem.init()
 			else
 				-- print("doing nothing because this is a worn slot")
 			end
-			--unhighlight slot
 		end,
 		function(tool) --onDropped
 			--empty slot

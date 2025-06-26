@@ -6,11 +6,21 @@ export type itemEntry = {
 export type StandardLootableObject = {
     Space: number,
     items: {
-        [Tool]: {
-            LayoutOrder: number,
+        [number]: {
+            tool: Tool?,
             isGrabbed: boolean
         }
     }
+}
+
+export type dataChangeRequestPacket = {
+    LayoutOrder: number,
+    syncCheck: Tool?,
+    newTool: Tool?
+}
+
+export type dropRequest_Data = {
+
 }
 
 return nil

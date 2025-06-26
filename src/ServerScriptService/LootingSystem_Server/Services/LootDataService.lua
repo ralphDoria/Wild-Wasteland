@@ -10,10 +10,11 @@ local LootingSystem_Server = game:GetService("ServerScriptService").RojoManaged_
 local StandardLootable = require(LootingSystem_Server.Components.StandardLootable)
 
 local LootingSystem_Storage = ReplicatedStorage.LootingSystem_Storage
+
 local rfn: {[string] : RemoteFunction} = {
-    WaitForServersideInit = LootingSystem_Storage.Remotes.WaitForServersideInit,
+    GetChangeReplicatorRemote = LootingSystem_Storage.Remotes.GetChangeReplicatorRemote,
     GetLootData = LootingSystem_Storage.Remotes.GetLootData,
-    RequestDataChange = LootingSystem_Storage.Remotes.RequestDataChange
+    TrySlotInteraction = LootingSystem_Storage.Remotes.TrySlotInteraction
 }
 
 local LootDataService = {
@@ -21,11 +22,14 @@ local LootDataService = {
 }
 
 local MasterList: {[Instance | Tool]: Types_LootSystem.StandardLootableObject} = {}
+local onLootDataChangedRemotes: {[Instance | Tool]: RemoteEvent} = {}
 
 function LootDataService.init()
     local connections = handleTaggedInstances(TAGS_LOOT.STANDARD_CONTAINER, 
         function(taggedInstance: Instance)  
             LootDataService.Register(taggedInstance, StandardLootable.new(20))
+            onLootDataChangedRemotes[taggedInstance] = Instance.new("RemoteEvent")
+            onLootDataChangedRemotes[taggedInstance].Parent = ReplicatedStorage
         end,
         function(taggedInstance: Instance)  
             LootDataService.Deregister(taggedInstance)
@@ -36,15 +40,32 @@ function LootDataService.init()
         return MasterList[lootable]
     end
 
-    -- rfn.RequestDataChange.OnServerInvoke =
+    rfn.TrySlotInteraction.OnServerInvoke = function(player, lootable: Instance, dataChangeRequestPacket: Types_LootSystem.dataChangeRequestPacket)
+        local standardLootable = MasterList[lootable]
+        if not standardLootable then
+            warn(`{lootable} is not registered.`)
+            return false
+        end
+        local changeReplicator = onLootDataChangedRemotes[lootable]
+        if changeReplicator then
+            local success: boolean = StandardLootable.makeDataChange(player, standardLootable, dataChangeRequestPacket, changeReplicator)
+            return success
+        else
+            warn("Couldn't find corresponding RemoteEvent for lootable")
+            return false
+        end
+
+    end
 
     LootDataService.initialized = true
 
-    rfn.WaitForServersideInit.OnServerInvoke = function(player)
-        while LootDataService.initialized == false do
-            task.wait(1)
+    rfn.GetChangeReplicatorRemote.OnServerInvoke = function(player, lootable: Instance | Model): RemoteEvent?
+        while onLootDataChangedRemotes[lootable] == nil do
+            task.wait()
+            print(`Waiting for {Instance} to be initialized`)
         end
-        return true
+        print(`returning {onLootDataChangedRemotes[lootable]}`)
+        return onLootDataChangedRemotes[lootable]
     end
 end
 

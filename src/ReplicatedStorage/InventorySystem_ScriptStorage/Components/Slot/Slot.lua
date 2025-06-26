@@ -78,6 +78,9 @@ function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCatego
     self.connections.hoverEnd = self._itself.MouseLeave:Connect(function(a0: number, a1: number)  
         Hover.removeEffect(self)
     end)
+    self.connections.onDestroying = self._itself.Destroying:Connect(function(...: any)  
+        Slot.destroy(self)
+    end)
 
     table.insert(SlotObjectsCacher.InitializedSlots, self)
 
@@ -104,7 +107,8 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool, itemType : stri
     self.ImageButton.Visible = true
     self._isEmpty = false
 
-    if not self.WearableCategory then
+    if not self.WearableCategory and self._itself.Parent ~= References_Inventory.LootingEquipmentSlots 
+        and self._itself.Parent and self._itself.Parent.Parent ~= References_Inventory.LootingScrollingFrame  then
         self.connections.EquipFromClick = self.ImageButton.MouseButton1Click:Connect(function(...: any) 
             assert(self.tool ~= nil)
             local state = self.tool:GetAttribute("State")
@@ -155,7 +159,9 @@ function Slot.destroy(self : Type_Slot.SlotObject)
         Slot.EmptySlot(self)
     end
     Slot.ChangeState(self, "Destroying")
-    self._itself:Destroy()
+    if self._itself.Parent ~= nil then
+        self._itself:Destroy()    
+    end
     for _, v in self.connections do
         v:Disconnect()
     end

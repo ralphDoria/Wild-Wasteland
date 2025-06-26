@@ -11,42 +11,47 @@ function StandardLootable.new(space: number, ...: Types_LootSystem.itemEntry): T
         items = {}  
     }
 
-
-    StandardLootable.AddItems(self, ...)
+    StandardLootable._initialize(self)
 
     return self
 end
 
-function StandardLootable.AddItems(self: Types_LootSystem.StandardLootableObject, ...: Types_LootSystem.itemEntry): nil | {}
+function StandardLootable._initialize(self: Types_LootSystem.StandardLootableObject)
     local items = self.items
-    local args = {...}
-    local failedToInsert = {}
-    for _, v in args do
-        if items[v.tool] == nil then
-            items[v.tool] = {
-                LayoutOrder = v.LayoutOrder,
-                isGrabbed = false
-            }
-        else
-            warn(`Failed to insert {v.tool} into slot #{v.LayoutOrder} because it's already occupied by {items[v.LayoutOrder]}`)
-            table.insert(failedToInsert, v)
-        end
-    end
-
-    if #failedToInsert > 0 then
-        return failedToInsert
-    else
-        return nil
+    for i = 1, self.Space do
+        items[i] = {
+            tool = nil,
+            isGrabbed = false
+        }
     end
 end
 
-function StandardLootable.RemoveItems(self: Types_LootSystem.StandardLootableObject, ...: Tool)
-    local items = self.items
-    local args = {...}
-    for _, v in args do
-        if items[v] then
-            items[v] = nil
+function StandardLootable.makeDataChange(player: Player, self: Types_LootSystem.StandardLootableObject, dataChangeRequestPacket: Types_LootSystem.dataChangeRequestPacket, changeReplicator: RemoteEvent)
+    local lootTool = dataChangeRequestPacket.syncCheck
+    local newTool = dataChangeRequestPacket.newTool
+    local currentSlotData = self.items[dataChangeRequestPacket.LayoutOrder]
+    if currentSlotData.tool == lootTool then
+        currentSlotData.tool = newTool
+        if newTool then 
+            newTool.Parent = nil --won't be garbage collected be we have a reference to the instance
         end
+        if lootTool then
+            warn(`Adding looted tag to {lootTool}`)
+            lootTool:AddTag("Looted")
+            lootTool.Parent = player.Backpack
+            local connection
+            connection = changeReplicator.OnServerEvent:Connect(function(a0: Player, thisTool: Tool)  
+                if thisTool == lootTool then
+                    connection:Disconnect()
+                    warn(`{lootTool} successfully circumvented ItemMovementTracker's onAdded, removing tag`)
+                    lootTool:RemoveTag("Looted")
+                end
+            end)
+        end
+        changeReplicator:FireAllClients(dataChangeRequestPacket.LayoutOrder, newTool, lootTool)
+        return true, lootTool
+    else
+        return false
     end
 end
 

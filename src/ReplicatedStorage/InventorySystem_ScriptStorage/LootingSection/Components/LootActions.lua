@@ -8,9 +8,8 @@ local Types_LootSystem = require(InventoryScriptStorage.LootingSection.Component
 local Promise = require(RS.Packages.Promise)
 
 local rfn: {[string] : RemoteFunction} = {
-    WaitForServersideInit = LootingSystem_Storage.Remotes.WaitForServersideInit,
     GetLootData = LootingSystem_Storage.Remotes.GetLootData,
-    RequestDataChange = LootingSystem_Storage.Remotes.RequestDataChange
+    TrySlotInteraction = LootingSystem_Storage.Remotes.TrySlotInteraction
 }
 
 local LootActions = {}
@@ -18,9 +17,6 @@ local LootActions = {}
 --[[
     Yields when called, waiting for LootDataService to be initialized.
 ]]
-function LootActions.init()
-    rfn.WaitForServersideInit:InvokeServer() -- yields until serverside initializes
-end
 
 function LootActions.GetData(lootable: Model | Tool)
     return Promise.new(function(resolve, reject, onCancel)
@@ -38,8 +34,20 @@ function LootActions.GetData(lootable: Model | Tool)
     end)
 end
 
--- function LootActions.RequestDataChange(lootable: Model | Tool, ): boolean
---     return rfn.RequestDataChange:InvokeServer(lootable, )
--- end
+type dataToSwap = {
+
+}
+
+function LootActions.TrySlotInteraction(lootable: Model | Tool, dataChangeRequestPacket: Types_LootSystem.dataChangeRequestPacket)
+    return Promise.new(function(resolve, reject)
+        local success: boolean = rfn.TrySlotInteraction:InvokeServer(lootable, dataChangeRequestPacket)
+
+        if success then
+            resolve(dataChangeRequestPacket.syncCheck)
+        else
+            reject("Something went wrong")
+        end
+    end)
+end
 
 return LootActions

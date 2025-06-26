@@ -1,4 +1,5 @@
 local RS = game:GetService("ReplicatedStorage")
+local References_Inventory_Client = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
 
 local RunService = game:GetService("RunService")
 
@@ -13,17 +14,24 @@ local LootActions = require(InventoryScriptStorage.LootingSection.Components.Loo
 local Types_LootSystem = require(InventoryScriptStorage.LootingSection.Components.Types_LootSystem)
 local Promise = require(RS.Packages.Promise)
 
+local LootingSystem_Storage = References_Inventory_Client.ReplicatedStorage.LootingSystem_Storage
+local rfn: {[string] : RemoteFunction} = {
+    GetChangeReplicatorRemote = LootingSystem_Storage.Remotes.GetChangeReplicatorRemote
+}
+
 local LootingSection = {}
 
 function LootingSection.init()
 
     LootGuiManager.init()
-    LootActions.init()
 
     local connections = handleTaggedInstances(TAGS_LOOT.STANDARD_CONTAINER, 
         function(taggedInstance: Model | Tool) 
-            warn(`Handling tagged instance: {taggedInstance}`)
-            
+
+            local changeReplicator: RemoteEvent? = rfn.GetChangeReplicatorRemote:InvokeServer(taggedInstance)
+            warn(`client: {changeReplicator}`)
+            local onLootDataChanged: RBXScriptConnection?
+
             local function getDistanceBetween2Points(point1: Vector3, point2: Vector3)
                 return math.abs( (point1-point2).Magnitude )
             end
@@ -45,6 +53,17 @@ function LootingSection.init()
                     LootActions.GetData(taggedInstance)
                         :andThen(function(lootData: Types_LootSystem.StandardLootableObject)
                             LootGuiManager.RenderData(taggedInstance, lootData)
+                            if changeReplicator then
+                                onLootDataChanged = changeReplicator.OnClientEvent:Connect(function(layoutOrder: number, newTool: Tool?, lootTool: Tool?)  
+                                    LootGuiManager.replaceSlot(layoutOrder, newTool) 
+                                    assert(changeReplicator)
+                                    changeReplicator:FireServer(lootTool)
+                                end)
+                            else
+                                warn("Change replicator came back nil because taggedInstance was deregistered")
+                                return
+                            end
+                            
                         end)
                         :catch(function(err)
                             warn(err)
@@ -137,7 +156,11 @@ function LootingSection.init()
                         for _, v in promisesToCancel do
                             v:cancel()
                         end
-
+                        LootGuiManager.StopRendering()
+                        if onLootDataChanged then
+                            onLootDataChanged:Disconnect()
+                            onLootDataChanged = nil                        
+                        end
                         pp.Enabled = true
                     end):catch(function(err)
                         warn(tostring(err))
