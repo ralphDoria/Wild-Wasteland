@@ -29,6 +29,7 @@ return function()
         end
         CollectionService:GetInstanceAddedSignal(tag):Connect(function(taggedInstance)
             if not taggedInstance:HasTag("vmTool") then
+                print("handling tagged instance")
                 handleTaggedInstances(taggedInstance, class)
             end
         end)

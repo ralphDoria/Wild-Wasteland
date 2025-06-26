@@ -54,6 +54,7 @@ function LootingSection.init()
                             LootGuiManager.RenderData(taggedInstance, lootData)
                             if changeReplicator then
                                 onLootDataChanged = changeReplicator.OnClientEvent:Connect(function(layoutOrder: number, newTool: Tool?, lootTool: Tool?)  
+                                    warn("received change replicator fire")
                                     LootGuiManager.replaceSlot(layoutOrder, newTool) 
                                     assert(changeReplicator)
                                     changeReplicator:FireServer(lootTool)

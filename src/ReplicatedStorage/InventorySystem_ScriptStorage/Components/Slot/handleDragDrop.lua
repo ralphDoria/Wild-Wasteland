@@ -188,19 +188,20 @@ end
 
 local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData: slotData, lootScrollingSlotData: slotData, fillSlot, emptySlot)
     local inventoryOrHotbarSlotTool: Tool? = inventoryOrHotbarSlotData.slotObject.tool
+    local lootTool: Tool? = lootScrollingSlotData.slotObject.tool
     if inventoryOrHotbarSlotTool and inventoryOrHotbarSlotTool:GetAttribute("State") ~= "Unequipped" then
         warn(`immediately unequipping {inventoryOrHotbarSlotTool} because it is not unequipped`)
         bindables.ImmediateUnequip:Fire(inventoryOrHotbarSlotTool)
     end
     LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
         LayoutOrder = lootScrollingSlotData.slotObject._itself.LayoutOrder,
-        syncCheck = lootScrollingSlotData.slotObject.tool,
+        syncCheck = lootTool,
         newTool = inventoryOrHotbarSlotTool
-    }):andThen(function(lootedTool: Tool?)
+    }):andThen(function()
         print("success")
-        if lootedTool then
+        if lootTool then
             -- when the server takes the newTool, the ItemMovementTracker should have automatically emptied newTool's previous slot
-            fillSlot(inventoryOrHotbarSlotData.slotObject, lootedTool)
+            fillSlot(inventoryOrHotbarSlotData.slotObject, lootTool)
         else
             emptySlot(inventoryOrHotbarSlotData.slotObject)
         end
@@ -209,13 +210,41 @@ local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData:
     end)
 end
 
+local function lootScrolling_x_lootScrolling_swap(lsData0: slotData, lsData1: slotData, fillSlot, emptySlot)
+
+    local slot0 = lsData0.slotObject
+    local slot1 = lsData1.slotObject
+    local slot0Tool: Tool? = slot0.tool
+    local slot1Tool: Tool? = slot1.tool 
+    LootActions.TrySlotInteraction(
+        References_Inventory.LootableInstanceObjectValue.Value, 
+        {
+            LayoutOrder = slot0._itself.LayoutOrder,
+            syncCheck = slot0Tool,
+            newTool = slot1Tool
+        },
+        {
+            LayoutOrder = slot1._itself.LayoutOrder,
+            syncCheck = slot1Tool,
+            newTool = slot0Tool
+        }
+    )
+    :andThen(function()
+        print("success with lootScrolling x lootScrolling swap")
+    end)
+    :catch(function(error)
+        warn("Error", tostring(error))
+    end)
+end
+
 local function lootScrolling_drop(lootScrollingSlotData: slotData)
+    local lootTool: Tool? = lootScrollingSlotData.slotObject.tool
     LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
         LayoutOrder = lootScrollingSlotData.slotObject._itself.LayoutOrder,
-        syncCheck = lootScrollingSlotData.slotObject.tool,
+        syncCheck = lootTool,
         newTool = nil
-    }):andThen(function(lootedTool: Tool?)
-        bindables.DropToolBindable:Fire(lootedTool)
+    }):andThen(function()
+        bindables.DropToolBindable:Fire(lootTool)
     end):catch(function(error)
         warn("Error", tostring(error))
     end)
@@ -267,6 +296,41 @@ local function localUnwearAndSwapWithEmpty(wearableSlotData: slotData, inventory
     )                
 end
 
+local function characterEquipment_drop(characterEquipmentSlotData: slotData, changeSlotState, fillSlot, emptySlot)
+    local characterEquipmentSlot = characterEquipmentSlotData.slotObject
+
+    local tweens: {Tween} = {}
+    ToolStateMachine.SetTargets(characterEquipmentSlot, "Unequipped", 
+        function(estimatedPathsTime: number) -- onValidated
+            changeSlotState(characterEquipmentSlot, "BeingSwapped")
+
+            table.insert(tweens, loadSlot(characterEquipmentSlot, estimatedPathsTime))
+            for _, v in tweens do
+                v:Play()
+            end
+        end,
+        function() -- onCancelled
+            
+        end,
+        function(status: string) --onFinished
+            changeSlotState(characterEquipmentSlot, "Idle")
+            if status == "Resolved" then
+                warn("resolved characterEquipment_drop")
+                bindables.DropToolBindable:Fire(characterEquipmentSlot.tool)
+            elseif status == "Cancelled" then
+                for _, v in tweens do
+                    if v.PlaybackState == Enum.PlaybackState.Playing then
+                        v:Cancel()                        
+                    end
+                end
+                warn("Cancelled")
+            else
+                warn(`Something went wrong involving {characterEquipmentSlot.tool}; Promise State: {status}`)
+            end
+        end
+    )
+end
+
 -- Action handlers for different drag-drop combinations
 local ActionHandlers = {
     -- Outside inventory actions (when isOutsideInventory is true)
@@ -280,8 +344,9 @@ local ActionHandlers = {
             print("Action: Take off corpse and drop")
         end,
         
-        [SlotType.CHARACTER_EQUIPMENT] = function(dragData)
+        [SlotType.CHARACTER_EQUIPMENT] = function(dragData, changeSlotState, fillSlot, emptySlot)
             print("Action: Take off wearable and drop")
+            characterEquipment_drop(dragData, changeSlotState, fillSlot, emptySlot)
         end,
         
         [SlotType.INVENTORY_OR_HOTBAR] = function(dragData)
@@ -294,8 +359,9 @@ local ActionHandlers = {
     insideInventory = {
         -- [dragType][hoverType] = handler
         [SlotType.LOOTING_SCROLLING] = {
-            [SlotType.LOOTING_SCROLLING] = function(dragData: slotData, hoverData: slotData)
+            [SlotType.LOOTING_SCROLLING] = function(dragData: slotData, hoverData: slotData, _, fillSlot, emptySlot)
                 print("Action: Looting scrolling to looting scrolling")
+                lootScrolling_x_lootScrolling_swap(dragData, hoverData, fillSlot, emptySlot)
             end,
             [SlotType.LOOTING_EQUIPMENT] = function(dragData: slotData, hoverData: slotData)
                 print("Action: Looting scrolling to looting equipment")
@@ -380,7 +446,7 @@ local function handleDragDrop(dragSlot, isOutsideInventory, hoverSlot, changeSlo
         -- Handle outside inventory drops
         local handler = ActionHandlers.outsideInventory[dragData.slotType]
         if handler then
-            handler(dragData)
+            handler(dragData, changeSlotState, fillSlot, emptySlot)
         else
             warn("No handler for outside inventory drop from slot type: " .. dragData.slotType)
         end

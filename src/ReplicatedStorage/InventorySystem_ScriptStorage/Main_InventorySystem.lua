@@ -67,7 +67,7 @@ function InventorySystem.init()
 		end,
 		function(tool) --onDropped
 			--empty slot
-			Slot.EmptySlot(SlotObjectsCacher.GetSlotFromTool(tool) ::  Slot.SlotObject)
+			Slot.EmptySlot(SlotObjectsCacher.GetSlotFromTool(tool) ::  Slot.SlotObject?)
 		end
 	)
 

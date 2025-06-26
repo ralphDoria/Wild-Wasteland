@@ -22,7 +22,7 @@ export type ItemGroupObject = {
 local SlotGroup = {}
 SlotGroup.__index = SlotGroup
 
-function SlotGroup.new(name: string, space: number, lootData: Types_LootSystem.StandardLootableObject): ItemGroupObject
+function SlotGroup.new(name: string, space: number, lootData: Types_LootSystem.StandardLootableObject?): ItemGroupObject
     local clone = References_Inventory.TemplateSlotGroup:Clone()
     local itemsFrame = clone:FindFirstChildOfClass("Frame"):: Frame
     local self: ItemGroupObject = {
@@ -40,7 +40,7 @@ function SlotGroup.new(name: string, space: number, lootData: Types_LootSystem.S
     return self
 end
 
-function SlotGroup._initialize(self: ItemGroupObject, lootData: Types_LootSystem.StandardLootableObject)
+function SlotGroup._initialize(self: ItemGroupObject, lootData: Types_LootSystem.StandardLootableObject?)
     for i = 1, self.Space, 1 do
         local slot = Slot.new("Inventory")
         slot._itself.LayoutOrder = i

@@ -122,6 +122,10 @@ local catalog : {[string] : ToolInfo} = {
             unequip = backpack.Sounds.unequip,
             wear = backpack.Sounds.wear,
             unwear = backpack.Sounds.unwear,
+            drop = {
+                hard = backpack.Sounds.drop,
+                soft = backpack.Sounds.drop
+            },
         }
     },
 }

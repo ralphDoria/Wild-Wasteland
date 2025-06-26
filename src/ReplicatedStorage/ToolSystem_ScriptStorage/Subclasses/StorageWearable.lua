@@ -45,6 +45,7 @@ function StorageWearable._initialize(self: StorageWearableObject)
             if self.ItemGroup then
                 for _, v in self.ItemGroup.ItemSlots do
                     if not v._isEmpty then
+                        print(`dropping {v.tool}`)
                         bindables.DropToolBindable:Fire(v.tool)
                     end
                 end

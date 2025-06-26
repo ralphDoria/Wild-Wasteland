@@ -38,12 +38,13 @@ type dataToSwap = {
 
 }
 
-function LootActions.TrySlotInteraction(lootable: Model | Tool, dataChangeRequestPacket: Types_LootSystem.dataChangeRequestPacket)
+function LootActions.TrySlotInteraction(lootable: Model | Tool, ...: Types_LootSystem.dataChangeRequestPacket)
+    local changeRequests = {...}
     return Promise.new(function(resolve, reject)
-        local success: boolean = rfn.TrySlotInteraction:InvokeServer(lootable, dataChangeRequestPacket)
+        local success: boolean = rfn.TrySlotInteraction:InvokeServer(lootable, changeRequests)
 
         if success then
-            resolve(dataChangeRequestPacket.syncCheck)
+            resolve()
         else
             reject("Something went wrong")
         end

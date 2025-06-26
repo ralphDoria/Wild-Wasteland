@@ -40,7 +40,7 @@ function LootDataService.init()
         return MasterList[lootable]
     end
 
-    rfn.TrySlotInteraction.OnServerInvoke = function(player, lootable: Instance, dataChangeRequestPacket: Types_LootSystem.dataChangeRequestPacket)
+    rfn.TrySlotInteraction.OnServerInvoke = function(player, lootable: Instance, changeRequests: {Types_LootSystem.dataChangeRequestPacket})
         local standardLootable = MasterList[lootable]
         if not standardLootable then
             warn(`{lootable} is not registered.`)
@@ -48,7 +48,7 @@ function LootDataService.init()
         end
         local changeReplicator = onLootDataChangedRemotes[lootable]
         if changeReplicator then
-            local success: boolean = StandardLootable.makeDataChange(player, standardLootable, dataChangeRequestPacket, changeReplicator)
+            local success: boolean = StandardLootable.makeDataChange(player, standardLootable, changeRequests, changeReplicator)
             return success
         else
             warn("Couldn't find corresponding RemoteEvent for lootable")

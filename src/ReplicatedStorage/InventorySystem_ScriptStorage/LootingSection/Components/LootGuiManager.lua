@@ -48,9 +48,11 @@ function LootGuiManager.replaceSlot(layoutOrder: number, toolReplacement: Tool?)
 
     for _, v in currentlyRendering.SlotGroup.ItemsFrame:GetChildren() do
         if v:IsA("Frame") and v.LayoutOrder == layoutOrder then
+            print("replacing slot")
             local lootSlot = Slot.new("Inventory") 
             lootSlot._itself.LayoutOrder = v.LayoutOrder
             if toolReplacement then
+                print(`filling slot with {toolReplacement}`)
                 Slot.FillSlot(lootSlot, toolReplacement, "")
             end
             lootSlot._itself.Parent = v.Parent
