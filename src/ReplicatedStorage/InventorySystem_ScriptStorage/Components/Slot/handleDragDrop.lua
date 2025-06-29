@@ -1,3 +1,5 @@
+--!strict
+
 -- Gave Claude a crazy looking nested if statement mess and asked it to rewrite it for efficiency and performance.
 -- Small tweaks to make it compatible done by @Niletheus
 
@@ -16,14 +18,7 @@ local ToolStateMachine = require(InventoryScriptStorage.Components.ToolStateMach
 local LootActions = require(InventoryScriptStorage.LootingSection.Components.LootActions)
 
 -- Enum for slot types to avoid string comparisons and improve readability
-type enumSlotType = {
-    LOOTING_SCROLLING: number,
-    LOOTING_EQUIPMENT: number,
-    CHARACTER_EQUIPMENT: number,
-    INVENTORY_OR_HOTBAR: number,
-    INVALID: number,
-}
-local SlotType: enumSlotType = {
+local SlotType = {
     LOOTING_SCROLLING = 1,
     LOOTING_EQUIPMENT = 2,
     CHARACTER_EQUIPMENT = 3,
@@ -40,7 +35,7 @@ local InventoryScrollingName = References_Inventory.InventoryScrollingFrame.Name
 local HotbarName = References_Inventory.Hotbar.Name
 
 -- Helper function to determine slot type (cached for performance)
-local function getSlotType(slot)
+local function getSlotType(slot): number
     local element = slot._itself
     
     if element:FindFirstAncestor(LootingScrollingName) then
@@ -58,25 +53,24 @@ end
 
 -- Helper function to get slot data
 export type slotData = {
-        slotObject: Types_Slot.SlotObject,
-        slotGroup: Frame,
-        slotType: enumSlotType
-    }
-local function getSlotData(slot): slotData?
-    if not slot then return nil end
-    
-    local slotType = getSlotType(slot)
+    slotObject: Types_Slot.SlotObject,
+    slotGroupInstance: Frame?,
+    slotType: number
+}
+local function getSlotData(slotObject: Types_Slot.SlotObject): slotData
+    local slotType = getSlotType(slotObject)
 
-    local objValue = slot.tool and slot.tool:FindFirstChildOfClass("ObjectValue")
-    local slotGroup
+    local slotGroupInstance: Frame?
     if slotType == SlotType.CHARACTER_EQUIPMENT or slotType == SlotType.LOOTING_EQUIPMENT then
-        slotGroup = objValue and objValue.Value
+    local objValue: ObjectValue? = if slotObject.tool then slotObject.tool:FindFirstChildOfClass("ObjectValue") else nil
+        slotGroupInstance = if objValue and objValue.Value then objValue.Value:: Frame else nil
     else
-        slotGroup = if slot._itself.Parent then slot._itself.Parent.Parent else nil
+        slotGroupInstance = if slotObject._itself.Parent then slotObject._itself.Parent.Parent:: Frame else nil
     end
+
     return {
-        slotObject = slot,
-        slotGroup = slotGroup,
+        slotObject = slotObject,
+        slotGroupInstance = slotGroupInstance,
         slotType = slotType
     }
 end
@@ -128,10 +122,14 @@ local function loadSlot(slot: Types_Slot.SlotObject, duration: number)
 end
 
 -- helper function to wear the current drag slot
-local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, changeSlotState, fillSlot, emptySlot)
+local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, 
+        changeSlotState: (Types_Slot.SlotObject, Types_Slot.SlotState) -> (), 
+        fillSlot: (Types_Slot.SlotObject, Tool) -> (), 
+        emptySlot: (Types_Slot.SlotObject) -> ()
+    )
 
-    -- warn(`wearable slot group: {wearableSlotData.slotGroup}; inventory/hotbar slot group: {inventoryOrHotbarSlotData.slotGroup}`) 
-    if wearableSlotData.slotGroup ~= nil and wearableSlotData.slotGroup == inventoryOrHotbarSlotData.slotGroup then return end
+    -- warn(`wearable slot group: {wearableSlotData.slotGroupInstance}; inventory/hotbar slot group: {inventoryOrHotbarSlotData.slotGroupInstance}`) 
+    if wearableSlotData.slotGroupInstance ~= nil and wearableSlotData.slotGroupInstance == inventoryOrHotbarSlotData.slotGroupInstance then return end
 
     local wearableSlot = wearableSlotData.slotObject
     local inventoryOrHotbarSlot = inventoryOrHotbarSlotData.slotObject
@@ -161,16 +159,18 @@ local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlo
                 if wearableSlot._isEmpty then
                     warn("Successfully wore and emptied")
                     -- successfull wore item from inventory/hotbar and now emptying its slot and filling it's new place in CharacterEquipmentSlots
-                    fillSlot(wearableSlot, inventoryOrHotbarSlot.tool, "")
+                    assert(inventoryOrHotbarSlot.tool)
+                    fillSlot(wearableSlot, inventoryOrHotbarSlot.tool)
                     emptySlot(inventoryOrHotbarSlot)
                 elseif not (wearableSlot._isEmpty and inventoryOrHotbarSlot._isEmpty) then
                     warn("Successfully swapped and wore")
                     -- took off item that was currently worn and put on item in hover slot
                     local wearableSlotTool = wearableSlot.tool
                     emptySlot(wearableSlot)
-                    fillSlot(wearableSlot, inventoryOrHotbarSlot.tool, "")
+                    assert(inventoryOrHotbarSlot.tool and wearableSlotTool)
+                    fillSlot(wearableSlot, inventoryOrHotbarSlot.tool)
                     emptySlot(inventoryOrHotbarSlot)
-                    fillSlot(inventoryOrHotbarSlot, wearableSlotTool, "")
+                    fillSlot(inventoryOrHotbarSlot, wearableSlotTool)
                 end
             elseif status == "Cancelled" then
                 for _, v in tweens do
@@ -186,7 +186,11 @@ local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlo
     )
 end
 
-local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData: slotData, lootScrollingSlotData: slotData, fillSlot, emptySlot)
+local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData: slotData, lootScrollingSlotData: slotData, 
+        fillSlot: (Types_Slot.SlotObject, Tool?) -> (), 
+        emptySlot: (Types_Slot.SlotObject) -> ()    
+    )
+
     local inventoryOrHotbarSlotTool: Tool? = inventoryOrHotbarSlotData.slotObject.tool
     local lootTool: Tool? = lootScrollingSlotData.slotObject.tool
     if inventoryOrHotbarSlotTool and inventoryOrHotbarSlotTool:GetAttribute("State") ~= "Unequipped" then
@@ -195,12 +199,11 @@ local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData:
     end
     LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
         LayoutOrder = lootScrollingSlotData.slotObject._itself.LayoutOrder,
-        syncCheck = lootTool,
-        newTool = inventoryOrHotbarSlotTool
+        lootTool = lootTool,
+        substituteTool = inventoryOrHotbarSlotTool
     }):andThen(function()
-        print("success")
         if lootTool then
-            -- when the server takes the newTool, the ItemMovementTracker should have automatically emptied newTool's previous slot
+            -- when the server takes the substituteTool, the ItemMovementTracker should have automatically emptied substituteTool's previous slot
             fillSlot(inventoryOrHotbarSlotData.slotObject, lootTool)
         else
             emptySlot(inventoryOrHotbarSlotData.slotObject)
@@ -220,13 +223,13 @@ local function lootScrolling_x_lootScrolling_swap(lsData0: slotData, lsData1: sl
         References_Inventory.LootableInstanceObjectValue.Value, 
         {
             LayoutOrder = slot0._itself.LayoutOrder,
-            syncCheck = slot0Tool,
-            newTool = slot1Tool
+            lootTool = slot0Tool,
+            substituteTool = slot1Tool
         },
         {
             LayoutOrder = slot1._itself.LayoutOrder,
-            syncCheck = slot1Tool,
-            newTool = slot0Tool
+            lootTool = slot1Tool,
+            substituteTool = slot0Tool,
         }
     )
     :andThen(function()
@@ -241,8 +244,8 @@ local function lootScrolling_drop(lootScrollingSlotData: slotData)
     local lootTool: Tool? = lootScrollingSlotData.slotObject.tool
     LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
         LayoutOrder = lootScrollingSlotData.slotObject._itself.LayoutOrder,
-        syncCheck = lootTool,
-        newTool = nil
+        lootTool = lootTool,
+        substituteTool = nil
     }):andThen(function()
         bindables.DropToolBindable:Fire(lootTool)
     end):catch(function(error)
@@ -253,8 +256,8 @@ end
 -- helper function to take off the current drag slot
 local function localUnwearAndSwapWithEmpty(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, changeSlotState, fillSlot, emptySlot)
 
-    -- warn(`wearable slot group: {wearableSlotData.slotGroup}; inventory/hotbar slot group: {inventoryOrHotbarSlotData.slotGroup}`)
-    if wearableSlotData.slotGroup ~= nil and wearableSlotData.slotGroup == inventoryOrHotbarSlotData.slotGroup then return end
+    -- warn(`wearable slot group: {wearableSlotData.slotGroupInstance}; inventory/hotbar slot group: {inventoryOrHotbarSlotData.slotGroupInstance}`)
+    if wearableSlotData.slotGroupInstance ~= nil and wearableSlotData.slotGroupInstance == inventoryOrHotbarSlotData.slotGroupInstance then return end
 
     local wearableSlot = wearableSlotData.slotObject
     local inventoryOrHotbarSlot = inventoryOrHotbarSlotData.slotObject
@@ -276,7 +279,7 @@ local function localUnwearAndSwapWithEmpty(wearableSlotData: slotData, inventory
         end,
         function(status: string) --onFinished 
             if status == "Resolved" then
-                fillSlot(inventoryOrHotbarSlot, wearableSlot.tool, "")
+                fillSlot(inventoryOrHotbarSlot, wearableSlot.tool)
                 emptySlot(wearableSlot)
             elseif status == "Never Ran" then
                 warn("Can't wear item, various possible reasons: current tool is in some activated state, item to swap with is not compatible")
@@ -336,7 +339,24 @@ local function lootScrolling_x_characterEquipment_swap()
 end
 
 -- Action handlers for different drag-drop combinations
-local ActionHandlers = {
+
+type changeSlotState = (Types_Slot.SlotObject, Types_Slot.SlotState) -> ()
+type fillSlot = (Types_Slot.SlotObject, Tool?) -> ()
+type emptySlot = (Types_Slot.SlotObject) -> ()
+
+type actionHandler = (dragData: slotData, hoverData: slotData, changeSlotState: changeSlotState, fillSlot: fillSlot, emptySlot: emptySlot) -> ()
+
+export type ActionHandlers = {
+    outsideInventory: {
+        [number]: actionHandler
+    },
+    insideInventory: {
+        [number]: {
+            [number]: actionHandler
+        }
+    }
+}
+local ActionHandlers: ActionHandlers = {
     -- Outside inventory actions (when isOutsideInventory is true)
     outsideInventory = {
         [SlotType.LOOTING_SCROLLING] = function(dragData)
@@ -348,7 +368,7 @@ local ActionHandlers = {
             print("Action: Take off corpse and drop")
         end,
         
-        [SlotType.CHARACTER_EQUIPMENT] = function(dragData, changeSlotState, fillSlot, emptySlot)
+        [SlotType.CHARACTER_EQUIPMENT] = function(dragData, _, changeSlotState, fillSlot, emptySlot)
             print("Action: Take off wearable and drop")
             characterEquipment_drop(dragData, changeSlotState, fillSlot, emptySlot)
         end,
@@ -435,7 +455,7 @@ local ActionHandlers = {
 }
 
 -- Main function (replaces your original code block)
-local function handleDragDrop(dragSlot, isOutsideInventory, hoverSlot, changeSlotState, fillSlot, emptySlot)
+local function handleDragDrop(dragSlot, isOutsideInventory: boolean, hoverSlot: Types_Slot.SlotObject?, changeSlotState: changeSlotState, fillSlot: fillSlot, emptySlot: emptySlot)
 
     if dragSlot == hoverSlot then return end
 
@@ -450,7 +470,7 @@ local function handleDragDrop(dragSlot, isOutsideInventory, hoverSlot, changeSlo
         -- Handle outside inventory drops
         local handler = ActionHandlers.outsideInventory[dragData.slotType]
         if handler then
-            handler(dragData, changeSlotState, fillSlot, emptySlot)
+            handler(dragData, hoverSlot:: any, changeSlotState, fillSlot, emptySlot)
         else
             warn("No handler for outside inventory drop from slot type: " .. dragData.slotType)
         end

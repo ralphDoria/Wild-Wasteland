@@ -286,8 +286,8 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
             warn("Error", tostring(error))
         end):finally(function(status)
             -- warn("currentOperation finished, Status: ", status)
+            CancelCurrentOperation()
             if onFinished then
-                CancelCurrentOperation()
                 print(statePathToUnworn, statePathToUnequipped, statePathToTarget)
                 onFinished(status)
             end

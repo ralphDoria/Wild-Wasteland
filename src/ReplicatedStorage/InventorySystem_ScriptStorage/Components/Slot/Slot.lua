@@ -19,12 +19,12 @@ local EquipmentInitData = require("./../../CharacterSection/Components/Equipment
 local SlotObjectsCacher = require("./SlotObjectsCacher")
 local Hover = require("./../Slot/Hover")
 local Select = require("./../Slot/Select")
-local UserInputService = game:GetService("UserInputService")
 local Drag = require("./../Slot/Drag")
 local ToolStateMachine = require("./../ToolStateMachine/Main_ToolStateMachine")
 local handleDragDrop = require(InventoryScriptStorage.Components.Slot.handleDragDrop)
 
 export type SlotObject = Type_Slot.SlotObject
+export type State = Type_Slot.SlotState
 local Slot = {}
 
 local SlotStateChangedBindable: BindableEvent = Instance.new("BindableEvent")
@@ -58,12 +58,14 @@ function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCatego
         ImageButton = slot:FindFirstChild("ImageButton", true) :: ImageButton,
         ActionIndicator = slot:FindFirstChild("ActionIndicator", true) :: ImageLabel,
         HotbarNumber = slot:FindFirstChild("HotbarNumber", true) :: TextLabel,
+        FilledSlotCounter = slot:FindFirstChild("FilledSlotCounter", true) :: TextLabel,
         Quantity = slot:FindFirstChild("Quantity", true) :: TextLabel,
         WearableCategory = wearableCategory,
         connections = {},
         tool = nil 
     }
     self.HotbarNumber.Visible = if slotType == "Hotbar" then true else false
+    self.FilledSlotCounter.Visible = false
     self._itself.Visible = true
     self.ImageButton.Visible = false
     self.ActionIndicator.Visible = false
@@ -94,14 +96,14 @@ function Slot.ChangeState(self: Type_Slot.SlotObject, state: Type_Slot.SlotState
     --fire bindable event when state changes
     if self.State ~= state then
         self.State = state
-        SlotStateChangedBindable:Fire(self)
+        SlotStateChangedBindable:Fire(self, state)
     end
 end
 
-function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool, itemType : string)
+function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
     Slot.ChangeState(self, "Filling")
     -- print("Filling slot: ", self.HotbarNumber.Text)
-    self.Quantity.Visible = if itemType == "Misc" then true else false
+    -- self.Quantity.Visible = if itemType == "Misc" then true else false
     self.ImageButton.Image = tool.TextureId
     self.tool = tool
     self.ImageButton.Visible = true
@@ -121,6 +123,37 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool, itemType : stri
         end)
     end
 
+    if self.WearableCategory and tool:HasTag("StorageWearable") then
+        local FilledSlotCounter = self.FilledSlotCounter
+        FilledSlotCounter.Visible = true
+
+        local associatedSlotGroup: ObjectValue? = tool:FindFirstChildOfClass("ObjectValue")
+        if associatedSlotGroup then
+
+            local  connection
+            associatedSlotGroup:GetPropertyChangedSignal("Value"):Connect(function()  
+                if connection then
+                    connection:Disconnect()
+                end
+                local slotGroupInstance = associatedSlotGroup.Value
+                if slotGroupInstance then
+
+                    FilledSlotCounter.Text = slotGroupInstance:GetAttribute("FilledSlotCounter_Client"):: string
+
+                    connection = slotGroupInstance:GetAttributeChangedSignal("FilledSlotCounter_Client"):Connect(function()
+                        FilledSlotCounter.Text = slotGroupInstance:GetAttribute("FilledSlotCounter_Client"):: string
+                    end)
+                else
+                    if connection then
+                        connection:Disconnect()
+                    end
+                end
+            end)
+        else
+            warn("ASSOCIATED SLOT GROUP NOT FOUND")
+        end
+    end
+
     self.connections.DragFunctionality = Drag.InitForSlot(self, function(hoverSlot, isOutsideInventory)
         handleDragDrop(self, isOutsideInventory, hoverSlot, Slot.ChangeState, Slot.FillSlot, Slot.EmptySlot)
     end)
@@ -138,6 +171,7 @@ function Slot.EmptySlot(self : Type_Slot.SlotObject?)
     Select.removeEffect(self)
     Hover.removeEffect(self)
     self.Quantity.Visible = false
+    self.FilledSlotCounter.Visible = false
     self.ImageButton.Image = ""
     self.tool = nil
     self.ImageButton.Visible = false

@@ -22,14 +22,16 @@ local LootActions = {}
 
 function LootActions.GetData(lootable: Model | Tool)
     return Promise.new(function(resolve, reject, onCancel)
-        local lootData: Types_LootSystem.StandardLootableObject? = rfn.GetLootData:InvokeServer(lootable)
+        local filledSlotsData: Types_LootSystem.FilledSlotsData = rfn.GetLootData:InvokeServer(lootable)
+        -- warn("received filledSlots from client")
+        -- warn(filledSlotsData)
         
         onCancel(function()
             
         end)
 
-        if lootData then
-            resolve(lootData)
+        if filledSlotsData then
+            resolve(filledSlotsData)
         else
             reject(`{lootable} is not registered on the server`)
         end
@@ -37,25 +39,21 @@ function LootActions.GetData(lootable: Model | Tool)
 end
 
 
-local function serializeSlotGroup(slotGroup: Type_SlotGroup.object): Types_LootSystem.StandardLootableObjectItems
-    local itemData: Types_LootSystem.StandardLootableObjectItems = {}
-    local itemSlots = slotGroup.ItemSlots
-    for _, v in slotGroup.ItemsFrame:GetChildren() do
+local function convertToFilledSlotsData(slotGroup: Type_SlotGroup.object): Types_LootSystem.FilledSlotsData
+    local filledSlotsData: Types_LootSystem.FilledSlotsData = {}
+    local slotInstanceToObjectMap = slotGroup.slotInstanceToObjectMap
+    for _, v in slotGroup.SlotsFrame:GetChildren() do
         if v:IsA("Frame") then
-            itemData[v.LayoutOrder] = {
-                isGrabbed = false,
-                tool = itemSlots[v].tool
-            }
+            filledSlotsData[tostring(v.LayoutOrder)] = slotInstanceToObjectMap[v].tool
         end
-    end
-    return itemData
+    end 
+    return filledSlotsData
 end
 
 function LootActions.updateStorageWearableLootData(tool: Tool, slotGroup: Type_SlotGroup.object)
-    local itemData = serializeSlotGroup(slotGroup)
-
+    local filledSlotsData = convertToFilledSlotsData(slotGroup)
     return Promise.new(function(resolve, reject)
-        local success: boolean = rfn.OverrideItemData:InvokeServer(tool, itemData)
+        local success: boolean = rfn.OverrideItemData:InvokeServer(tool, filledSlotsData)
 
         if success then
             resolve()

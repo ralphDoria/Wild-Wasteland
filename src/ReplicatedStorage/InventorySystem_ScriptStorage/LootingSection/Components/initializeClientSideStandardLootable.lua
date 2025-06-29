@@ -37,12 +37,11 @@ local function initializeClientSideStandardLootable(lootable: Tool | Model): (Pr
             InventoryToggle.ChangeForm("LootingForm")
 
             LootActions.GetData(lootable)
-                :andThen(function(lootData: Types_LootSystem.StandardLootableObject)
-                    LootGuiManager.RenderData(lootable, lootData)
+                :andThen(function(filledSlotsData: Types_LootSystem.FilledSlotsData)
+                    LootGuiManager.RenderData(lootable, filledSlotsData)
                     if changeReplicator then
-                        onLootDataChanged = changeReplicator.OnClientEvent:Connect(function(layoutOrder: number, newTool: Tool?, lootTool: Tool?)  
-                            warn("received change replicator fire")
-                            LootGuiManager.replaceSlot(layoutOrder, newTool) 
+                        onLootDataChanged = changeReplicator.OnClientEvent:Connect(function(layoutOrder: number, substituteTool: Tool?, lootTool: Tool?)  
+                            LootGuiManager.replaceSlot(layoutOrder, substituteTool) 
                             assert(changeReplicator)
                             changeReplicator:FireServer(lootTool)
                         end)

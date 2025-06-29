@@ -33,6 +33,7 @@ function StandardLootHPPManager.new(instance: Instance, proximityPromptParent, o
     self.pp.Enabled = false
     self.pp.RequiresLineOfSight = false
     self.pp.HoldDuration = 0.5
+    self.pp.KeyboardKeyCode = Enum.KeyCode.F
     self.pp.Enabled = true
     self.pp.Parent = proximityPromptParent
 

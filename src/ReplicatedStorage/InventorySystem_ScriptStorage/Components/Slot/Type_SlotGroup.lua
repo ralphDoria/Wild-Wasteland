@@ -7,8 +7,9 @@ export type object = {
     State: state,
     Name: string,
     Space: number,
-    ItemSlots: {[Frame]: Type_Slot.SlotObject},
-    ItemsFrame: Frame,
+    slotInstanceToObjectMap: {[Frame]: Type_Slot.SlotObject},
+    _numberOfFilledSlots: number,
+    SlotsFrame: Frame,
     Connections: {RBXScriptConnection}
 }
 

@@ -15,6 +15,7 @@ export type SlotObject = {
     ImageButton : ImageButton,
     ActionIndicator : ImageLabel,
     HotbarNumber : TextLabel,
+    FilledSlotCounter: TextLabel,
     Quantity : TextLabel,
     tool : Tool?,
     connections : {[string]: RBXScriptConnection},

@@ -53,7 +53,7 @@ function InventorySystem.init()
 
 			local emptyHotbarslot : Slot.SlotObject? =  HotbarSection.findMinimumEmptyHotbarSlot()
 			if emptyHotbarslot ~= nil then
-				Slot.FillSlot(emptyHotbarslot, tool, tool:GetAttribute("Type") :: string)
+				Slot.FillSlot(emptyHotbarslot, tool)
 			end
 		end,
 		function(tool) --onEquipping

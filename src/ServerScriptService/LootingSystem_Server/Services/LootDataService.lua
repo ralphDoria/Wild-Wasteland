@@ -1,3 +1,4 @@
+--!strict
 -- local InventoryScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -22,79 +23,63 @@ local LootDataService = {
     initialized = false
 }
 
-local MasterList: {[Instance | Tool]: Types_LootSystem.StandardLootableObject} = {}
-local onLootDataChangedRemotes: {[Instance | Tool]: RemoteEvent} = {}
-
 function LootDataService.init()
     local connections = handleTaggedInstances(TAGS_LOOT.STANDARD_CONTAINER, 
         function(taggedInstance: Instance)
-            local space
+            local space: number
             if taggedInstance:HasTag("StorageWearable") then
-                space = taggedInstance:GetAttribute("Space")
+                space = taggedInstance:GetAttribute("Space"):: number
                 if space == nil then
                     error(`{taggedInstance.Name} is missing attribute "Space"`)
                 end
             else
                 space = 20
             end
-            LootDataService.Register(taggedInstance, StandardLootable.new(space))
-            onLootDataChangedRemotes[taggedInstance] = Instance.new("RemoteEvent")
-            onLootDataChangedRemotes[taggedInstance].Parent = ReplicatedStorage
+            StandardLootable.new(taggedInstance:: Model | Tool, space)
         end,
         function(taggedInstance: Instance)  
-            LootDataService.Deregister(taggedInstance)
+            StandardLootable.Destroy(StandardLootable.createdObjects[taggedInstance:: Model | Tool])
         end
     )
 
-    rfn.GetLootData.OnServerInvoke = function(player, lootable: Model | Instance): Types_LootSystem.StandardLootableObject?
-        return MasterList[lootable]
+    rfn.GetLootData.OnServerInvoke = function(player, lootableInstance: Model | Tool): Types_LootSystem.FilledSlotsData
+        -- warn("Sending filledSlotsData from server: ")
+        -- warn(StandardLootable.createdObjects[lootableInstance].FilledSlotsData)
+        return StandardLootable.createdObjects[lootableInstance].FilledSlotsData
     end
 
-    rfn.TrySlotInteraction.OnServerInvoke = function(player, lootable: Instance, changeRequests: {Types_LootSystem.dataChangeRequestPacket})
-        local standardLootable = MasterList[lootable]
+    rfn.TrySlotInteraction.OnServerInvoke = function(player, lootableInstance: Model | Tool, changeRequests: {Types_LootSystem.dataChangeRequestPacket})
+        local standardLootable = StandardLootable.createdObjects[lootableInstance]
         if not standardLootable then
-            warn(`{lootable} is not registered.`)
+            warn(`{lootableInstance} is not registered.`)
             return false
         end
-        local changeReplicator = onLootDataChangedRemotes[lootable]
-        if changeReplicator then
-            local success: boolean = StandardLootable.makeDataChange(player, standardLootable, changeRequests, changeReplicator)
-            return success
-        else
-            warn("Couldn't find corresponding RemoteEvent for lootable")
-            return false
-        end
-
+        local success: boolean = StandardLootable.makeDataChange(standardLootable, player, changeRequests)
+        return success
     end
 
-    rfn.OverrideItemData.OnServerInvoke = function(player, lootable, itemData: Types_LootSystem.StandardLootableObjectItems)
-        MasterList[lootable].items = itemData
+    rfn.OverrideItemData.OnServerInvoke = function(player, lootableInstance: Model | Tool, filledSlotsData: Types_LootSystem.FilledSlotsData)
+        local lootableObject = StandardLootable.createdObjects[lootableInstance]
+        lootableObject.FilledSlotsData = filledSlotsData
+        local numberOfItems = 0
+        for _, v in filledSlotsData do
+            if v then
+                numberOfItems += 1
+            end
+        end
+        StandardLootable.SetNumberOfItems(lootableObject, numberOfItems)
         return true
     end
 
     LootDataService.initialized = true
 
-    rfn.GetChangeReplicatorRemote.OnServerInvoke = function(player, lootable: Instance | Model): RemoteEvent?
-        while onLootDataChangedRemotes[lootable] == nil do
+    rfn.GetChangeReplicatorRemote.OnServerInvoke = function(player, lootableInstance: Tool | Model): RemoteEvent
+        local standardLootableObjects = StandardLootable.createdObjects
+        while standardLootableObjects[lootableInstance] == nil do
             task.wait()
-            print(`Waiting for {Instance} to be initialized`)
+            print(`Waiting for {Instance} to be initialized on the server`)
         end
-        return onLootDataChangedRemotes[lootable]
-    end
-end
-
-function LootDataService.Register(lootable: Instance, lootableObject: Types_LootSystem.StandardLootableObject)    
-    if MasterList[lootable] == nil then
-        MasterList[lootable] = lootableObject
-    else
-        warn(`{lootable} is already registered`)
-    end
-end
-
-function LootDataService.Deregister(lootable: Instance)
-    if MasterList[lootable] then
-        StandardLootable.Destroy(MasterList[lootable])
-        MasterList[lootable] = nil
+        return standardLootableObjects[lootableInstance].DataChangeReplicatorRemote
     end
 end
 
