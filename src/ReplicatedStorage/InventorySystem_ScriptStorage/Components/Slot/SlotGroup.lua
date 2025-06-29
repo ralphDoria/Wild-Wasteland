@@ -85,9 +85,12 @@ function SlotGroup._initialize(self: Type_SlotGroup.object, filledSlotsData: Typ
             Slot.StateChanged:Connect(function(slot: Slot.SlotObject, state: Slot.State)
                 local slotGroupInstance = if slot._itself.Parent and slot._itself.Parent.Parent then slot._itself.Parent.Parent else nil
                 if slotGroupInstance == self._itself then
-                    if state == "Filling" or state == "Emptying" then
+                    if state == "Filling" then
                         warn(`Slot in {self.Name} slot group is {state}`)
                         SlotGroup._SetFilledSlots(self, self._numberOfFilledSlots + 1)
+                    elseif state == "Emptying" then
+                        warn(`Slot in {self.Name} slot group is {state}`)
+                        SlotGroup._SetFilledSlots(self, self._numberOfFilledSlots - 1)
                     end
                 end
             end)
@@ -97,15 +100,9 @@ end
 
 function SlotGroup._SetFilledSlots(self: Type_SlotGroup.object, num: number)
     self._numberOfFilledSlots = num
-    local isEmpty = num == 0
     local instance = self._itself
-    local currentValue = instance:GetAttribute("isEmpty_client")
     print(`_numberOfFilledSlots: {self._numberOfFilledSlots}`)
     instance:SetAttribute("FilledSlotCounter_Client", `{self._numberOfFilledSlots}/{self.Space}`)
-    if currentValue ~= isEmpty then
-        print(`{self.Name} isEmpty: {isEmpty}`)
-        instance:SetAttribute("isEmpty_client", isEmpty)
-    end
 end
 
 function SlotGroup.Destroy(self: Type_SlotGroup.object)

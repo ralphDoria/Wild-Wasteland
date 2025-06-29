@@ -123,9 +123,17 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
         end)
     end
 
+    local FilledSlotCounter = self.FilledSlotCounter
+    local function updateFilledSlotsAndIsEmptyStatus(slotGroupInstance: Frame)
+        local numberOfFilledSlots = slotGroupInstance:GetAttribute("FilledSlotCounter_Client"):: string
+        FilledSlotCounter.Text = numberOfFilledSlots
+        local num = tonumber(numberOfFilledSlots:sub(1, 1))
+        if self.tool then
+            self.tool:SetAttribute("isEmpty_client", num == 0)
+        end
+    end
+
     if self.WearableCategory and tool:HasTag("StorageWearable") then
-        local FilledSlotCounter = self.FilledSlotCounter
-        FilledSlotCounter.Visible = true
 
         local associatedSlotGroup: ObjectValue? = tool:FindFirstChildOfClass("ObjectValue")
         if associatedSlotGroup then
@@ -135,13 +143,14 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
                 if connection then
                     connection:Disconnect()
                 end
-                local slotGroupInstance = associatedSlotGroup.Value
+                local slotGroupInstance = associatedSlotGroup.Value:: Frame
                 if slotGroupInstance then
 
-                    FilledSlotCounter.Text = slotGroupInstance:GetAttribute("FilledSlotCounter_Client"):: string
+                    updateFilledSlotsAndIsEmptyStatus(slotGroupInstance)
+                    FilledSlotCounter.Visible = true
 
                     connection = slotGroupInstance:GetAttributeChangedSignal("FilledSlotCounter_Client"):Connect(function()
-                        FilledSlotCounter.Text = slotGroupInstance:GetAttribute("FilledSlotCounter_Client"):: string
+                        updateFilledSlotsAndIsEmptyStatus(slotGroupInstance)
                     end)
                 else
                     if connection then

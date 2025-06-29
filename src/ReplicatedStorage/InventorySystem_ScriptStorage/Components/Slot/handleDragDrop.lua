@@ -16,6 +16,7 @@ local InventoryScriptStorage = ReplicatedStorage.RojoManaged_RS.InventorySystem_
 local Types_Slot = require(InventoryScriptStorage.Components.Slot.Type_Slot)
 local ToolStateMachine = require(InventoryScriptStorage.Components.ToolStateMachine.Main_ToolStateMachine)
 local LootActions = require(InventoryScriptStorage.LootingSection.Components.LootActions)
+local DiegeticErrorMessagingManager = require(ReplicatedStorage.RojoManaged_RS.DiegeticErrorMessagingManager)
 
 -- Enum for slot types to avoid string comparisons and improve readability
 local SlotType = {
@@ -121,6 +122,16 @@ local function loadSlot(slot: Types_Slot.SlotObject, duration: number)
     return tween
 end
 
+local function isRelatedViaSlotGroup(wearableSlotData: slotData, otherSlot: slotData): boolean
+    if wearableSlotData.slotGroupInstance and wearableSlotData.slotGroupInstance == otherSlot.slotGroupInstance then 
+        DiegeticErrorMessagingManager.AddMessage("Logically, that's not possible")
+        return true
+    else
+        return false
+    end
+end
+
+
 -- helper function to wear the current drag slot
 local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, 
         changeSlotState: (Types_Slot.SlotObject, Types_Slot.SlotState) -> (), 
@@ -128,14 +139,17 @@ local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlo
         emptySlot: (Types_Slot.SlotObject) -> ()
     )
 
-    -- warn(`wearable slot group: {wearableSlotData.slotGroupInstance}; inventory/hotbar slot group: {inventoryOrHotbarSlotData.slotGroupInstance}`) 
-    if wearableSlotData.slotGroupInstance ~= nil and wearableSlotData.slotGroupInstance == inventoryOrHotbarSlotData.slotGroupInstance then return end
+    -- warn(`wearable slot group: {wearableSlotData.slotGroupInstance}; inventory/hotbar slot group: {inventoryOrHotbarSlotData.slotGroupInstance}`)
+    if isRelatedViaSlotGroup(wearableSlotData, inventoryOrHotbarSlotData) then return end
 
     local wearableSlot = wearableSlotData.slotObject
     local inventoryOrHotbarSlot = inventoryOrHotbarSlotData.slotObject
 
     -- print(`wearable category: {wearableSlot.WearableCategory}; inventory/hotbar tool's wearable category: {if inventoryOrHotbarSlot.tool and inventoryOrHotbarSlot.tool:GetAttribute("WearableCategory") then inventoryOrHotbarSlot.tool:GetAttribute("WearableCategory") else nil}`)
-    if inventoryOrHotbarSlot.tool and wearableSlot.WearableCategory ~= inventoryOrHotbarSlot.tool:GetAttribute("WearableCategory") then return end
+    if inventoryOrHotbarSlot.tool and wearableSlot.WearableCategory ~= inventoryOrHotbarSlot.tool:GetAttribute("WearableCategory") then 
+        DiegeticErrorMessagingManager.AddMessage("Logically, that's not possible to do")
+        return 
+    end
 
     local tweens: {Tween} = {}
     ToolStateMachine.SetTargets(inventoryOrHotbarSlot, "Worn", 
@@ -257,7 +271,7 @@ end
 local function localUnwearAndSwapWithEmpty(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, changeSlotState, fillSlot, emptySlot)
 
     -- warn(`wearable slot group: {wearableSlotData.slotGroupInstance}; inventory/hotbar slot group: {inventoryOrHotbarSlotData.slotGroupInstance}`)
-    if wearableSlotData.slotGroupInstance ~= nil and wearableSlotData.slotGroupInstance == inventoryOrHotbarSlotData.slotGroupInstance then return end
+    if isRelatedViaSlotGroup(wearableSlotData, inventoryOrHotbarSlotData) then return end
 
     local wearableSlot = wearableSlotData.slotObject
     local inventoryOrHotbarSlot = inventoryOrHotbarSlotData.slotObject
@@ -426,10 +440,15 @@ local ActionHandlers: ActionHandlers = {
             end,
             [SlotType.INVENTORY_OR_HOTBAR] = function(dragData: slotData, hoverData: slotData, changeSlotState, fillSlot, emptySlot)
                 print("Action: Character equipment to inventory/hotbar")
-                if hoverData.slotObject._isEmpty then
-                    localUnwearAndSwapWithEmpty(dragData, hoverData, changeSlotState, fillSlot, emptySlot)
+                local wornItem: Tool = dragData.slotObject.tool:: Tool
+                if wornItem:GetAttribute("isEmpty_client") then
+                    if hoverData.slotObject._isEmpty then
+                        localUnwearAndSwapWithEmpty(dragData, hoverData, changeSlotState, fillSlot, emptySlot)
+                    else
+                        localSwapAndWear(hoverData, dragData, changeSlotState, fillSlot, emptySlot)
+                    end
                 else
-                    localSwapAndWear(hoverData, dragData, changeSlotState, fillSlot, emptySlot)
+                    DiegeticErrorMessagingManager.AddMessage("I need to empty my backpack if I want to do that")
                 end
             end
         },
