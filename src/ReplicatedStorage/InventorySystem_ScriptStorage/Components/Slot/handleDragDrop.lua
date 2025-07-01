@@ -133,15 +133,7 @@ end
 
 
 -- helper function to wear the current drag slot
-local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, 
-        changeSlotState: (Types_Slot.SlotObject, Types_Slot.SlotState) -> (), 
-        fillSlot: (Types_Slot.SlotObject, Tool) -> (), 
-        emptySlot: (Types_Slot.SlotObject) -> ()
-    )
-
-    -- warn(`wearable slot group: {wearableSlotData.slotGroupInstance}; inventory/hotbar slot group: {inventoryOrHotbarSlotData.slotGroupInstance}`)
-    if isRelatedViaSlotGroup(wearableSlotData, inventoryOrHotbarSlotData) then return end
-
+local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, changeSlotState: changeSlotState, fillSlot: fillSlot, emptySlot: emptySlot)
     local wearableSlot = wearableSlotData.slotObject
     local inventoryOrHotbarSlot = inventoryOrHotbarSlotData.slotObject
 
@@ -200,10 +192,7 @@ local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlo
     )
 end
 
-local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData: slotData, lootScrollingSlotData: slotData, 
-        fillSlot: (Types_Slot.SlotObject, Tool?) -> (), 
-        emptySlot: (Types_Slot.SlotObject) -> ()    
-    )
+local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData: slotData, lootScrollingSlotData: slotData, fillSlot: fillSlot, emptySlot: emptySlot)
 
     local inventoryOrHotbarSlotTool: Tool? = inventoryOrHotbarSlotData.slotObject.tool
     local lootTool: Tool? = lootScrollingSlotData.slotObject.tool
@@ -269,9 +258,6 @@ end
 
 -- helper function to take off the current drag slot
 local function localUnwearAndSwapWithEmpty(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, changeSlotState, fillSlot, emptySlot)
-
-    -- warn(`wearable slot group: {wearableSlotData.slotGroupInstance}; inventory/hotbar slot group: {inventoryOrHotbarSlotData.slotGroupInstance}`)
-    if isRelatedViaSlotGroup(wearableSlotData, inventoryOrHotbarSlotData) then return end
 
     local wearableSlot = wearableSlotData.slotObject
     local inventoryOrHotbarSlot = inventoryOrHotbarSlotData.slotObject
@@ -348,8 +334,26 @@ local function characterEquipment_drop(characterEquipmentSlotData: slotData, cha
     )
 end
 
-local function lootScrolling_x_characterEquipment_swap()
-    
+local function lootScrolling_x_characterEquipment_swap(lootScrollingData: slotData, characterEquipmentData: slotData)
+    --[[
+        - Going to be modeled off of inventoryOrHotbar_x_characterEquipment_swap
+            - which is split into 3 scenarios: 
+
+                * need to fix edge case handling for when a state path execution is cancelled and the wearable is unworn first because the cases below rely on it.
+
+                1. EMPTY lootScrolling slot and FILLED characterEquipment slot - unwear characterEquipment and fill lootScrolling slot
+                    - if lootScrolling slot is filled during the asynchronous process of unwearing, then the wearable will find another slot to fill within
+                        loot scrolling frame. If there are no empty slots to fill, then the equipment item will be dropped
+                2. FILLED lootScrolling slot and EMPTY characterEquipment slot - empty lootScrolling slot and start wearing item
+                    - (abstract this into ToolStateMachine)if wearing is cancelled, then item is put into inventory, and classic procedure, 
+                        if there's no space in inventory, then item will be dropped
+                3. FILLED lootScrolling slot and FILLED characterEquipment slot - the gist of it is that the player wants to wear the lootScrolling item and get rid of
+                    their current worn item by putting it into the lootContainer, so no matter the edge case, I should try to honor that desire
+                    - lootScrolling item will be put into the inventory and put into the unequippe state (so that it can be handled by ToolStateMachine), but won't
+                        be given a slot at this point.
+                        - classic case of tool statemachine swap two wearable items: 
+                            - implement at ToolStateMachine level so that it can deal with cancellations consistently across all 3 lootScrolling_x_characterEquipment_swap cases
+    ]]
 end
 
 -- Action handlers for different drag-drop combinations
@@ -417,9 +421,6 @@ local ActionHandlers: ActionHandlers = {
             [SlotType.LOOTING_SCROLLING] = function(dragData: slotData, hoverData: slotData)
                 print("Action: Looting equipment to looting scrolling")
             end,
-            [SlotType.LOOTING_EQUIPMENT] = function(dragData: slotData, hoverData: slotData)
-                print("Action: Looting equipment to looting equipment")
-            end,
             [SlotType.CHARACTER_EQUIPMENT] = function(dragData: slotData, hoverData: slotData)
                 print("Action: Looting equipment to character equipment")
             end,
@@ -435,11 +436,12 @@ local ActionHandlers: ActionHandlers = {
             [SlotType.LOOTING_EQUIPMENT] = function(dragData: slotData, hoverData: slotData)
                 print("Action: Character equipment to looting equipment")
             end,
-            [SlotType.CHARACTER_EQUIPMENT] = function(dragData: slotData, hoverData: slotData)
-                print("Action: Character equipment to character equipment")
-            end,
             [SlotType.INVENTORY_OR_HOTBAR] = function(dragData: slotData, hoverData: slotData, changeSlotState, fillSlot, emptySlot)
                 print("Action: Character equipment to inventory/hotbar")
+
+                if isRelatedViaSlotGroup(dragData, hoverData) then return end
+
+
                 local wornItem: Tool = dragData.slotObject.tool:: Tool
                 if wornItem:GetAttribute("isEmpty_client") then
                     if hoverData.slotObject._isEmpty then
@@ -463,6 +465,7 @@ local ActionHandlers: ActionHandlers = {
             end,
             [SlotType.CHARACTER_EQUIPMENT] = function(dragData, hoverData, changeSlotState, fillSlot, emptySlot)
                 print("Action: Inventory/hotbar to character equipment")
+                if isRelatedViaSlotGroup(hoverData, dragData) then return end
                 localSwapAndWear(hoverData, dragData, changeSlotState, fillSlot, emptySlot) 
             end,
             [SlotType.INVENTORY_OR_HOTBAR] = function(dragData: slotData, hoverData: slotData)

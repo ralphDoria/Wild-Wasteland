@@ -4,14 +4,13 @@ local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventoryS
 
 local ScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
 local Slot = require(ScriptStorage.Components.Slot.Slot)
-local SlotObjectsCacher = require("./SlotObjectsCacher")
 local Types_LootSystem = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.LootingSection.Components.Types_LootSystem)
 local Type_SlotGroup = require(ScriptStorage.Components.Slot.Type_SlotGroup)
 
 export type object = Type_SlotGroup.object
 
 local SlotGroup = {}
-SlotGroup.__index = SlotGroup
+SlotGroup.createdObjects = {}:: {[number]: Type_SlotGroup.object}
 
 function SlotGroup.new(name: string, space: number, filledSlotsData: Types_LootSystem.FilledSlotsData, parent: Instance?): Type_SlotGroup.object
     local clone = References_Inventory.TemplateSlotGroup:Clone()
@@ -28,6 +27,7 @@ function SlotGroup.new(name: string, space: number, filledSlotsData: Types_LootS
     }
 
     SlotGroup._initialize(self, filledSlotsData, parent)
+    table.insert(SlotGroup.createdObjects, self)
 
     return self
 end
@@ -60,7 +60,7 @@ function SlotGroup._initialize(self: Type_SlotGroup.object, filledSlotsData: Typ
             self.Connections,
             self.SlotsFrame.ChildAdded:Connect(function(child: Instance)  
                 assert(child:IsA("Frame"))
-                local slotObject = SlotObjectsCacher.GetSlotFromInstanceSlot(child):: Slot.SlotObject
+                local slotObject = Slot.instanceToObjectMap[child]:: Slot.SlotObject
                 self.slotInstanceToObjectMap[child] = slotObject
                 if slotObject.tool then
                     print(`Slot in {self.Name} slot group was filled`)
@@ -106,6 +106,11 @@ function SlotGroup._SetFilledSlots(self: Type_SlotGroup.object, num: number)
 end
 
 function SlotGroup.Destroy(self: Type_SlotGroup.object)
+    local index = table.find(SlotGroup.createdObjects, self)
+    if index then
+        table.remove(SlotGroup.createdObjects, index)
+    end
+
     for _, v in self.Connections do
         v:Disconnect()
     end

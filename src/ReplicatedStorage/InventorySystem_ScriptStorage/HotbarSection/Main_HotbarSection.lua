@@ -3,7 +3,6 @@ local ToolStateMachine = require("./../Components/ToolStateMachine/Main_ToolStat
 
 local Slot = require("./../Components/Slot/Slot")
 local UserInputService = game:GetService("UserInputService")
-local SlotObjectsCacher = require("./../Components/Slot/SlotObjectsCacher")
 
 local Hotbar : CanvasGroup
 
@@ -14,7 +13,7 @@ local hotbarNumberToKeybind = {
 	[4] = Enum.KeyCode.Four,
 	[5] = Enum.KeyCode.Five
 }
-local hotbarSlotToSlotData : {[Frame]: Slot.SlotType} = {}
+local hotbarSlotToSlotData : {[Frame]: Slot.SlotObject} = {}
 
 local HotbarManager = {}
 HotbarManager.Connections = {}
@@ -33,7 +32,7 @@ function HotbarManager.init(SlotTemplate : Frame, hotbar : CanvasGroup)
         HotbarManager.Connections,
         Hotbar.ChildAdded:Connect(function(child: Instance)  
             if child:IsA("Frame") then
-                local slotData = SlotObjectsCacher.GetSlotFromInstanceSlot(child)
+                local slotData = Slot.instanceToObjectMap[child]
                 if slotData then
                     hotbarSlotToSlotData[child] = slotData 
                 else
@@ -55,7 +54,7 @@ function HotbarManager.init(SlotTemplate : Frame, hotbar : CanvasGroup)
     HotbarManager.toggleKeybindToHotbarSlot(true)
 end
 
-function HotbarManager.findMinimumEmptyHotbarSlot() : Slot.SlotObject?
+function HotbarManager.findFirstEmptySlot() : Slot.SlotObject?
     local lowest: Slot.SlotObject? = nil
     for _, v in hotbarSlotToSlotData do
         if v._isEmpty == true and v.State ~= "BeingSwapped" then

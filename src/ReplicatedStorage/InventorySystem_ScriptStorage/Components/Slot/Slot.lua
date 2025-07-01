@@ -16,7 +16,6 @@ local InventoryScriptStorage = ReplicatedStorage.RojoManaged_RS.InventorySystem_
 local Type_Slot = require("./../Slot/Type_Slot")
 local Type_Equipment = require("./../../CharacterSection/Components/Type_Equipment")
 local EquipmentInitData = require("./../../CharacterSection/Components/EquipmentInitData")
-local SlotObjectsCacher = require("./SlotObjectsCacher")
 local Hover = require("./../Slot/Hover")
 local Select = require("./../Slot/Select")
 local Drag = require("./../Slot/Drag")
@@ -26,6 +25,9 @@ local handleDragDrop = require(InventoryScriptStorage.Components.Slot.handleDrag
 export type SlotObject = Type_Slot.SlotObject
 export type State = Type_Slot.SlotState
 local Slot = {}
+Slot.instanceToObjectMap = {}:: {[Frame]: SlotObject}
+Slot.toolToObjectMap = {}:: {[Tool]: SlotObject}
+Slot.wearableCategoryToObjectMap = {}:: {[string]: SlotObject}
 
 local SlotStateChangedBindable: BindableEvent = Instance.new("BindableEvent")
 Slot.StateChanged = SlotStateChangedBindable.Event
@@ -48,18 +50,18 @@ function Slot.start()
 end
 
 function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCategory: Type_Equipment.EquipmentCategory?) : Type_Slot.SlotObject
-    local slot = References_Inventory.TemplateSlot:Clone()
+    local slotInstance = References_Inventory.TemplateSlot:Clone()
 
     local self : Type_Slot.SlotObject = {
         State = "Idle",
-        _itself = slot :: Frame,
+        _itself = slotInstance :: Frame,
         _isEmpty = true :: boolean,
-        InnerFrame = slot:FindFirstChild("innerFrame", true) :: Frame,
-        ImageButton = slot:FindFirstChild("ImageButton", true) :: ImageButton,
-        ActionIndicator = slot:FindFirstChild("ActionIndicator", true) :: ImageLabel,
-        HotbarNumber = slot:FindFirstChild("HotbarNumber", true) :: TextLabel,
-        FilledSlotCounter = slot:FindFirstChild("FilledSlotCounter", true) :: TextLabel,
-        Quantity = slot:FindFirstChild("Quantity", true) :: TextLabel,
+        InnerFrame = slotInstance:FindFirstChild("innerFrame", true) :: Frame,
+        ImageButton = slotInstance:FindFirstChild("ImageButton", true) :: ImageButton,
+        ActionIndicator = slotInstance:FindFirstChild("ActionIndicator", true) :: ImageLabel,
+        HotbarNumber = slotInstance:FindFirstChild("HotbarNumber", true) :: TextLabel,
+        FilledSlotCounter = slotInstance:FindFirstChild("FilledSlotCounter", true) :: TextLabel,
+        Quantity = slotInstance:FindFirstChild("Quantity", true) :: TextLabel,
         WearableCategory = wearableCategory,
         connections = {},
         tool = nil 
@@ -84,7 +86,7 @@ function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCatego
         Slot.destroy(self)
     end)
 
-    table.insert(SlotObjectsCacher.InitializedSlots, self)
+    Slot.instanceToObjectMap[slotInstance] = self
 
     return self
 end
@@ -167,7 +169,8 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
         handleDragDrop(self, isOutsideInventory, hoverSlot, Slot.ChangeState, Slot.FillSlot, Slot.EmptySlot)
     end)
 
-    table.insert(SlotObjectsCacher.FilledSlots, self)
+    Slot.toolToObjectMap[tool] = self
+
     Slot.ChangeState(self, "Idle")
 end
 
@@ -176,6 +179,9 @@ function Slot.EmptySlot(self : Type_Slot.SlotObject?)
         warn("Cannot empty slot, SlotObject is nil")
         return 
     end
+
+    Slot.toolToObjectMap[self.tool:: Tool] = nil
+
     Slot.ChangeState(self, "Emptying")
     Select.removeEffect(self)
     Hover.removeEffect(self)
@@ -190,8 +196,6 @@ function Slot.EmptySlot(self : Type_Slot.SlotObject?)
             v:Disconnect()
         end
     end
-    
-    table.remove(SlotObjectsCacher.FilledSlots, table.find(SlotObjectsCacher.FilledSlots, self))
 
     if self.WearableCategory then
         self.ImageButton.Visible = true
@@ -201,8 +205,19 @@ function Slot.EmptySlot(self : Type_Slot.SlotObject?)
 end
 
 function Slot.destroy(self : Type_Slot.SlotObject)
-    table.remove(SlotObjectsCacher.InitializedSlots, table.find(SlotObjectsCacher.InitializedSlots, self))
     Slot.ChangeState(self, "Destroying")
+
+
+    local slotInstance = self._itself
+    if slotInstance then
+        Slot.instanceToObjectMap[self._itself] = nil  
+    end
+
+    local tool = self.tool
+    if tool then
+        Slot.toolToObjectMap[tool] = nil    
+    end
+
     if self._itself.Parent ~= nil then
         self._itself:Destroy()    
     end

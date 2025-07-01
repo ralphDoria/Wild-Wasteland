@@ -26,7 +26,6 @@ export type WearableType = Item.ItemType & {
     applyWornEffects: () -> (),
     removeWornEffects: () -> ()
 }
-local SlotObjectsCacher = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.SlotObjectsCacher)
 local Slot = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.Slot)
 local player = game:GetService("Players").LocalPlayer
 
@@ -64,12 +63,12 @@ local function toggleWearBind(self : WearableType, toggle : boolean)
             function(): (() -> (), () -> (), () -> ())  
 
                 local function onActivated()
-                    local slot = SlotObjectsCacher.GetSlotFromTool(self.tool)
-                    if slot then
+                    local toolSlot = Slot.toolToObjectMap[self.tool]
+                    if toolSlot then
                         local category: Folder = WornItems:FindFirstChild(self.WearableCategory):: Folder
                         local wornToolOfCategory = category:FindFirstChildOfClass("Tool")
                         if wornToolOfCategory == nil then
-                            Slot.SwapSlots(slot, SlotObjectsCacher.WearableSlots[self.WearableCategory])
+                            Slot.SwapSlots(toolSlot, Slot.wearableCategoryToObjectMap[self.WearableCategory])
                         else
                             -- @TODO display ui warning indicator by cursor stating "gear slot already filled"
                         end

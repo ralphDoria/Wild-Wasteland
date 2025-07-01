@@ -4,14 +4,16 @@ local RS = game:GetService("ReplicatedStorage")
 local References_Inventory = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
 
 -- Sections
-local ScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
+local ScriptStorage = RS.RojoManaged_RS.InventorySystem_ScriptStorage
 local CharacterSection = require(ScriptStorage.CharacterSection.Main_CharacterSection)
 local HotbarSection = require(ScriptStorage.HotbarSection.Main_HotbarSection)
 local LootingSection = require(ScriptStorage.LootingSection.Main_LootingSection)
+local InventorySection = require(ScriptStorage.InventorySection.Main_InventorySection)
+
+local findFirstEmptySlot = require(ScriptStorage.Components.Slot.findFirstEmptySlot)
 
 -- Universal Inventory Components
 local Slot = require("./Components/Slot/Slot")
-local SlotObjectsCacher = require("./Components/Slot/SlotObjectsCacher")
 
 -- Misc
 local ItemMovementTracker = require("./Components/Misc/ItemMovementTracker")
@@ -51,9 +53,9 @@ function InventorySystem.init()
 				return
 			end
 
-			local emptyHotbarslot : Slot.SlotObject? =  HotbarSection.findMinimumEmptyHotbarSlot()
-			if emptyHotbarslot ~= nil then
-				Slot.FillSlot(emptyHotbarslot, tool)
+			local emptySlot : Slot.SlotObject? =  findFirstEmptySlot()
+			if emptySlot then
+				Slot.FillSlot(emptySlot, tool)
 			end
 		end,
 		function(tool) --onEquipping
@@ -67,7 +69,7 @@ function InventorySystem.init()
 		end,
 		function(tool) --onDropped
 			--empty slot
-			Slot.EmptySlot(SlotObjectsCacher.GetSlotFromTool(tool) ::  Slot.SlotObject?)
+			Slot.EmptySlot(Slot.toolToObjectMap[tool])
 		end
 	)
 
@@ -100,7 +102,7 @@ function InventorySystem.ResizeGui()
 	local characterSectionHeight = References_Inventory.CharacterSection.AbsoluteSize.Y
 	local fifthSection = characterSectionHeight/5
 	if  fifthSection < 50 then
-		for _, v: Slot.SlotObject in SlotObjectsCacher.InitializedSlots do
+		for _, v: Slot.SlotObject in Slot.instanceToObjectMap do
 			v._itself.Size = UDim2.fromOffset(fifthSection, fifthSection)
 		end
 		References_Inventory.TouchBackpackSlot.Size = UDim2.fromOffset(fifthSection, fifthSection)
