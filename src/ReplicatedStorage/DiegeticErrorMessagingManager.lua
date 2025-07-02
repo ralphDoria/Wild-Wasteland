@@ -16,7 +16,7 @@ local function calculateDisplayTime(message: string, minTime, maxTime): number
 end
 
 function DiegeticErrorMessagingManager.AddMessage(message: string)
-    print("Creating and adding message")
+    -- print("Creating and adding message")
     local clone = template:Clone()
     messageNumber += 1
     clone.LayoutOrder = messageNumber

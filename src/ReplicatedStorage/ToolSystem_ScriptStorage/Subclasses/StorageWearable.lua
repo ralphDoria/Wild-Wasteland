@@ -79,7 +79,8 @@ function StorageWearable._initialize(self: StorageWearableObject)
     local lootPrompt: ProximityPrompt, lootHighlight: Highlight = initializeClientSideStandardLootable(self.tool)
     lootHighlight:Destroy()
 
-    lootPrompt.UIOffset = Vector2.new(0, -30)
+    pickUpPrompt.UIOffset = Vector2.new(0, 15)
+    lootPrompt.UIOffset = Vector2.new(0, -15)
     lootPrompt.ObjectText = ""
     lootPrompt.Enabled = false
     lootPrompt.MaxActivationDistance = pickUpPrompt.MaxActivationDistance
@@ -108,11 +109,11 @@ function StorageWearable._initialize(self: StorageWearableObject)
     local WornItems = player.Backpack:WaitForChild("WornItems"):: Folder
     local wearableCategoryFolder = WornItems[self.WearableCategory]:: Folder
     local isWearingBackpackAlready: boolean
-    local isEmpty_server: boolean
+    local isEmpty_server: boolean = self.tool:GetAttribute("isEmpty_server"):: boolean
 
     local function updatePromptText()
         if not isEmpty_server and isWearingBackpackAlready then
-            pickUpPrompt.ActionText = "Swap Backpacks"
+            pickUpPrompt.ActionText = "Swap"
         elseif not isEmpty_server and not isWearingBackpackAlready then
             pickUpPrompt.ActionText = "Put On"
         elseif isEmpty_server then
@@ -138,11 +139,15 @@ function StorageWearable._initialize(self: StorageWearableObject)
         isEmpty_server = self.tool:GetAttribute("isEmpty_server"):: boolean
         updatePromptText()
     end)
-    
+
+    self.connections.onPickUpPromptEnabledChanged = pickUpPrompt:GetPropertyChangedSignal("Enabled"):Connect(function(...: any) 
+        lootPrompt.Enabled = pickUpPrompt.Enabled
+    end)
+
     LootGuiManager.renderChanged:Connect(function(lootableInstance: (Model | Tool)?)
-        print(self.State)
+        -- print(self.State)
         if self.tool.Parent == workspace then
-            print(`render changed to {lootableInstance}`)
+            -- print(`render changed to {lootableInstance}`)
             pickUpPrompt.Enabled =  lootableInstance == self.associatedSlotGroup.Value
         end
 

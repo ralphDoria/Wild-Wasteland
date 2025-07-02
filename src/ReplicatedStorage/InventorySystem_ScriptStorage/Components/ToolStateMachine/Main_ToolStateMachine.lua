@@ -190,7 +190,7 @@ end
 
 local ToolStateMachine = {}
 
-function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_state: Type_Item.ItemState, onValidated: ((number) -> ())?, onCancelled: (completedUnwearing: boolean?) -> ()?, onResolved: () -> ()?, onFinished: (status: string) -> ()?)
+function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_state: Type_Item.ItemState, onValidated: ((number) -> ())?, onCancelled: (completedUnwearing: boolean?) -> ()?, onResolved: () -> ()?, onFinished: (status: string) -> ()?, onNonTargetUnworn: () -> ()?)
 
     local target_tool: Tool = target_slot.tool:: Tool
 
@@ -234,11 +234,13 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
         currentWornTool = GetCurrentWornItemOfCategory(target_tool:GetAttribute("WearableCategory"):: Type_Equipment.EquipmentCategory)
         if currentWornTool and currentWornTool ~= target_tool then
             statePathToUnworn = GetStatePath("Worn", "Unequipped")
+            currentWornTool:SetAttribute("TransitioningFrom", currentWornTool:GetAttribute("State"))
         end
     end
 
     if not statePathToTarget then 
         statePathToTarget = GetStatePath(target_tool:GetAttribute("State"):: Type_Item.ItemState, target_state)
+        target_tool:SetAttribute("TransitioningFrom", target_tool:GetAttribute("State"))
     end
 
     local function isEmptyTable(tbl: {Type_Item.ItemState}?)
@@ -259,7 +261,6 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
     else
         -- warn("Proceeding and setting target slot")
         CancelCurrentOperation()
-        target_tool:SetAttribute("TransitioningFrom", target_tool:GetAttribute("State"))
         SetCurrentOperation(target_slot, target_state)
     end
 
@@ -284,6 +285,9 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
         currentOperation.promise:andThen(function()
             print("unwearing operation to make space for target tool completed")
             completedUnwearing = true
+            if onNonTargetUnworn then 
+                onNonTargetUnworn()
+            end
         end)
     end
 

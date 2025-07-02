@@ -28,6 +28,8 @@ function StandardLootable.new(lootableInstance: Model | Tool, space: number, pre
 end
 
 function StandardLootable._initialize(self: Types_LootSystem.StandardLootableObject, presetData: {[number]: Tool}?)
+    self._itself:SetAttribute("isEmpty_server", true) -- initial value
+
     if presetData then
         local serializedData = self.FilledSlotsData
         local numberOfItems = 0

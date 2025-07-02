@@ -9,6 +9,7 @@ local toolTags = {
      ["NV Goggles"] = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage.Items.Wearables.NVGoggles),
      ["StorageWearable"] = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage.Subclasses.StorageWearable)
 }
+local Promise = require(ReplicatedStorage.Packages.Promise)
 
 return function()
     local function handleTaggedInstances(instance, class)
@@ -16,9 +17,16 @@ return function()
             warn("tagged instance is not a tool")
         end
         -- warn("creating new Instance of", instance.Name, "in", instance.Parent)
-        task.spawn(function()
+        Promise.new(function(resolve, reject)
             class.new(instance, humanoid)
         end)
+            :andThen(function()
+                -- warn("Successfully created a new Instance of", instance.Name, "in", instance.Parent)
+            end)
+            :catch(function(err)
+                warn("Something went wrong when attempting to create a new instance of", instance.Name, "in", instance.Parent)
+                warn(err)
+            end)
     end
     
     for tag, class in toolTags do

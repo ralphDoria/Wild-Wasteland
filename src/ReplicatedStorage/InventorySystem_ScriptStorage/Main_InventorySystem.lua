@@ -103,8 +103,18 @@ function InventorySystem.ResizeGui()
 	local characterSectionHeight = References_Inventory.CharacterSection.AbsoluteSize.Y
 	local fifthSection = characterSectionHeight/5
 	if  fifthSection < 50 then
-		for _, v: Slot.SlotObject in Slot.instanceToObjectMap do
-			v._itself.Size = UDim2.fromOffset(fifthSection, fifthSection)
+		for instance, object: Slot.SlotObject in Slot.instanceToObjectMap do
+			local slotInstanceSize = UDim2.fromOffset(fifthSection, fifthSection)
+
+			local itemsFrameOfSlotgroup = instance.Parent
+			if itemsFrameOfSlotgroup then
+				local uiGridLayout = itemsFrameOfSlotgroup:FindFirstChildOfClass("UIGridLayout")
+				if uiGridLayout and uiGridLayout.CellSize ~= slotInstanceSize then
+					uiGridLayout.CellSize = slotInstanceSize
+				else
+					instance.Size = slotInstanceSize
+				end
+			end
 		end
 		References_Inventory.TouchBackpackSlot.Size = UDim2.fromOffset(fifthSection, fifthSection)
 	end

@@ -17,7 +17,7 @@ local Types_Slot = require(InventoryScriptStorage.Components.Slot.Type_Slot)
 local ToolStateMachine = require(InventoryScriptStorage.Components.ToolStateMachine.Main_ToolStateMachine)
 local LootActions = require(InventoryScriptStorage.LootingSection.Components.LootActions)
 local DiegeticErrorMessagingManager = require(ReplicatedStorage.RojoManaged_RS.DiegeticErrorMessagingManager)
--- local findFirstEmptySlot = require(InventoryScriptStorage.Components.Slot.findFirstEmptySlot)
+local EmptySlotFinder = require(InventoryScriptStorage.Components.Slot.EmptySlotFinder)
 
 -- Enum for slot types to avoid string comparisons and improve readability
 local SlotType = {
@@ -201,8 +201,9 @@ local function characterEquipment_x_inventoryOrHotbar_swap(wearableSlotData: slo
                 -- warn("Cancelled")
             end,
             function() --onResolved 
-                fillSlot(inventoryOrHotbarSlot, wearableSlot.tool)
+                local wearableTool = wearableSlot.tool
                 emptySlot(wearableSlot)
+                fillSlot(inventoryOrHotbarSlot, wearableTool)
             end,
             function() --onFinished
                 changeSlotState(wearableSlot, "Idle")
@@ -228,7 +229,18 @@ local function characterEquipment_x_inventoryOrHotbar_swap(wearableSlotData: slo
                     end
                 end
                 if completedUnwearing then
-                    emptySlot(wearableSlot)
+                    local emptyInventoryOrHotbarSlot = EmptySlotFinder.any()
+                    if emptyInventoryOrHotbarSlot then
+                        print("empty slot found")
+                        local wearableTool = wearableSlot.tool
+                        emptySlot(wearableSlot)
+                        fillSlot(emptyInventoryOrHotbarSlot, wearableTool)
+                        --TODO: DROP
+                    else
+                        print("emtpy slot not founding; dropping")
+                        warn(wearableSlot.tool)
+                        bindables.DropToolBindable:Fire(wearableSlot.tool)
+                    end
                     --TODO
                 end
                 warn("Cancelled")
@@ -238,8 +250,9 @@ local function characterEquipment_x_inventoryOrHotbar_swap(wearableSlotData: slo
                     warn("Successfully wore and emptied")
                     -- successfull wore item from inventory/hotbar and now emptying its slot and filling it's new place in CharacterEquipmentSlots
                     assert(inventoryOrHotbarSlot.tool)
-                    fillSlot(wearableSlot, inventoryOrHotbarSlot.tool)
+                    local tool = inventoryOrHotbarSlot.tool
                     emptySlot(inventoryOrHotbarSlot)
+                    fillSlot(wearableSlot, tool)
                 elseif not (wearableSlot._isEmpty and inventoryOrHotbarSlot._isEmpty) then
                     warn("Successfully swapped and wore")
                     -- took off item that was currently worn and put on item in hover slot
@@ -299,6 +312,10 @@ local function lootScrolling_drop(lootScrollingSlotData: slotData)
     end)
 end
 
+--TODO: REMOVE AFTER TESTING TO SEE IF SLOT OBJECT EXISTS @ THE POINT OF LINE 341
+local SlotRegistry = require(InventoryScriptStorage.Components.Slot.SlotRegistry)
+
+
 local function characterEquipment_drop(characterEquipmentSlotData: slotData, changeSlotState, fillSlot, emptySlot)
     local characterEquipmentSlot = characterEquipmentSlotData.slotObject
 
@@ -321,9 +338,9 @@ local function characterEquipment_drop(characterEquipmentSlotData: slotData, cha
             warn("Cancelled")
         end,
         function() --onResolved
-            warn("resolved characterEquipment_drop")
+            -- warn("resolved characterEquipment_drop")
+            warn(SlotRegistry.toolToObjectMap[characterEquipmentSlot.tool])
             bindables.DropToolBindable:Fire(characterEquipmentSlot.tool)
-            emptySlot(characterEquipmentSlot)
         end,
         function(status: string)
             changeSlotState(characterEquipmentSlot, "Idle")

@@ -103,6 +103,19 @@ function Slot.ChangeState(self: Type_Slot.SlotObject, state: Type_Slot.SlotState
     end
 end
 
+local TweenService = References_Inventory.TweenService
+function Slot.loadSlot(slot: SlotObject, duration: number)
+    local progressBar = Instance.new("Frame")
+    progressBar.Transparency = 0.5
+    progressBar.Size = UDim2.fromScale(1, 1)
+    progressBar.Parent = slot._itself
+    local tween = TweenService:Create(progressBar, TweenInfo.new(duration, Enum.EasingStyle.Linear), {Size = UDim2.fromScale(0, 1)})
+    tween.Completed:Connect(function()  
+        progressBar:Destroy()
+    end)
+    return tween
+end
+
 function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
     Slot.ChangeState(self, "Filling")
     -- print("Filling slot: ", self.HotbarNumber.Text)
@@ -117,7 +130,6 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
         self.connections.EquipFromClick = self.ImageButton.MouseButton1Click:Connect(function(...: any) 
             assert(self.tool ~= nil)
             local state = self.tool:GetAttribute("State")
-            warn("Checkpoint 1", state)
             if state == "Unequipping" or state == "Unequipped" then
                 ToolStateMachine.SetTargets(self, "Idle")
             elseif state == "Equipping" or state == "Idle" then
@@ -178,6 +190,7 @@ end
 function Slot.EmptySlot(self : Type_Slot.SlotObject?)
     if self == nil then 
         warn("Cannot empty slot, SlotObject is nil")
+        print(debug.traceback())
         return 
     end
 

@@ -89,7 +89,7 @@ function SlotGroup._initialize(self: Type_SlotGroup.object, filledSlotsData: Typ
                 local slotGroupInstance = if slot._itself.Parent and slot._itself.Parent.Parent then slot._itself.Parent.Parent else nil
                 if slotGroupInstance == self._itself then
                     if state == "Filling" then
-                        warn(`Slot in {self.Name} slot group is {state}`)
+                        -- warn(`Slot in {self.Name} slot group is {state}`)
                         SlotGroup._SetFilledSlots(self, self._numberOfFilledSlots + 1)
                     elseif state == "Emptying" then
                         warn(`Slot in {self.Name} slot group is {state}`)
@@ -104,7 +104,7 @@ end
 function SlotGroup._SetFilledSlots(self: Type_SlotGroup.object, num: number)
     self._numberOfFilledSlots = num
     local instance = self._itself
-    print(`_numberOfFilledSlots: {self._numberOfFilledSlots}`)
+    -- print(`_numberOfFilledSlots: {self._numberOfFilledSlots}`)
     instance:SetAttribute("FilledSlotCounter_Client", `{self._numberOfFilledSlots}/{self.Space}`)
 end
 
