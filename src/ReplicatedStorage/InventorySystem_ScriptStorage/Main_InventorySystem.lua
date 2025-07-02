@@ -8,9 +8,10 @@ local ScriptStorage = RS.RojoManaged_RS.InventorySystem_ScriptStorage
 local CharacterSection = require(ScriptStorage.CharacterSection.Main_CharacterSection)
 local HotbarSection = require(ScriptStorage.HotbarSection.Main_HotbarSection)
 local LootingSection = require(ScriptStorage.LootingSection.Main_LootingSection)
-local InventorySection = require(ScriptStorage.InventorySection.Main_InventorySection)
+local SlotRegistry = require(ScriptStorage.Components.Slot.SlotRegistry)
 
-local findFirstEmptySlot = require(ScriptStorage.Components.Slot.findFirstEmptySlot)
+
+local EmptySlotFinder = require(ScriptStorage.Components.Slot.EmptySlotFinder)
 
 -- Universal Inventory Components
 local Slot = require("./Components/Slot/Slot")
@@ -53,7 +54,7 @@ function InventorySystem.init()
 				return
 			end
 
-			local emptySlot : Slot.SlotObject? =  findFirstEmptySlot()
+			local emptySlot : Slot.SlotObject? =  EmptySlotFinder.any()
 			if emptySlot then
 				Slot.FillSlot(emptySlot, tool)
 			end

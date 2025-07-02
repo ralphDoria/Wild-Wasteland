@@ -17,6 +17,7 @@ local Types_Slot = require(InventoryScriptStorage.Components.Slot.Type_Slot)
 local ToolStateMachine = require(InventoryScriptStorage.Components.ToolStateMachine.Main_ToolStateMachine)
 local LootActions = require(InventoryScriptStorage.LootingSection.Components.LootActions)
 local DiegeticErrorMessagingManager = require(ReplicatedStorage.RojoManaged_RS.DiegeticErrorMessagingManager)
+-- local findFirstEmptySlot = require(InventoryScriptStorage.Components.Slot.findFirstEmptySlot)
 
 -- Enum for slot types to avoid string comparisons and improve readability
 local SlotType = {
@@ -77,7 +78,7 @@ local function getSlotData(slotObject: Types_Slot.SlotObject): slotData
 end
 
 -- helper function to swap two slot's positional attributes within inventory
-local function simpleSlotSwap(s1Data: slotData, s2Data: slotData)
+local function inventoryOrHotbar_swap(s1Data: slotData, s2Data: slotData)
     local slotObject1 = s1Data.slotObject
     local slotObject2 = s2Data.slotObject
 
@@ -124,73 +125,14 @@ end
 
 local function isRelatedViaSlotGroup(wearableSlotData: slotData, otherSlot: slotData): boolean
     if wearableSlotData.slotGroupInstance and wearableSlotData.slotGroupInstance == otherSlot.slotGroupInstance then 
+        print("checkpoint 1")
         DiegeticErrorMessagingManager.AddMessage("Logically, that's not possible")
         return true
     else
-        return false
+        return false    
     end
 end
 
-
--- helper function to wear the current drag slot
-local function localSwapAndWear(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, changeSlotState: changeSlotState, fillSlot: fillSlot, emptySlot: emptySlot)
-    local wearableSlot = wearableSlotData.slotObject
-    local inventoryOrHotbarSlot = inventoryOrHotbarSlotData.slotObject
-
-    -- print(`wearable category: {wearableSlot.WearableCategory}; inventory/hotbar tool's wearable category: {if inventoryOrHotbarSlot.tool and inventoryOrHotbarSlot.tool:GetAttribute("WearableCategory") then inventoryOrHotbarSlot.tool:GetAttribute("WearableCategory") else nil}`)
-    if inventoryOrHotbarSlot.tool and wearableSlot.WearableCategory ~= inventoryOrHotbarSlot.tool:GetAttribute("WearableCategory") then 
-        DiegeticErrorMessagingManager.AddMessage("Logically, that's not possible to do")
-        return 
-    end
-
-    local tweens: {Tween} = {}
-    ToolStateMachine.SetTargets(inventoryOrHotbarSlot, "Worn", 
-        function(estimatedPathsTime: number) -- onValidated
-            changeSlotState(wearableSlot, "BeingSwapped")
-            changeSlotState(inventoryOrHotbarSlot, "BeingSwapped")
-
-            table.insert(tweens, loadSlot(wearableSlot, estimatedPathsTime))
-            table.insert(tweens, loadSlot(inventoryOrHotbarSlot, estimatedPathsTime))
-            for _, v in tweens do
-                v:Play()
-            end
-        end,
-        function() -- onCancelled
-            
-        end,
-        function(status: string) --onFinished
-            changeSlotState(wearableSlot, "Idle")
-            changeSlotState(inventoryOrHotbarSlot, "Idle")
-            if status == "Resolved" then
-                if wearableSlot._isEmpty then
-                    warn("Successfully wore and emptied")
-                    -- successfull wore item from inventory/hotbar and now emptying its slot and filling it's new place in CharacterEquipmentSlots
-                    assert(inventoryOrHotbarSlot.tool)
-                    fillSlot(wearableSlot, inventoryOrHotbarSlot.tool)
-                    emptySlot(inventoryOrHotbarSlot)
-                elseif not (wearableSlot._isEmpty and inventoryOrHotbarSlot._isEmpty) then
-                    warn("Successfully swapped and wore")
-                    -- took off item that was currently worn and put on item in hover slot
-                    local wearableSlotTool = wearableSlot.tool
-                    emptySlot(wearableSlot)
-                    assert(inventoryOrHotbarSlot.tool and wearableSlotTool)
-                    fillSlot(wearableSlot, inventoryOrHotbarSlot.tool)
-                    emptySlot(inventoryOrHotbarSlot)
-                    fillSlot(inventoryOrHotbarSlot, wearableSlotTool)
-                end
-            elseif status == "Cancelled" then
-                for _, v in tweens do
-                    if v.PlaybackState == Enum.PlaybackState.Playing then
-                        v:Cancel()                        
-                    end
-                end
-                warn("Cancelled")
-            else
-                warn(`Something went wrong involving {inventoryOrHotbarSlot.tool}; Promise State: {status}`)
-            end
-        end
-    )
-end
 
 local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData: slotData, lootScrollingSlotData: slotData, fillSlot: fillSlot, emptySlot: emptySlot)
 
@@ -214,6 +156,107 @@ local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData:
     end):catch(function(error)
         warn("Error", tostring(error))
     end)
+end
+
+local function characterEquipment_x_inventoryOrHotbar_swap(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, changeSlotState: changeSlotState, fillSlot: fillSlot, emptySlot: emptySlot)
+    local wearableSlot = wearableSlotData.slotObject
+    local inventoryOrHotbarSlot = inventoryOrHotbarSlotData.slotObject
+
+    --Checks
+
+    if inventoryOrHotbarSlot.tool and inventoryOrHotbarSlot.tool:GetAttribute("WearableCategory") ~= wearableSlot.WearableCategory then
+        DiegeticErrorMessagingManager.AddMessage(`{inventoryOrHotbarSlot.tool.Name} can't go into my {wearableSlot.WearableCategory} equipment slot. I'm such an idiot`)    
+        return
+    end
+                    
+    local wornItem: Tool? = wearableSlot.tool
+    if wornItem and wornItem:HasTag("StorageWearable") then
+        if isRelatedViaSlotGroup(wearableSlotData, inventoryOrHotbarSlotData) then return end
+
+        if not wornItem:GetAttribute("isEmpty_client") then
+            DiegeticErrorMessagingManager.AddMessage("I need to empty my backpack if I want to do that")
+            return
+        end
+    end
+
+    local tweens: {Tween} = {}
+    if inventoryOrHotbarSlot._isEmpty then
+        ToolStateMachine.SetTargets(wearableSlot, "Unequipped", 
+            function(timeUntilComplete: number)
+                table.insert(tweens, loadSlot(wearableSlot, timeUntilComplete))
+                table.insert(tweens, loadSlot(inventoryOrHotbarSlot, timeUntilComplete))
+                for _, v in tweens do
+                    v:Play()
+                end
+
+                changeSlotState(wearableSlot, "BeingSwapped")
+                changeSlotState(inventoryOrHotbarSlot, "BeingSwapped")
+            end,
+            function() --onCancelled
+                for _, v in tweens do
+                    if v.PlaybackState == Enum.PlaybackState.Playing then
+                        v:Cancel()                        
+                    end
+                end
+                -- warn("Cancelled")
+            end,
+            function() --onResolved 
+                fillSlot(inventoryOrHotbarSlot, wearableSlot.tool)
+                emptySlot(wearableSlot)
+            end,
+            function() --onFinished
+                changeSlotState(wearableSlot, "Idle")
+                changeSlotState(inventoryOrHotbarSlot, "Idle")
+            end
+        )   
+    else
+        ToolStateMachine.SetTargets(inventoryOrHotbarSlot, "Worn", 
+            function(estimatedPathsTime: number) -- onValidated
+                changeSlotState(wearableSlot, "BeingSwapped")
+                changeSlotState(inventoryOrHotbarSlot, "BeingSwapped")
+
+                table.insert(tweens, loadSlot(wearableSlot, estimatedPathsTime))
+                table.insert(tweens, loadSlot(inventoryOrHotbarSlot, estimatedPathsTime))
+                for _, v in tweens do
+                    v:Play()
+                end
+            end,
+            function(completedUnwearing: boolean?) -- onCancelled
+                for _, v in tweens do
+                    if v.PlaybackState == Enum.PlaybackState.Playing then
+                        v:Cancel()                        
+                    end
+                end
+                if completedUnwearing then
+                    emptySlot(wearableSlot)
+                    --TODO
+                end
+                warn("Cancelled")
+            end,
+            function() --onResolved
+                if wearableSlot._isEmpty then
+                    warn("Successfully wore and emptied")
+                    -- successfull wore item from inventory/hotbar and now emptying its slot and filling it's new place in CharacterEquipmentSlots
+                    assert(inventoryOrHotbarSlot.tool)
+                    fillSlot(wearableSlot, inventoryOrHotbarSlot.tool)
+                    emptySlot(inventoryOrHotbarSlot)
+                elseif not (wearableSlot._isEmpty and inventoryOrHotbarSlot._isEmpty) then
+                    warn("Successfully swapped and wore")
+                    -- took off item that was currently worn and put on item in hover slot
+                    local wearableSlotTool = wearableSlot.tool
+                    emptySlot(wearableSlot)
+                    assert(inventoryOrHotbarSlot.tool and wearableSlotTool)
+                    fillSlot(wearableSlot, inventoryOrHotbarSlot.tool)
+                    emptySlot(inventoryOrHotbarSlot)
+                    fillSlot(inventoryOrHotbarSlot, wearableSlotTool)
+                end
+            end,
+            function(status: string)
+                changeSlotState(wearableSlot, "Idle")
+                changeSlotState(inventoryOrHotbarSlot, "Idle")
+            end
+        )
+    end
 end
 
 local function lootScrolling_x_lootScrolling_swap(lsData0: slotData, lsData1: slotData, fillSlot, emptySlot)
@@ -256,54 +299,11 @@ local function lootScrolling_drop(lootScrollingSlotData: slotData)
     end)
 end
 
--- helper function to take off the current drag slot
-local function localUnwearAndSwapWithEmpty(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, changeSlotState, fillSlot, emptySlot)
-
-    local wearableSlot = wearableSlotData.slotObject
-    local inventoryOrHotbarSlot = inventoryOrHotbarSlotData.slotObject
-
-    local tweens: {Tween} = {}
-    ToolStateMachine.SetTargets(wearableSlot, "Unequipped", 
-        function(timeUntilComplete: number)
-            table.insert(tweens, loadSlot(wearableSlot, timeUntilComplete))
-            table.insert(tweens, loadSlot(inventoryOrHotbarSlot, timeUntilComplete))
-            for _, v in tweens do
-                v:Play()
-            end
-
-            changeSlotState(wearableSlot, "BeingSwapped")
-            changeSlotState(inventoryOrHotbarSlot, "BeingSwapped")
-        end,
-        function() --onCancelled
-            
-        end,
-        function(status: string) --onFinished 
-            if status == "Resolved" then
-                fillSlot(inventoryOrHotbarSlot, wearableSlot.tool)
-                emptySlot(wearableSlot)
-            elseif status == "Never Ran" then
-                warn("Can't wear item, various possible reasons: current tool is in some activated state, item to swap with is not compatible")
-            elseif status == "Cancelled" then
-                for _, v in tweens do
-                    if v.PlaybackState == Enum.PlaybackState.Playing then
-                        v:Cancel()                        
-                    end
-                end
-                warn("Cancelled")
-            end
-            if status == "Resolved" or status == "Never Ran" then
-                changeSlotState(wearableSlot, "Idle")
-                changeSlotState(inventoryOrHotbarSlot, "Idle")
-            end
-        end
-    )                
-end
-
 local function characterEquipment_drop(characterEquipmentSlotData: slotData, changeSlotState, fillSlot, emptySlot)
     local characterEquipmentSlot = characterEquipmentSlotData.slotObject
 
     local tweens: {Tween} = {}
-    ToolStateMachine.SetTargets(characterEquipmentSlot, "Unequipped", 
+    ToolStateMachine.SetTargets(characterEquipmentSlot, "Idle", 
         function(estimatedPathsTime: number) -- onValidated
             changeSlotState(characterEquipmentSlot, "BeingSwapped")
 
@@ -313,23 +313,20 @@ local function characterEquipment_drop(characterEquipmentSlotData: slotData, cha
             end
         end,
         function() -- onCancelled
-            
-        end,
-        function(status: string) --onFinished
-            changeSlotState(characterEquipmentSlot, "Idle")
-            if status == "Resolved" then
-                warn("resolved characterEquipment_drop")
-                bindables.DropToolBindable:Fire(characterEquipmentSlot.tool)
-            elseif status == "Cancelled" then
-                for _, v in tweens do
-                    if v.PlaybackState == Enum.PlaybackState.Playing then
-                        v:Cancel()                        
-                    end
+            for _, v in tweens do
+                if v.PlaybackState == Enum.PlaybackState.Playing then
+                    v:Cancel()                        
                 end
-                warn("Cancelled")
-            else
-                warn(`Something went wrong involving {characterEquipmentSlot.tool}; Promise State: {status}`)
             end
+            warn("Cancelled")
+        end,
+        function() --onResolved
+            warn("resolved characterEquipment_drop")
+            bindables.DropToolBindable:Fire(characterEquipmentSlot.tool)
+            emptySlot(characterEquipmentSlot)
+        end,
+        function(status: string)
+            changeSlotState(characterEquipmentSlot, "Idle")
         end
     )
 end
@@ -438,20 +435,7 @@ local ActionHandlers: ActionHandlers = {
             end,
             [SlotType.INVENTORY_OR_HOTBAR] = function(dragData: slotData, hoverData: slotData, changeSlotState, fillSlot, emptySlot)
                 print("Action: Character equipment to inventory/hotbar")
-
-                if isRelatedViaSlotGroup(dragData, hoverData) then return end
-
-
-                local wornItem: Tool = dragData.slotObject.tool:: Tool
-                if wornItem:GetAttribute("isEmpty_client") then
-                    if hoverData.slotObject._isEmpty then
-                        localUnwearAndSwapWithEmpty(dragData, hoverData, changeSlotState, fillSlot, emptySlot)
-                    else
-                        localSwapAndWear(hoverData, dragData, changeSlotState, fillSlot, emptySlot)
-                    end
-                else
-                    DiegeticErrorMessagingManager.AddMessage("I need to empty my backpack if I want to do that")
-                end
+                characterEquipment_x_inventoryOrHotbar_swap(dragData, hoverData, changeSlotState, fillSlot, emptySlot)
             end
         },
         
@@ -465,12 +449,11 @@ local ActionHandlers: ActionHandlers = {
             end,
             [SlotType.CHARACTER_EQUIPMENT] = function(dragData, hoverData, changeSlotState, fillSlot, emptySlot)
                 print("Action: Inventory/hotbar to character equipment")
-                if isRelatedViaSlotGroup(hoverData, dragData) then return end
-                localSwapAndWear(hoverData, dragData, changeSlotState, fillSlot, emptySlot) 
+                characterEquipment_x_inventoryOrHotbar_swap(hoverData, dragData, changeSlotState, fillSlot, emptySlot)
             end,
             [SlotType.INVENTORY_OR_HOTBAR] = function(dragData: slotData, hoverData: slotData)
                 print("Action: Inventory/hotbar to inventory/hotbar")
-                simpleSlotSwap(dragData, hoverData)
+                inventoryOrHotbar_swap(dragData, hoverData)
             end
         }
     }

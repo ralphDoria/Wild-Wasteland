@@ -21,13 +21,14 @@ local Select = require("./../Slot/Select")
 local Drag = require("./../Slot/Drag")
 local ToolStateMachine = require("./../ToolStateMachine/Main_ToolStateMachine")
 local handleDragDrop = require(InventoryScriptStorage.Components.Slot.handleDragDrop)
+local SlotRegistry = require(InventoryScriptStorage.Components.Slot.SlotRegistry)
 
 export type SlotObject = Type_Slot.SlotObject
 export type State = Type_Slot.SlotState
 local Slot = {}
-Slot.instanceToObjectMap = {}:: {[Frame]: SlotObject}
-Slot.toolToObjectMap = {}:: {[Tool]: SlotObject}
-Slot.wearableCategoryToObjectMap = {}:: {[string]: SlotObject}
+Slot.instanceToObjectMap = SlotRegistry.instanceToObjectMap
+Slot.toolToObjectMap = SlotRegistry.toolToObjectMap
+Slot.wearableCategoryToObjectMap = SlotRegistry.wearableCategoryToObjectMap
 
 local SlotStateChangedBindable: BindableEvent = Instance.new("BindableEvent")
 Slot.StateChanged = SlotStateChangedBindable.Event

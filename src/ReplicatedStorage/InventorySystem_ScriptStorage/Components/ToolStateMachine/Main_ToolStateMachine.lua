@@ -190,7 +190,7 @@ end
 
 local ToolStateMachine = {}
 
-function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_state: Type_Item.ItemState, onValidated: ((number) -> ())?, onCancelled, onFinished: ((string) -> ())?)
+function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_state: Type_Item.ItemState, onValidated: ((number) -> ())?, onCancelled: (completedUnwearing: boolean?) -> ()?, onResolved: () -> ()?, onFinished: (status: string) -> ()?)
 
     local target_tool: Tool = target_slot.tool:: Tool
 
@@ -206,20 +206,30 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
         return 
     end
 
-    local currentTool: Tool?, currentState: Type_Item.ItemState? = GetCurrentNonUnequippedToolAndItsState()
     local statePathToUnequipped
-    if currentTool and currentTool ~= target_tool then
-        local transitioningFrom: Type_Item.ItemState? = currentTool:GetAttribute("TransitioningFrom"):: Type_Item.ItemState?
-        -- print(`currentState: {currentState} | transitioningFrom: {transitioningFrom}`)
-        if (currentState == "Unwearing" or currentState == "Unequipping") and transitioningFrom == "Worn" and target_state ~= "Worn" then
-            statePathToUnequipped = GetStatePath(currentState:: Type_Item.ItemState, "Worn")
+    local statePathToUnworn
+    local statePathToTarget
+    local completedUnwearing: boolean
+
+    local currentTool: Tool?, currentState: Type_Item.ItemState? = GetCurrentNonUnequippedToolAndItsState()
+    if currentTool then
+        if target_state ~= "Worn" and currentTool == target_tool then
+            --do nothing
         else
-            statePathToUnequipped = GetStatePath(currentState:: Type_Item.ItemState, "Unequipped")
+            local transitioningFrom: Type_Item.ItemState? = currentTool:GetAttribute("TransitioningFrom"):: Type_Item.ItemState?
+            -- print(`currentState: {currentState} | transitioningFrom: {transitioningFrom}`)
+            if (currentState == "Unwearing" or currentState == "Unequipping") and transitioningFrom == "Worn" and target_state ~= "Worn" then
+                statePathToUnequipped = GetStatePath(currentState:: Type_Item.ItemState, "Worn")
+            else
+                if target_state == "Worn" and currentTool == target_tool then
+                    statePathToTarget = GetStatePath("Unequipped", target_state)
+                end
+                statePathToUnequipped = GetStatePath(currentState:: Type_Item.ItemState, "Unequipped")
+            end
         end
     end
 
     local currentWornTool: Tool?
-    local statePathToUnworn
     if target_state == "Worn" then
         currentWornTool = GetCurrentWornItemOfCategory(target_tool:GetAttribute("WearableCategory"):: Type_Equipment.EquipmentCategory)
         if currentWornTool and currentWornTool ~= target_tool then
@@ -227,7 +237,9 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
         end
     end
 
-    local statePathToTarget = GetStatePath(target_tool:GetAttribute("State"):: Type_Item.ItemState, target_state)
+    if not statePathToTarget then 
+        statePathToTarget = GetStatePath(target_tool:GetAttribute("State"):: Type_Item.ItemState, target_state)
+    end
 
     local function isEmptyTable(tbl: {Type_Item.ItemState}?)
         if tbl then
@@ -240,8 +252,8 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
     -- warn(statePathToUnequipped, statePathToUnworn, statePathToTarget)
     if isEmptyTable(statePathToUnequipped) or isEmptyTable(statePathToUnworn) or isEmptyTable(statePathToTarget) then
         warn("Viable required tool path not found")
-        if onFinished then
-            onFinished("Never Ran") 
+        if onCancelled then
+            onCancelled()
         end
         return
     else
@@ -263,12 +275,16 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
         estimatedPathsTime += CalculateExpectedPathTime(currentWornTool:: Tool, statePathToUnworn)
         if currentOperation.promise then
             currentOperation.promise = currentOperation.promise:andThen(function(result)
-                print(result)
+                -- print(result)
                 return GetToolToThisState(currentWornTool:: Tool, statePathToUnworn)
             end)
         else
             currentOperation.promise = GetToolToThisState(currentWornTool:: Tool, statePathToUnworn)
         end
+        currentOperation.promise:andThen(function()
+            print("unwearing operation to make space for target tool completed")
+            completedUnwearing = true
+        end)
     end
 
     if statePathToTarget then
@@ -282,16 +298,26 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
             currentOperation.promise = GetToolToThisState(target_tool:: Tool, statePathToTarget)
         end
 
-        currentOperation.promise:catch(function(error)
-            warn("Error", tostring(error))
-        end):finally(function(status)
-            -- warn("currentOperation finished, Status: ", status)
-            CancelCurrentOperation()
-            if onFinished then
-                print(statePathToUnworn, statePathToUnequipped, statePathToTarget)
-                onFinished(status)
-            end
-        end)
+        currentOperation.promise
+            :andThen(function()
+                if onResolved then
+                    onResolved()  
+                end
+            end)
+            :catch(function(error)
+                warn("Error", tostring(error))
+            end)
+            :finally(function(status)
+                -- warn("currentOperation finished, Status: ", status)
+                CancelCurrentOperation()
+
+                if status == "Cancelled" and onCancelled then
+                    onCancelled(completedUnwearing)
+                end
+                if onFinished then
+                    onFinished(status)
+                end
+            end)
     end
 
     if onValidated then

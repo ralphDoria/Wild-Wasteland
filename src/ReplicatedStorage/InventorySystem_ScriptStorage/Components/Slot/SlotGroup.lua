@@ -6,11 +6,14 @@ local ScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.Invent
 local Slot = require(ScriptStorage.Components.Slot.Slot)
 local Types_LootSystem = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.LootingSection.Components.Types_LootSystem)
 local Type_SlotGroup = require(ScriptStorage.Components.Slot.Type_SlotGroup)
+local SlotGroupRegistry = require(ScriptStorage.Components.Slot.SlotGroupRegistry)
+local SlotRegistry = require(ScriptStorage.Components.Slot.SlotRegistry)
+
 
 export type object = Type_SlotGroup.object
 
 local SlotGroup = {}
-SlotGroup.createdObjects = {}:: {[number]: Type_SlotGroup.object}
+SlotGroup.createdObjects = SlotGroupRegistry.createdObjects
 
 function SlotGroup.new(name: string, space: number, filledSlotsData: Types_LootSystem.FilledSlotsData, parent: Instance?): Type_SlotGroup.object
     local clone = References_Inventory.TemplateSlotGroup:Clone()

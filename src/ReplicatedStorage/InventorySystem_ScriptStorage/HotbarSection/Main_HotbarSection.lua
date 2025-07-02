@@ -3,6 +3,7 @@ local ToolStateMachine = require("./../Components/ToolStateMachine/Main_ToolStat
 
 local Slot = require("./../Components/Slot/Slot")
 local UserInputService = game:GetService("UserInputService")
+local HotbarSlotsRegistry = require(game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage.HotbarSection.Components.HotbarSlotsRegistry)
 
 local Hotbar : CanvasGroup
 
@@ -13,7 +14,7 @@ local hotbarNumberToKeybind = {
 	[4] = Enum.KeyCode.Four,
 	[5] = Enum.KeyCode.Five
 }
-local hotbarSlotToSlotData : {[Frame]: Slot.SlotObject} = {}
+local hotbarSlotToSlotData : {[Frame]: Slot.SlotObject} = HotbarSlotsRegistry.instanceToObjectMap
 
 local HotbarManager = {}
 HotbarManager.Connections = {}
@@ -52,23 +53,6 @@ function HotbarManager.init(SlotTemplate : Frame, hotbar : CanvasGroup)
     )
 
     HotbarManager.toggleKeybindToHotbarSlot(true)
-end
-
-function HotbarManager.findFirstEmptySlot() : Slot.SlotObject?
-    local lowest: Slot.SlotObject? = nil
-    for _, v in hotbarSlotToSlotData do
-        if v._isEmpty == true and v.State ~= "BeingSwapped" then
-            if lowest == nil then
-                lowest = v
-            else
-                if v._itself.LayoutOrder < lowest._itself.LayoutOrder then
-                    lowest = v
-                end
-            end
-        end
-    end
-
-    return lowest
 end
 
 local keybindConnection : RBXScriptConnection?

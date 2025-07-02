@@ -6,7 +6,7 @@ local ToolSystem_Storage = ReplicatedStorage.ToolSystem_Storage
 local highlight: Highlight = ToolSystem_Storage.Shared.Instances.Highlight
 
 
-local findFirstEmptySlot = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.findFirstEmptySlot)
+local EmptySlotFinder = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.EmptySlotFinder)
 local DiegeticErrorMessaging = require(ReplicatedStorage.RojoManaged_RS.DiegeticErrorMessagingManager)
 
 local bindables : {[string] : BindableEvent} = {
@@ -71,7 +71,7 @@ function ToolHighlightAndProxPromptManager._initialize(self : ToolHighlightAndPr
         self.connections,
         self.pp.Triggered:Connect(function(thisPlayer: Player) --possible race condition?
             if thisPlayer == player then
-                if findFirstEmptySlot() then
+                if EmptySlotFinder.any() then
                    self.pp.Enabled = false
                     remotes.PickUpTool:FireServer(self.tool)
                     bindables.OnPickUp:Fire(self.tool) 
