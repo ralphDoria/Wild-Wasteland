@@ -101,28 +101,26 @@ function ToolHighlightAndProxPromptManager._initialize(self : ToolHighlightAndPr
                     ToolStateMachine.SetTargets(temporarySlotObject, "Worn", 
                         function(estimatedPathsTime: number) -- onValidated
                             Slot.ChangeState(temporarySlotObject, "BeingSwapped")
-                            if not wearableSlot._isEmpty then
-                                Slot.ChangeState(wearableSlot, "BeingSwapped")
-                                table.insert(tweens, Slot.loadSlot(wearableSlot, estimatedPathsTime))                            
-                            end
-                            table.insert(tweens, Slot.loadSlot(temporarySlotObject, estimatedPathsTime))
+                            Slot.ChangeState(wearableSlot, "BeingSwapped")
+                            table.insert(tweens, Slot.loadSlot(wearableSlot, estimatedPathsTime))  
                             for _, v in tweens do
                                 v:Play()
                             end
                         end,
                         function(completedUnwearing: boolean?) -- onCancelled
+                            warn("Cancelled")
                             for _, v in tweens do
                                 if v.PlaybackState == Enum.PlaybackState.Playing then
                                     v:Cancel()                        
                                 end
                             end
-                            if not completedUnwearing then
+                            if actionText == "Put On" then
                                 bindables.DropToolBindable:Fire(temporarySlotObject.tool)
                                 Slot.destroy(temporarySlotObject)
-                            else
-                                warn("CASE 2 TO BE IMPLEMENTED")
+                            elseif actionText == "Swap" then
+                                bindables.DropToolBindable:Fire(temporarySlotObject.tool)
+                                Slot.destroy(temporarySlotObject)
                             end
-                            warn("Cancelled")
                         end,
                         function() --onResolved
                             if wearableSlot._isEmpty then

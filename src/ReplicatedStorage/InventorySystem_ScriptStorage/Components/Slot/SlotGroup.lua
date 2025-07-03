@@ -66,7 +66,7 @@ function SlotGroup._initialize(self: Type_SlotGroup.object, filledSlotsData: Typ
                 local slotObject = Slot.instanceToObjectMap[child]:: Slot.SlotObject
                 self.slotInstanceToObjectMap[child] = slotObject
                 if slotObject.tool then
-                    print(`Slot in {self.Name} slot group was filled`)
+                    -- print(`Slot in {self.Name} slot group was filled`)
                     SlotGroup._SetFilledSlots(self, self._numberOfFilledSlots + 1)
                 end
             end)

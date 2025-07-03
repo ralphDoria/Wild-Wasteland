@@ -3,6 +3,7 @@
 local player = game:GetService("Players").LocalPlayer
 local character : Model = player.Character or player.CharacterAdded:Wait() :: Model
 local backpack : Backpack = player:FindFirstChild("Backpack") :: Backpack
+local LootItemsHolding: Folder = game:GetService("ReplicatedStorage").LootingSystem_Storage.LootItemsHolding
 
 local cachedItems = {}
 
@@ -42,7 +43,7 @@ return function
 		if child.Parent == character then
 			--print(child.Name .. " equipped")
             onEquipping(child)
-		elseif child.Parent == workspace then
+		elseif child.Parent == workspace or child:FindFirstAncestor(LootItemsHolding.Name) then
 			--print(child.Name .. " dropped from gui")
             removeFromCachedItems(child)
             onDropped(child)
@@ -52,7 +53,7 @@ return function
 	character.ChildRemoved:Connect(function(child)
 		if not child:IsA("Tool") then return end
 	
-		if child.Parent == workspace then
+		if child.Parent == workspace or child:FindFirstAncestor(LootItemsHolding.Name) then
 			--print(child.Name .. " dropped from equip")
             removeFromCachedItems(child)
             onDropped(child)

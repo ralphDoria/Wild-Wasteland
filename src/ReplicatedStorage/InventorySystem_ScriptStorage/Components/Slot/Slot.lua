@@ -190,7 +190,7 @@ end
 function Slot.EmptySlot(self : Type_Slot.SlotObject?)
     if self == nil then 
         warn("Cannot empty slot, SlotObject is nil")
-        print(debug.traceback())
+        -- print(debug.traceback())
         return 
     end
 

@@ -188,6 +188,23 @@ local function GetCurrentNonUnequippedToolAndItsState(): (Tool?, Type_Item.ItemS
     return currentNonUnequippedTool, state
 end
 
+local function cancelWhenToolDeviatesFromStatePath(tool: Tool, statePath: {Type_Item.ItemState})
+    local connection: RBXScriptConnection
+    local thisTargetState = statePath[#statePath]
+    connection = tool:GetAttributeChangedSignal("State"):Connect(function()  
+        local state = tool:GetAttribute("State")
+        if state == thisTargetState then
+            if connection then
+                connection:Disconnect()
+            end
+        end
+        if not table.find(statePath, state) then
+            currentOperation.promise:cancel()
+        end
+    end)
+    table.insert(currentOperation.connections, connection)
+end
+
 local ToolStateMachine = {}
 
 function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_state: Type_Item.ItemState, onValidated: ((number) -> ())?, onCancelled: (completedUnwearing: boolean?) -> ()?, onResolved: () -> ()?, onFinished: (status: string) -> ()?, onNonTargetUnworn: () -> ()?)
@@ -269,6 +286,9 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
     if statePathToUnequipped then
         estimatedPathsTime += CalculateExpectedPathTime(currentTool:: Tool, statePathToUnequipped)
         currentOperation.promise = GetToolToThisState(currentTool:: Tool, statePathToUnequipped)
+
+        assert(currentTool) -- if there is a statePathToUnequipped, then there must be a current tool, so this is really only here to quiet down the type checker.
+        cancelWhenToolDeviatesFromStatePath(currentTool, statePathToUnequipped)
     end
 
     if statePathToUnworn then
@@ -289,6 +309,9 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
                 onNonTargetUnworn()
             end
         end)
+
+        assert(currentWornTool)
+        cancelWhenToolDeviatesFromStatePath(currentWornTool, statePathToUnworn)
     end
 
     if statePathToTarget then
@@ -322,6 +345,8 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
                     onFinished(status)
                 end
             end)
+
+        cancelWhenToolDeviatesFromStatePath(target_tool, statePathToTarget)
     end
 
     if onValidated then

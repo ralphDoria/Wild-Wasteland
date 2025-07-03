@@ -1,9 +1,15 @@
 --!strict
 
 local RS = game:GetService("ReplicatedStorage")
-local LootItemsHolding: Folder = RS.LootingSystem_Storage.LootItemsHolding
-local LootableInstanceDataReplicators: Folder = RS.LootingSystem_Storage.Remotes.LootableInstanceDataReplicators
+local Players = game:GetService("Players")
+local LootingSystem_Storage = RS.LootingSystem_Storage 
+local LootItemsHolding: Folder = LootingSystem_Storage.LootItemsHolding
+local LootableInstanceDataReplicators: Folder = LootingSystem_Storage.Remotes.LootableInstanceDataReplicators
 local Types_LootSystem = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.LootingSection.Components.Types_LootSystem)
+
+local remotes = {
+    LootedTagReplicatedToClient = LootingSystem_Storage.Remotes.LootedTagReplicatedToClient
+}
 
 local StandardLootable = {}
 
@@ -75,19 +81,16 @@ local function validate(self: Types_LootSystem.StandardLootableObject, dataChang
                     StandardLootable.SetNumberOfItems(self, self._numberOfItems - 1)
                 end
                 
-                -- warn(`Adding looted tag to {lootTool}`)
+                -- warn(`Adding looted attribute to {lootTool}`)
                 lootTool:AddTag("Looted")
                 lootTool.Parent = player.Backpack
-                local connection
-                connection = changeReplicator.OnServerEvent:Connect(function(a0: Player, thisTool: Tool)  
-                    if thisTool == lootTool then
-                        connection:Disconnect()
-                        -- warn(`{lootTool} successfully circumvented ItemMovementTracker's onAdded, removing tag`)
-                        lootTool:RemoveTag("Looted")
+                remotes.LootedTagReplicatedToClient.OnServerEvent:Once(function(thisPlayer: Player, tool: Tool)  
+                    if tool == lootTool then
+                        warn("Looting tag replicated successfully, now removing it")
+                        lootTool:RemoveTag("Looted")                    
                     end
                 end)
             end
-
             changeReplicator:FireAllClients(dataChangeRequestPacket.LayoutOrder, substituteTool, lootTool)
         end
         return afterValidation

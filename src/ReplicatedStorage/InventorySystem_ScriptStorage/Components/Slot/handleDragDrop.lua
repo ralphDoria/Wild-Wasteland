@@ -133,7 +133,6 @@ local function isRelatedViaSlotGroup(wearableSlotData: slotData, otherSlot: slot
     end
 end
 
-
 local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData: slotData, lootScrollingSlotData: slotData, fillSlot: fillSlot, emptySlot: emptySlot)
 
     local inventoryOrHotbarSlotTool: Tool? = inventoryOrHotbarSlotData.slotObject.tool
@@ -147,11 +146,19 @@ local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData:
         lootTool = lootTool,
         substituteTool = inventoryOrHotbarSlotTool
     }):andThen(function()
-        if lootTool then
+        local inventoryTool = inventoryOrHotbarSlotData.slotObject.tool
+        if lootTool and not inventoryTool then
             -- when the server takes the substituteTool, the ItemMovementTracker should have automatically emptied substituteTool's previous slot
+            emptySlot(lootScrollingSlotData.slotObject)
             fillSlot(inventoryOrHotbarSlotData.slotObject, lootTool)
+        elseif inventoryTool and not lootTool then
+            emptySlot(inventoryOrHotbarSlotData.slotObject)
+            fillSlot(lootScrollingSlotData.slotObject, inventoryTool)
         else
             emptySlot(inventoryOrHotbarSlotData.slotObject)
+            emptySlot(lootScrollingSlotData.slotObject)
+            fillSlot(inventoryOrHotbarSlotData.slotObject, lootTool)
+            fillSlot(lootScrollingSlotData.slotObject, inventoryTool)
         end
     end):catch(function(error)
         warn("Error", tostring(error))
@@ -243,11 +250,11 @@ local function characterEquipment_x_inventoryOrHotbar_swap(wearableSlotData: slo
                     end
                     --TODO
                 end
-                warn("Cancelled")
+                -- warn("Cancelled")
             end,
             function() --onResolved
                 if wearableSlot._isEmpty then
-                    warn("Successfully wore and emptied")
+                    -- warn("Successfully wore and emptied")
                     -- successfull wore item from inventory/hotbar and now emptying its slot and filling it's new place in CharacterEquipmentSlots
                     assert(inventoryOrHotbarSlot.tool)
                     local tool = inventoryOrHotbarSlot.tool
@@ -312,11 +319,7 @@ local function lootScrolling_drop(lootScrollingSlotData: slotData)
     end)
 end
 
---TODO: REMOVE AFTER TESTING TO SEE IF SLOT OBJECT EXISTS @ THE POINT OF LINE 341
-local SlotRegistry = require(InventoryScriptStorage.Components.Slot.SlotRegistry)
-
-
-local function characterEquipment_drop(characterEquipmentSlotData: slotData, changeSlotState, fillSlot, emptySlot)
+local function characterEquipment_drop(characterEquipmentSlotData: slotData, changeSlotState: changeSlotState, fillSlot, emptySlot)
     local characterEquipmentSlot = characterEquipmentSlotData.slotObject
 
     local tweens: {Tween} = {}
@@ -339,7 +342,6 @@ local function characterEquipment_drop(characterEquipmentSlotData: slotData, cha
         end,
         function() --onResolved
             -- warn("resolved characterEquipment_drop")
-            warn(SlotRegistry.toolToObjectMap[characterEquipmentSlot.tool])
             bindables.DropToolBindable:Fire(characterEquipmentSlot.tool)
         end,
         function(status: string)
@@ -388,6 +390,7 @@ export type ActionHandlers = {
         }
     }
 }
+
 local ActionHandlers: ActionHandlers = {
     -- Outside inventory actions (when isOutsideInventory is true)
     outsideInventory = {

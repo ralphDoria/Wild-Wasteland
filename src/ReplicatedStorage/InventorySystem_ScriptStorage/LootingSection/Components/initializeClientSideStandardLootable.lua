@@ -41,9 +41,8 @@ local function initializeClientSideStandardLootable(lootable: Tool | Model): (Pr
                     LootGuiManager.RenderData(lootable, filledSlotsData)
                     if changeReplicator then
                         onLootDataChanged = changeReplicator.OnClientEvent:Connect(function(layoutOrder: number, substituteTool: Tool?, lootTool: Tool?)  
+                            warn("received changeReplicator fire signal")
                             LootGuiManager.replaceSlot(layoutOrder, substituteTool) 
-                            assert(changeReplicator)
-                            changeReplicator:FireServer(lootTool)
                         end)
                     else
                         warn("Change replicator came back nil because taggedInstance was deregistered")
@@ -78,7 +77,7 @@ local function initializeClientSideStandardLootable(lootable: Tool | Model): (Pr
                 end)
 
                 onCancel(function()
-                    warn("Cancelling promise.closedAreaClicked")
+                    -- warn("Cancelling promise.closedAreaClicked")
                     if onClosedAreaClicked then
                         onClosedAreaClicked:Disconnect()
                     end
@@ -108,7 +107,7 @@ local function initializeClientSideStandardLootable(lootable: Tool | Model): (Pr
                 end)
 
                 onCancel(function()
-                    warn("Cancelling promise.onExceededAccessDistance")
+                    -- warn("Cancelling promise.onExceededAccessDistance")
                     References_Inventory_Client.RunService:UnbindFromRenderStep("DistanceCheckFromLootable")
                 end)
             end)

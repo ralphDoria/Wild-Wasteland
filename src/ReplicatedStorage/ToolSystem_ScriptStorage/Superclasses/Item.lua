@@ -114,6 +114,7 @@ function Item.initialize(self : ItemType, equipping: () -> ()?, equipped: () -> 
     end)
     self.connections.bindableDrop = bindables.DropToolBindable.Event:Connect(function(key: Tool) 
         if key == self.tool then
+            print("Dropping")
             Item.drop(self)
         end
     end)
@@ -221,7 +222,7 @@ function Item.ChangeState(self: ItemType, state: state)
 end
 
 function Item.drop(self : ItemType, onDropping: () -> ()?, onDropped : () -> ()?)
-    if self.State == "Idle" or self.State == "Equipping" or self.State == "Unequipped" then
+    if self.State == "Idle" or self.State == "Equipping" or self.State == "Unequipped" or self.State == "Wearing" or self.State == "Unwearing" then
         Item.ChangeState(self, "Dropping")
         for _, v in self.actionNames do
             if ActionManager.isBinded(v) then
@@ -231,8 +232,10 @@ function Item.drop(self : ItemType, onDropping: () -> ()?, onDropped : () -> ()?
         if onDropping then
             onDropping()
         end
-        AnimationManager.StopAllAnimsForTool(currentAnimationManager, self.tool)
-        AnimationManager.StopAllAnimsForTool(self.ViewmodelManager.animManager, self.tool)
+        if self.State ~= "Unequipped" then
+            AnimationManager.StopAllAnimsForTool(currentAnimationManager, self.tool)
+            AnimationManager.StopAllAnimsForTool(self.ViewmodelManager.animManager, self.tool)
+        end
         remotes.DropTool:FireServer(self.tool)
         Item.ChangeState(self, "Dropped")
         if onDropped then

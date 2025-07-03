@@ -20,6 +20,8 @@ local Slot = require("./Components/Slot/Slot")
 local ItemMovementTracker = require("./Components/Misc/ItemMovementTracker")
 local InventoryToggle = require(ScriptStorage.Components.InventoryToggle)
 
+local LootedTagReplicatedToClient: RemoteEvent = RS.LootingSystem_Storage.Remotes.LootedTagReplicatedToClient
+
 local character = References_Inventory.player.Character or References_Inventory.player.CharacterAdded:Wait()
 character:WaitForChild("Humanoid").Died:Connect(function()
     error("TODO: Come back to this script to implement death procedures")
@@ -46,11 +48,11 @@ function InventorySystem.init()
 	
 	ItemMovementTracker(
 		function(tool) --onAdded
-			-- warn("calling onAdded")
+			warn("calling onAdded")
 
 			if tool:HasTag("Looted") then
 				warn("has loot tag, not filling slot here")
-				-- fire a remote back to the server to remove the tag
+				LootedTagReplicatedToClient:FireServer(tool)
 				return
 			end
 
@@ -70,7 +72,15 @@ function InventorySystem.init()
 		end,
 		function(tool) --onDropped
 			--empty slot
-			Slot.EmptySlot(Slot.toolToObjectMap[tool])
+
+			-- if tool:HasTag("AddingToLoot") then
+			-- 	warn("has loot tag, not filling slot here")
+			-- 	LootedTagReplicatedToClient:FireServer(tool)
+			-- 	return
+			-- end
+
+			warn("calling onDropped")
+			Slot.EmptySlot(SlotRegistry.toolToObjectMap[tool])
 		end
 	)
 
