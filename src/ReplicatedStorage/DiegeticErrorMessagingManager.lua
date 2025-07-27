@@ -15,12 +15,20 @@ local function calculateDisplayTime(message: string, minTime, maxTime): number
     return math.clamp(1.5 + wordCount * 0.25, minTime, maxTime)
 end
 
-function DiegeticErrorMessagingManager.AddMessage(message: string)
-    -- print("Creating and adding message")
+gui.Enabled = true
+
+function createMsgClone(message: string): TextLabel
     local clone = template:Clone()
+    clone.Visible = true
     messageNumber += 1
     clone.LayoutOrder = messageNumber
     clone.Text = message
+    return clone
+end
+
+function DiegeticErrorMessagingManager.AddMessage(message: string)
+    -- print("Creating and adding message")
+    local clone = createMsgClone(message)
     clone.Parent = frame
     local fadeOutTween = TweenService:Create(
         clone, 
