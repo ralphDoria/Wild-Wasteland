@@ -229,36 +229,28 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
     local completedUnwearing: boolean
 
     local currentTool: Tool?, currentState: Type_Item.ItemState? = GetCurrentNonUnequippedToolAndItsState()
+    -- currentWornTool only has to be taken into account if target state is worn
+    local currentWornTool: Tool? = if target_state == "Worn" then GetCurrentWornItemOfCategory(target_tool:GetAttribute("WearableCategory"):: Type_Equipment.EquipmentCategory) else nil
+    
     if currentTool then
-        if target_state ~= "Worn" and currentTool == target_tool then
-            --do nothing
-        else
+        if target_tool ~= currentTool then -- If current tool equals target tool, then it will be handled later with statePathToTarget
             local transitioningFrom: Type_Item.ItemState? = currentTool:GetAttribute("TransitioningFrom"):: Type_Item.ItemState?
-            -- print(`currentState: {currentState} | transitioningFrom: {transitioningFrom}`)
-            if (currentState == "Unwearing" or currentState == "Unequipping") and transitioningFrom == "Worn" and target_state ~= "Worn" then
+            if transitioningFrom == "Worn" and not (target_state == "Worn") then
+                -- revert to being worn
                 statePathToUnequipped = GetStatePath(currentState:: Type_Item.ItemState, "Worn")
             else
-                if target_state == "Worn" and currentTool == target_tool then
-                    statePathToTarget = GetStatePath("Unequipped", target_state)
-                end
                 statePathToUnequipped = GetStatePath(currentState:: Type_Item.ItemState, "Unequipped")
             end
         end
     end
 
-    local currentWornTool: Tool?
-    if target_state == "Worn" then
-        currentWornTool = GetCurrentWornItemOfCategory(target_tool:GetAttribute("WearableCategory"):: Type_Equipment.EquipmentCategory)
-        if currentWornTool and currentWornTool ~= target_tool then
-            statePathToUnworn = GetStatePath("Worn", "Unequipped")
-            currentWornTool:SetAttribute("TransitioningFrom", currentWornTool:GetAttribute("State"))
-        end
+    if currentWornTool and currentWornTool ~= target_tool then
+        statePathToUnworn = GetStatePath("Worn", "Unequipped")
+        currentWornTool:SetAttribute("TransitioningFrom", currentWornTool:GetAttribute("State"))
     end
 
-    if not statePathToTarget then 
-        statePathToTarget = GetStatePath(target_tool:GetAttribute("State"):: Type_Item.ItemState, target_state)
-        target_tool:SetAttribute("TransitioningFrom", target_tool:GetAttribute("State"))
-    end
+    statePathToTarget = GetStatePath(target_tool:GetAttribute("State"):: Type_Item.ItemState, target_state)
+    target_tool:SetAttribute("TransitioningFrom", target_tool:GetAttribute("State"))
 
     local function isEmptyTable(tbl: {Type_Item.ItemState}?)
         if tbl then
@@ -269,6 +261,9 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
     end
 
     -- warn(statePathToUnequipped, statePathToUnworn, statePathToTarget)
+    -- warn(statePathToUnequipped)
+    -- warn(statePathToUnworn)
+    -- warn(statePathToTarget)
     if isEmptyTable(statePathToUnequipped) or isEmptyTable(statePathToUnworn) or isEmptyTable(statePathToTarget) then
         warn("Viable required tool path not found")
         if onCancelled then
@@ -328,6 +323,8 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
         currentOperation.promise
             :andThen(function()
                 if onResolved then
+                    warn("path execution: resolved")
+
                     onResolved()  
                 end
             end)
@@ -339,6 +336,7 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
                 CancelCurrentOperation()
 
                 if status == "Cancelled" and onCancelled then
+                    warn("path execution: cancelled")
                     onCancelled(completedUnwearing)
                 end
                 if onFinished then
