@@ -199,6 +199,7 @@ local function cancelWhenToolDeviatesFromStatePath(tool: Tool, statePath: {Type_
             end
         end
         if not table.find(statePath, state) then
+            warn("Cancelling current operation because it deviated from state path with " .. state)
             currentOperation.promise:cancel()
         end
     end)
@@ -232,6 +233,8 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
     -- currentWornTool only has to be taken into account if target state is worn
     local currentWornTool: Tool? = if target_state == "Worn" then GetCurrentWornItemOfCategory(target_tool:GetAttribute("WearableCategory"):: Type_Equipment.EquipmentCategory) else nil
     
+    local isSpecialCase_holdingTargetWearableButThereIsOneInTheWay: boolean = false
+
     if currentTool then
         if target_tool ~= currentTool then -- If current tool equals target tool, then it will be handled later with statePathToTarget
             local transitioningFrom: Type_Item.ItemState? = currentTool:GetAttribute("TransitioningFrom"):: Type_Item.ItemState?
@@ -241,6 +244,12 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
             else
                 statePathToUnequipped = GetStatePath(currentState:: Type_Item.ItemState, "Unequipped")
             end
+        else
+            --current tool is the target tool
+            if target_state == "Worn" and currentWornTool then
+                statePathToUnequipped = GetStatePath(currentState:: Type_Item.ItemState, "Unequipped")
+                isSpecialCase_holdingTargetWearableButThereIsOneInTheWay = true
+            end
         end
     end
 
@@ -249,7 +258,11 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
         currentWornTool:SetAttribute("TransitioningFrom", currentWornTool:GetAttribute("State"))
     end
 
-    statePathToTarget = GetStatePath(target_tool:GetAttribute("State"):: Type_Item.ItemState, target_state)
+    if isSpecialCase_holdingTargetWearableButThereIsOneInTheWay then
+        statePathToTarget = GetStatePath("Unequipped", target_state)
+    else
+        statePathToTarget = GetStatePath(target_tool:GetAttribute("State"):: Type_Item.ItemState, target_state)
+    end
     target_tool:SetAttribute("TransitioningFrom", target_tool:GetAttribute("State"))
 
     local function isEmptyTable(tbl: {Type_Item.ItemState}?)
@@ -317,7 +330,15 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
                 return GetToolToThisState(target_tool:: Tool, statePathToTarget)
             end)
         else
-            currentOperation.promise = GetToolToThisState(target_tool:: Tool, statePathToTarget)
+            currentOperation.promise = Promise.new(function(resolve, reject, onCancel)
+                cancelWhenToolDeviatesFromStatePath(target_tool, statePathToTarget)
+                GetToolToThisState(target_tool:: Tool, statePathToTarget)
+                    :andThen(function()
+                        resolve()
+                    end):catch(function()
+                        reject()
+                    end)
+            end)
         end
 
         currentOperation.promise
@@ -334,7 +355,7 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
             :finally(function(status)
                 -- warn("currentOperation finished, Status: ", status)
                 CancelCurrentOperation()
-
+                -- warn('current operation finish; status: {status}')
                 if status == "Cancelled" and onCancelled then
                     warn("path execution: cancelled")
                     onCancelled(completedUnwearing)
@@ -344,7 +365,6 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
                 end
             end)
 
-        cancelWhenToolDeviatesFromStatePath(target_tool, statePathToTarget)
     end
 
     if onValidated then
