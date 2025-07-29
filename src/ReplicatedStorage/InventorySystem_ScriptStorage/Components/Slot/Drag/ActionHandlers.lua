@@ -1,10 +1,5 @@
---!strict
-
--- Gave Claude a crazy looking nested if statement mess and asked it to rewrite it for efficiency and performance.
--- Small tweaks to make it compatible done by @Niletheus
-
--- idk what to call these references
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local types_and_enums = require("./types_and_enums")
 local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
 local ToolSystem_Storage = References_Inventory.ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
 local bindables = {
@@ -19,66 +14,9 @@ local LootActions = require(InventoryScriptStorage.LootingSection.Components.Loo
 local DiegeticErrorMessagingManager = require(ReplicatedStorage.RojoManaged_RS.DiegeticErrorMessagingManager)
 local EmptySlotFinder = require(InventoryScriptStorage.Components.Slot.EmptySlotFinder)
 
--- Enum for slot types to avoid string comparisons and improve readability
-local SlotType = {
-    LOOTING_SCROLLING = 1,
-    LOOTING_EQUIPMENT = 2,
-    CHARACTER_EQUIPMENT = 3,
-    INVENTORY_OR_HOTBAR = 4,
-    INVALID = 5
-}
-
-
--- Cache references to avoid repeated property access
-local LootingScrollingName = References_Inventory.LootingScrollingFrame.Name
-local LootingEquipmentName = References_Inventory.LootingEquipmentSlots.Name
-local CharacterEquipmentName = References_Inventory.CharacterEquipmentSlots.Name
-local InventoryScrollingName = References_Inventory.InventoryScrollingFrame.Name
-local HotbarName = References_Inventory.Hotbar.Name
-
--- Helper function to determine slot type (cached for performance)
-local function getSlotType(slot): number
-    local element = slot._itself
-    
-    if element:FindFirstAncestor(LootingScrollingName) then
-        return SlotType.LOOTING_SCROLLING
-    elseif element:FindFirstAncestor(LootingEquipmentName) then
-        return SlotType.LOOTING_EQUIPMENT
-    elseif element:FindFirstAncestor(CharacterEquipmentName) then
-        return SlotType.CHARACTER_EQUIPMENT
-    elseif element:FindFirstAncestor(InventoryScrollingName) or element:FindFirstAncestor(HotbarName) then
-        return SlotType.INVENTORY_OR_HOTBAR
-    else
-        return SlotType.INVALID
-    end
-end
-
--- Helper function to get slot data
-export type slotData = {
-    slotObject: Types_Slot.SlotObject,
-    slotGroupInstance: Frame?,
-    slotType: number
-}
-local function getSlotData(slotObject: Types_Slot.SlotObject): slotData
-    local slotType = getSlotType(slotObject)
-
-    local slotGroupInstance: Frame?
-    if slotType == SlotType.CHARACTER_EQUIPMENT or slotType == SlotType.LOOTING_EQUIPMENT then
-    local objValue: ObjectValue? = if slotObject.tool then slotObject.tool:FindFirstChildOfClass("ObjectValue") else nil
-        slotGroupInstance = if objValue and objValue.Value then objValue.Value:: Frame else nil
-    else
-        slotGroupInstance = if slotObject._itself.Parent then slotObject._itself.Parent.Parent:: Frame else nil
-    end
-
-    return {
-        slotObject = slotObject,
-        slotGroupInstance = slotGroupInstance,
-        slotType = slotType
-    }
-end
 
 -- helper function to swap two slot's positional attributes within inventory
-local function inventoryOrHotbar_swap(s1Data: slotData, s2Data: slotData)
+local function P_INVENTORY__SWAP(s1Data: types_and_enums.SlotData, s2Data: types_and_enums.SlotData)
     local slotObject1 = s1Data.slotObject
     local slotObject2 = s2Data.slotObject
 
@@ -123,7 +61,7 @@ local function loadSlot(slot: Types_Slot.SlotObject, duration: number)
     return tween
 end
 
-local function isRelatedViaSlotGroup(wearableSlotData: slotData, otherSlot: slotData): boolean
+local function isRelatedViaSlotGroup(wearableSlotData: types_and_enums.SlotData, otherSlot: types_and_enums.SlotData): boolean
     if wearableSlotData.slotGroupInstance and wearableSlotData.slotGroupInstance == otherSlot.slotGroupInstance then 
         print("checkpoint 1")
         DiegeticErrorMessagingManager.AddMessage("Logically, that's not possible")
@@ -133,7 +71,7 @@ local function isRelatedViaSlotGroup(wearableSlotData: slotData, otherSlot: slot
     end
 end
 
-local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData: slotData, lootScrollingSlotData: slotData, fillSlot: fillSlot, emptySlot: emptySlot)
+local function P_INVENTORY__X__L_INVENTORY(inventoryOrHotbarSlotData: types_and_enums.SlotData, lootScrollingSlotData: types_and_enums.SlotData, fillSlot: types_and_enums.fillSlot, emptySlot: types_and_enums.emptySlot)
 
     local inventoryOrHotbarSlotTool: Tool? = inventoryOrHotbarSlotData.slotObject.tool
     local lootTool: Tool? = lootScrollingSlotData.slotObject.tool
@@ -164,8 +102,13 @@ local function inventoryOrHotbar_x_lootScrolling_swap(inventoryOrHotbarSlotData:
         warn("Error", tostring(error))
     end)
 end
-
-local function characterEquipment_x_inventoryOrHotbar_swap(wearableSlotData: slotData, inventoryOrHotbarSlotData: slotData, changeSlotState: changeSlotState, fillSlot: fillSlot, emptySlot: emptySlot)
+--[[
+    Bug: when any wearable is held out and player tries to wear it, wearable just unequips itself
+    Caused by: Main_ToolStateMachine.lua 233 caused by "and" in the if statement
+    
+    Attempted solution: tried to change "and" to "or", but that caused interruption handling to not work
+]]
+local function P_INVENTORY__X__P_EQUIPMENT(wearableSlotData: types_and_enums.SlotData, inventoryOrHotbarSlotData: types_and_enums.SlotData, changeSlotState: types_and_enums.changeSlotState, fillSlot: types_and_enums.fillSlot, emptySlot: types_and_enums.emptySlot)
     local wearableSlot = wearableSlotData.slotObject
     local inventoryOrHotbarSlot = inventoryOrHotbarSlotData.slotObject
 
@@ -279,7 +222,7 @@ local function characterEquipment_x_inventoryOrHotbar_swap(wearableSlotData: slo
     end
 end
 
-local function lootScrolling_x_lootScrolling_swap(lsData0: slotData, lsData1: slotData, fillSlot, emptySlot)
+local function L_INVENTORY__SWAP(lsData0: types_and_enums.SlotData, lsData1: types_and_enums.SlotData, fillSlot, emptySlot)
 
     local slot0 = lsData0.slotObject
     local slot1 = lsData1.slotObject
@@ -306,7 +249,7 @@ local function lootScrolling_x_lootScrolling_swap(lsData0: slotData, lsData1: sl
     end)
 end
 
-local function lootScrolling_drop(lootScrollingSlotData: slotData)
+local function L_INVENTORY__DROP(lootScrollingSlotData: types_and_enums.SlotData)
     local lootTool: Tool? = lootScrollingSlotData.slotObject.tool
     LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
         LayoutOrder = lootScrollingSlotData.slotObject._itself.LayoutOrder,
@@ -319,7 +262,7 @@ local function lootScrolling_drop(lootScrollingSlotData: slotData)
     end)
 end
 
-local function characterEquipment_drop(characterEquipmentSlotData: slotData, changeSlotState: changeSlotState, fillSlot, emptySlot)
+local function P_EQUIPMENT__DROP(characterEquipmentSlotData: types_and_enums.SlotData, changeSlotState: types_and_enums.changeSlotState, fillSlot, emptySlot)
     local characterEquipmentSlot = characterEquipmentSlotData.slotObject
 
     local tweens: {Tween} = {}
@@ -350,12 +293,10 @@ local function characterEquipment_drop(characterEquipmentSlotData: slotData, cha
     )
 end
 
-local function lootScrolling_x_characterEquipment_swap(lootScrollingData: slotData, characterEquipmentData: slotData)
+local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotData, lInventoryData: types_and_enums.SlotData, changeSlotState: types_and_enums.changeSlotState, fillSlot: types_and_enums.fillSlot, emptySlot: types_and_enums.emptySlot, newSlot: types_and_enums.newSlot, destroySlot: types_and_enums.destroySlot)
     --[[
         - Going to be modeled off of inventoryOrHotbar_x_characterEquipment_swap
             - which is split into 3 scenarios: 
-
-                * need to fix edge case handling for when a state path execution is cancelled and the wearable is unworn first because the cases below rely on it.
 
                 1. EMPTY lootScrolling slot and FILLED characterEquipment slot - unwear characterEquipment and fill lootScrolling slot
                     - if lootScrolling slot is filled during the asynchronous process of unwearing, then the wearable will find another slot to fill within
@@ -370,45 +311,139 @@ local function lootScrolling_x_characterEquipment_swap(lootScrollingData: slotDa
                         - classic case of tool statemachine swap two wearable items: 
                             - implement at ToolStateMachine level so that it can deal with cancellations consistently across all 3 lootScrolling_x_characterEquipment_swap cases
     ]]
+    local pIsEmpty = pEquipmentData.slotObject._isEmpty
+    local lIsEmpty = lInventoryData.slotObject._isEmpty
+    if not pIsEmpty and not lIsEmpty then
+       --[[
+            Just like picking up a filled backpack from the ground, the wearable will be taken from the server registry and implicitly stored in the player's inventory while the wearing process for the current wearable
+            is started. If interrupted, the implicitly stored item will find a place in the inventory so it can be explicitly stored. If inventory is full, then item will be dropped.
+       ]] 
+        error("not implemented yet")
+    elseif not pIsEmpty then
+        -- start unwearing operation. If gui is closed during this, then item will be dropped. Otherwise, item will be put in the indicated loot inventory slot.
+        local tweens: {Tween} = {}
+        ToolStateMachine.SetTargets(pEquipmentData.slotObject, "Idle", 
+            function(timeUntilComplete: number)
+                table.insert(tweens, loadSlot(lInventoryData.slotObject, timeUntilComplete))
+                table.insert(tweens, loadSlot(pEquipmentData.slotObject, timeUntilComplete))
+                for _, v in tweens do
+                    v:Play()
+                end
+
+                changeSlotState(lInventoryData.slotObject, "BeingSwapped")
+                changeSlotState(pEquipmentData.slotObject, "BeingSwapped")
+            end,
+            function() --onCancelled
+                for _, v in tweens do
+                    if v.PlaybackState == Enum.PlaybackState.Playing then
+                        v:Cancel()                        
+                    end
+                end
+            end,
+            function() --onResolved 
+                local pEquipmentTool = pEquipmentData.slotObject.tool
+                local lootableInstance = References_Inventory.LootableInstanceObjectValue.Value 
+                if lootableInstance == nil then
+                    bindables.DropToolBindable:Fire(pEquipmentTool)
+                else
+                    LootActions.TrySlotInteraction(lootableInstance, {
+                        LayoutOrder = lInventoryData.slotObject._itself.LayoutOrder,
+                        lootTool = nil,
+                        substituteTool = pEquipmentData.slotObject.tool
+                    })
+                    :andThen(function()
+                        bindables.ImmediateUnequip:Fire(pEquipmentTool)
+                        emptySlot(pEquipmentData.slotObject)
+                        fillSlot(lInventoryData.slotObject, pEquipmentTool)
+                    end)
+                    :catch(function(err)
+                        warn(tostring(err))
+                        bindables.DropToolBindable:Fire(pEquipmentTool)
+                    end)
+                end
+            end,
+            function() --onFinished
+                changeSlotState(pEquipmentData.slotObject, "Idle")
+                changeSlotState(lInventoryData.slotObject, "Idle")
+            end
+        )   
+    elseif not lIsEmpty then
+        -- item will be removed from server registry and the wearing process will start for it locally. If cancelled, the item will find a place in the inventory. If full, then it will be dropped.
+        local lootTool = lInventoryData.slotObject.tool
+        LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
+            LayoutOrder = lInventoryData.slotObject._itself.LayoutOrder,
+            lootTool = lootTool,
+            substituteTool = nil     
+        })
+        :andThen(function()
+            -- start wearing process
+            local temporarySlotObject = newSlot("Inventory") 
+            fillSlot(temporarySlotObject, lootTool)
+            local tweens: {Tween} = {}
+            ToolStateMachine.SetTargets(temporarySlotObject, "Worn", 
+                function(timeUntilComplete: number)
+                    table.insert(tweens, loadSlot(temporarySlotObject, timeUntilComplete))
+                    table.insert(tweens, loadSlot(pEquipmentData.slotObject, timeUntilComplete))
+                    for _, v in tweens do
+                        v:Play()
+                    end
+
+                    changeSlotState(temporarySlotObject, "BeingSwapped")
+                    changeSlotState(pEquipmentData.slotObject, "BeingSwapped")
+                end,
+                function() --onCancelled
+                    for _, v in tweens do
+                        if v.PlaybackState == Enum.PlaybackState.Playing then
+                            v:Cancel()                        
+                        end
+                    end
+                    -- warn("Cancelled")
+                    local emptyInventoryOrHotbarSlot = EmptySlotFinder.any()
+                    if emptyInventoryOrHotbarSlot then
+                        fillSlot(emptyInventoryOrHotbarSlot, lootTool)
+                    else
+                        bindables.DropToolBindable:Fire(lootTool)
+                    end
+                end,
+                function() --onResolved 
+                    local wearableTool = temporarySlotObject.tool
+                    fillSlot(pEquipmentData.slotObject, wearableTool)
+                end,
+                function() --onFinished
+                    destroySlot(temporarySlotObject)
+                    changeSlotState(pEquipmentData.slotObject, "Idle")
+                end
+            )   
+        end)
+        :catch(function(errorMsg)
+            warn(`Failed slot interaction to remove looting tool from server registry: ` .. tostring(errorMsg))
+        end)
+    end
 end
 
--- Action handlers for different drag-drop combinations
+local P_INVENTORY = types_and_enums.EnumSlotType.P_INVENTORY
+local P_EQUIPMENT = types_and_enums.EnumSlotType.P_EQUIPMENT
+local L_INVENTORY = types_and_enums.EnumSlotType.L_INVENTORY
+local L_EQUIPMENT = types_and_enums.EnumSlotType.L_EQUIPMENT
 
-type changeSlotState = (Types_Slot.SlotObject, Types_Slot.SlotState) -> ()
-type fillSlot = (Types_Slot.SlotObject, Tool?) -> ()
-type emptySlot = (Types_Slot.SlotObject) -> ()
-
-type actionHandler = (dragData: slotData, hoverData: slotData, changeSlotState: changeSlotState, fillSlot: fillSlot, emptySlot: emptySlot) -> ()
-
-export type ActionHandlers = {
-    outsideInventory: {
-        [number]: actionHandler
-    },
-    insideInventory: {
-        [number]: {
-            [number]: actionHandler
-        }
-    }
-}
-
-local ActionHandlers: ActionHandlers = {
+local ActionHandlers: types_and_enums.ActionHandlers = {
     -- Outside inventory actions (when isOutsideInventory is true)
     outsideInventory = {
-        [SlotType.LOOTING_SCROLLING] = function(dragData)
+        [L_INVENTORY] = function(dragData)
             print("Action: Drop on crate/corpse or open drop menu")
-            lootScrolling_drop(dragData)
+            L_INVENTORY__DROP(dragData)
         end,
         
-        [SlotType.LOOTING_EQUIPMENT] = function(dragData)
+        [L_EQUIPMENT] = function(dragData)
             print("Action: Take off corpse and drop")
         end,
         
-        [SlotType.CHARACTER_EQUIPMENT] = function(dragData, _, changeSlotState, fillSlot, emptySlot)
+        [P_EQUIPMENT] = function(dragData, _, changeSlotState, fillSlot, emptySlot)
             print("Action: Take off wearable and drop")
-            characterEquipment_drop(dragData, changeSlotState, fillSlot, emptySlot)
+            P_EQUIPMENT__DROP(dragData, changeSlotState, fillSlot, emptySlot)
         end,
         
-        [SlotType.INVENTORY_OR_HOTBAR] = function(dragData)
+        [P_INVENTORY] = function(dragData)
             print("Action: Use ItemSystem drop method or open drop menu")
             bindables.DropToolBindable:Fire(dragData.slotObject.tool)
         end
@@ -417,113 +452,68 @@ local ActionHandlers: ActionHandlers = {
     -- Inside inventory actions (slot-to-slot transfers)
     insideInventory = {
         -- [dragType][hoverType] = handler
-        [SlotType.LOOTING_SCROLLING] = {
-            [SlotType.LOOTING_SCROLLING] = function(dragData: slotData, hoverData: slotData, _, fillSlot, emptySlot)
+        [L_INVENTORY] = {
+            [L_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, _, fillSlot, emptySlot)
                 print("Action: Looting scrolling to looting scrolling")
-                lootScrolling_x_lootScrolling_swap(dragData, hoverData, fillSlot, emptySlot)
+                L_INVENTORY__SWAP(dragData, hoverData, fillSlot, emptySlot)
             end,
-            [SlotType.LOOTING_EQUIPMENT] = function(dragData: slotData, hoverData: slotData)
+            [L_EQUIPMENT] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData)
                 print("Action: Looting scrolling to looting equipment")
             end,
-            [SlotType.CHARACTER_EQUIPMENT] = function(dragData: slotData, hoverData: slotData)
+            [P_EQUIPMENT] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, changeSlotState, fillSlot, emptySlot, newSlot, destroySlot)
                 print("Action: Looting scrolling to character equipment")
+                P_EQUIPMENT__X__L_INVENTORY(hoverData, dragData, changeSlotState, fillSlot, emptySlot, newSlot, destroySlot)
             end,
-            [SlotType.INVENTORY_OR_HOTBAR] = function(dragData: slotData, hoverData: slotData, _, fillSlot, emptySlot)
+            [P_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, _, fillSlot, emptySlot)
                 print("Action: Looting scrolling to inventory/hotbar")
-                inventoryOrHotbar_x_lootScrolling_swap(hoverData, dragData, fillSlot, emptySlot)
+                P_INVENTORY__X__L_INVENTORY(hoverData, dragData, fillSlot, emptySlot)
             end
         },
         
-        [SlotType.LOOTING_EQUIPMENT] = {
-            [SlotType.LOOTING_SCROLLING] = function(dragData: slotData, hoverData: slotData)
+        [L_EQUIPMENT] = {
+            [L_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData)
                 print("Action: Looting equipment to looting scrolling")
             end,
-            [SlotType.CHARACTER_EQUIPMENT] = function(dragData: slotData, hoverData: slotData)
+            [P_EQUIPMENT] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData)
                 print("Action: Looting equipment to character equipment")
             end,
-            [SlotType.INVENTORY_OR_HOTBAR] = function(dragData: slotData, hoverData: slotData)
+            [P_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData)
                 print("Action: Looting equipment to inventory/hotbar")
             end
         },
         
-        [SlotType.CHARACTER_EQUIPMENT] = {
-            [SlotType.LOOTING_SCROLLING] = function(dragData: slotData, hoverData: slotData)
+        [P_EQUIPMENT] = {
+            [L_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, changeSlotState, fillSlot, emptySlot, newSlot, destroySlot)
                 print("Action: Character equipment to looting scrolling")
+                P_EQUIPMENT__X__L_INVENTORY(dragData, hoverData, changeSlotState, fillSlot, emptySlot, newSlot, destroySlot)
             end,
-            [SlotType.LOOTING_EQUIPMENT] = function(dragData: slotData, hoverData: slotData)
+            [L_EQUIPMENT] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData)
                 print("Action: Character equipment to looting equipment")
             end,
-            [SlotType.INVENTORY_OR_HOTBAR] = function(dragData: slotData, hoverData: slotData, changeSlotState, fillSlot, emptySlot)
+            [P_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, changeSlotState, fillSlot, emptySlot)
                 print("Action: Character equipment to inventory/hotbar")
-                characterEquipment_x_inventoryOrHotbar_swap(dragData, hoverData, changeSlotState, fillSlot, emptySlot)
+                P_INVENTORY__X__P_EQUIPMENT(dragData, hoverData, changeSlotState, fillSlot, emptySlot)
             end
         },
         
-        [SlotType.INVENTORY_OR_HOTBAR] = {
-            [SlotType.LOOTING_SCROLLING] = function(dragData: slotData, hoverData: slotData, _, fillSlot, emptySlot)
+        [P_INVENTORY] = {
+            [L_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, _, fillSlot, emptySlot)
                 print("Action: Inventory/hotbar to looting scrolling")
-                inventoryOrHotbar_x_lootScrolling_swap(dragData, hoverData, fillSlot, emptySlot)
+                P_INVENTORY__X__L_INVENTORY(dragData, hoverData, fillSlot, emptySlot)
             end,
-            [SlotType.LOOTING_EQUIPMENT] = function(dragData: slotData, hoverData: slotData)
+            [L_EQUIPMENT] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData)
                 print("Action: Inventory/hotbar to looting equipment")
             end,
-            [SlotType.CHARACTER_EQUIPMENT] = function(dragData, hoverData, changeSlotState, fillSlot, emptySlot)
+            [P_EQUIPMENT] = function(dragData, hoverData, changeSlotState, fillSlot, emptySlot)
                 print("Action: Inventory/hotbar to character equipment")
-                characterEquipment_x_inventoryOrHotbar_swap(hoverData, dragData, changeSlotState, fillSlot, emptySlot)
+                P_INVENTORY__X__P_EQUIPMENT(hoverData, dragData, changeSlotState, fillSlot, emptySlot)
             end,
-            [SlotType.INVENTORY_OR_HOTBAR] = function(dragData: slotData, hoverData: slotData)
+            [P_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData)
                 print("Action: Inventory/hotbar to inventory/hotbar")
-                inventoryOrHotbar_swap(dragData, hoverData)
+                P_INVENTORY__SWAP(dragData, hoverData)
             end
         }
     }
 }
 
--- Main function (replaces your original code block)
-local function handleDragDrop(dragSlot, isOutsideInventory: boolean, hoverSlot: Types_Slot.SlotObject?, changeSlotState: changeSlotState, fillSlot: fillSlot, emptySlot: emptySlot)
-
-    if dragSlot == hoverSlot then return end
-
-    -- Get drag slot data
-    local dragData = getSlotData(dragSlot)
-    if dragData.slotType == SlotType.INVALID then
-        warn("Invalid drag slot ancestry")
-        return
-    end
-    
-    if isOutsideInventory then
-        -- Handle outside inventory drops
-        local handler = ActionHandlers.outsideInventory[dragData.slotType]
-        if handler then
-            handler(dragData, hoverSlot:: any, changeSlotState, fillSlot, emptySlot)
-        else
-            warn("No handler for outside inventory drop from slot type: " .. dragData.slotType)
-        end
-    else
-        -- Handle inside inventory transfers
-        if not hoverSlot or dragSlot == hoverSlot then
-            warn("Not a valid swap scenario: hovering in inventory but not on a slot, or hovering on drag slot.")
-            return
-        end
-        
-        local hoverData = getSlotData(hoverSlot)
-        if hoverData.slotType == SlotType.INVALID then
-            warn("Invalid hover slot ancestry")
-            return
-        end
-        
-        local dragHandlers = ActionHandlers.insideInventory[dragData.slotType]
-        if dragHandlers then
-            local handler = dragHandlers[hoverData.slotType]
-            if handler then
-                handler(dragData, hoverData, changeSlotState, fillSlot, emptySlot)
-            else
-                warn("No handler for drag type " .. dragData.slotType .. " to hover type " .. hoverData.slotType)
-            end
-        else
-            warn("No handlers for drag slot type: " .. dragData.slotType)
-        end
-    end
-end
-
-return handleDragDrop
+return ActionHandlers

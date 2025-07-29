@@ -136,7 +136,6 @@ function Health.initialize()
     table.insert(
         connections,
         sounds.heartbeat:GetPropertyChangedSignal("Playing"):Connect(function(...: any)  
-            warn(sounds.heartbeat.IsPlaying)
             toggleGuiHeartbeatSoundSync(sounds.heartbeat.IsPlaying)
         end)
     )

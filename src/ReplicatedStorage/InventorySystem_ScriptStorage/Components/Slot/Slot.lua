@@ -18,9 +18,9 @@ local Type_Equipment = require("./../../CharacterSection/Components/Type_Equipme
 local EquipmentInitData = require("./../../CharacterSection/Components/EquipmentInitData")
 local Hover = require("./../Slot/Hover")
 local Select = require("./../Slot/Select")
-local Drag = require("./../Slot/Drag")
+local DragFunctionality = require("./../Slot/Drag/DragFunctionality")
 local ToolStateMachine = require("./../ToolStateMachine/Main_ToolStateMachine")
-local handleDragDrop = require(InventoryScriptStorage.Components.Slot.handleDragDrop)
+local handleDragDrop = require(InventoryScriptStorage.Components.Slot.Drag.handleDragDrop)
 local SlotRegistry = require(InventoryScriptStorage.Components.Slot.SlotRegistry)
 
 export type SlotObject = Type_Slot.SlotObject
@@ -76,7 +76,7 @@ function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCatego
 
     self.connections.hoverBegin = self._itself.MouseEnter:Connect(function(a0: number, a1: number)  
         Hover.applyEffect(self)
-        if Drag.currentSlot then
+        if DragFunctionality.currentSlot then
             PlaySound(SFX.hover)
         end
     end) 
@@ -178,8 +178,8 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
         end
     end
 
-    self.connections.DragFunctionality = Drag.InitForSlot(self, function(hoverSlot, isOutsideInventory)
-        handleDragDrop(self, isOutsideInventory, hoverSlot, Slot.ChangeState, Slot.FillSlot, Slot.EmptySlot)
+    self.connections.DragFunctionality = DragFunctionality.InitForSlot(self, function(hoverSlot, isOutsideInventory)
+        handleDragDrop(self, isOutsideInventory, hoverSlot, Slot.ChangeState, Slot.FillSlot, Slot.EmptySlot, Slot.new, Slot.destroy)
     end)
 
     Slot.toolToObjectMap[tool] = self

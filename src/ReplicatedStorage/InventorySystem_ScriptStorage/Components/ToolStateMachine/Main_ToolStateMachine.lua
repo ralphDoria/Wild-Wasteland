@@ -216,7 +216,7 @@ function ToolStateMachine.SetTargets(target_slot: Types_Slot.SlotObject, target_
     local targetToolIsInTargetState: boolean = target_tool:GetAttribute("State"):: Type_Item.ItemState == target_state
     local targetsAreAlreadyInOperation: boolean = target_slot == currentOperation.targetSlot and target_state == currentOperation.targetState
     if targetToolIsInTargetState then
-        warn("target tool is already in target state")
+        warn(`target tool is already in target state: {target_state}`)
         return
     elseif targetsAreAlreadyInOperation then 
         warn("targets are already in operation to get to that target state")

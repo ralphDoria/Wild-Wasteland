@@ -10,7 +10,6 @@ local HotbarSection = require(ScriptStorage.HotbarSection.Main_HotbarSection)
 local LootingSection = require(ScriptStorage.LootingSection.Main_LootingSection)
 local SlotRegistry = require(ScriptStorage.Components.Slot.SlotRegistry)
 
-
 local EmptySlotFinder = require(ScriptStorage.Components.Slot.EmptySlotFinder)
 
 -- Universal Inventory Components
@@ -19,9 +18,7 @@ local Slot = require("./Components/Slot/Slot")
 -- Misc
 local ItemMovementTracker = require("./Components/Misc/ItemMovementTracker")
 local InventoryToggle = require(ScriptStorage.Components.InventoryToggle)
-
 local LootedTagReplicatedToClient: RemoteEvent = RS.LootingSystem_Storage.Remotes.LootedTagReplicatedToClient
-
 local character = References_Inventory.player.Character or References_Inventory.player.CharacterAdded:Wait()
 character:WaitForChild("Humanoid").Died:Connect(function()
     error("TODO: Come back to this script to implement death procedures")
@@ -38,7 +35,6 @@ local function preInitSetup()
 end
 
 function InventorySystem.init()
-	warn("initializing revamped inventory")
 	preInitSetup()
 
 	CharacterSection.init()
@@ -48,8 +44,6 @@ function InventorySystem.init()
 	
 	ItemMovementTracker(
 		function(tool) --onAdded
-			warn("calling onAdded")
-
 			if tool:HasTag("Looted") then
 				warn("has loot tag, not filling slot here")
 				LootedTagReplicatedToClient:FireServer(tool)
@@ -79,7 +73,6 @@ function InventorySystem.init()
 			-- 	return
 			-- end
 
-			warn("calling onDropped")
 			Slot.EmptySlot(SlotRegistry.toolToObjectMap[tool])
 		end
 	)
