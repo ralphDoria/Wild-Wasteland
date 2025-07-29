@@ -315,6 +315,12 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
     local pEquipmentSlot = pEquipmentData.slotObject
     local pIsEmpty = pEquipmentData.slotObject._isEmpty
     local lIsEmpty = lInventoryData.slotObject._isEmpty
+
+    if not pIsEmpty and not pEquipmentSlot.tool:GetAttribute("isEmpty_client") then
+        DiegeticErrorMessagingManager.AddMessage("I need to empty my backpack if I want to do that")
+        return
+    end
+    
     if not pIsEmpty and not lIsEmpty then
        --[[
             Just like picking up a filled backpack from the ground, the wearable will be taken from the server registry and implicitly stored in the player's inventory while the wearing process for the current wearable
