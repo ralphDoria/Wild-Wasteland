@@ -311,6 +311,8 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
                         - classic case of tool statemachine swap two wearable items: 
                             - implement at ToolStateMachine level so that it can deal with cancellations consistently across all 3 lootScrolling_x_characterEquipment_swap cases
     ]]
+    local lInventorySlot = lInventoryData.slotObject
+    local pEquipmentSlot = pEquipmentData.slotObject
     local pIsEmpty = pEquipmentData.slotObject._isEmpty
     local lIsEmpty = lInventoryData.slotObject._isEmpty
     if not pIsEmpty and not lIsEmpty then
@@ -318,20 +320,87 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
             Just like picking up a filled backpack from the ground, the wearable will be taken from the server registry and implicitly stored in the player's inventory while the wearing process for the current wearable
             is started. If interrupted, the implicitly stored item will find a place in the inventory so it can be explicitly stored. If inventory is full, then item will be dropped.
        ]] 
-        error("not implemented yet")
+        local lootTool = lInventorySlot.tool
+        local pEquipmentTool = pEquipmentSlot.tool
+        local originalLootableInstance = References_Inventory.LootableInstanceObjectValue.Value
+        local originalLootLayoutOrder = lInventorySlot._itself.LayoutOrder  
+        LootActions.TrySlotInteraction(originalLootableInstance, {
+            LayoutOrder = originalLootLayoutOrder,
+            lootTool = lootTool,
+            substituteTool = nil     
+        })
+        :andThen(function()
+            -- start unwearing process
+            local temporarySlotObject = newSlot("Inventory") 
+            fillSlot(temporarySlotObject, lootTool)
+            local tweens: {Tween} = {}
+            ToolStateMachine.SetTargets(temporarySlotObject, "Worn", 
+                function(timeUntilComplete: number)
+                    table.insert(tweens, loadSlot(pEquipmentSlot, timeUntilComplete))
+                    table.insert(tweens, loadSlot(lInventorySlot, timeUntilComplete))
+                    for _, v in tweens do
+                        v:Play()
+                    end
+
+                    changeSlotState(temporarySlotObject, "BeingSwapped")
+                    changeSlotState(pEquipmentSlot, "BeingSwapped")
+                    changeSlotState(lInventorySlot, "BeingSwapped")
+                end,
+                function() --onCancelled
+                    for _, v in tweens do
+                        if v.PlaybackState == Enum.PlaybackState.Playing then
+                            v:Cancel()                        
+                        end
+                    end
+                    -- warn("Cancelled")
+                    local emptyInventoryOrHotbarSlot = EmptySlotFinder.any()
+                    if emptyInventoryOrHotbarSlot then
+                        fillSlot(emptyInventoryOrHotbarSlot, lootTool)
+                    else
+                        bindables.DropToolBindable:Fire(lootTool)
+                    end
+                end,
+                function() --onResolved 
+                    fillSlot(pEquipmentSlot, lootTool)
+                end,
+                function() --onFinished
+                    destroySlot(temporarySlotObject)
+                    changeSlotState(lInventorySlot, "Idle")
+                    changeSlotState(pEquipmentSlot, "Idle")
+                end,
+                function() --onNonTargetUnworn  
+                    -- TODO put original tool in pEquipmentData in lootTool's previous position
+                    if originalLootableInstance == References_Inventory.LootableInstanceObjectValue.Value then
+                        LootActions.TrySlotInteraction(originalLootableInstance, {
+                            LayoutOrder = originalLootLayoutOrder,
+                            lootTool = nil,
+                            substituteTool = pEquipmentTool  
+                        })
+                        :catch(function(err)
+                            warn("Dropping tool because try slot interaction for pEquipmentTool failed")
+                            warn(tostring(err))
+                            bindables.DropToolBindable:Fire(pEquipmentTool)
+                        end)
+                    else
+                        warn("Dropping tool because  original lootable instance is not longer the current lootable instance")
+                        bindables.DropToolBindable:Fire(pEquipmentTool)
+                    end
+                end
+            )   
+        end)
     elseif not pIsEmpty then
         -- start unwearing operation. If gui is closed during this, then item will be dropped. Otherwise, item will be put in the indicated loot inventory slot.
         local tweens: {Tween} = {}
-        ToolStateMachine.SetTargets(pEquipmentData.slotObject, "Idle", 
+        ToolStateMachine.SetTargets(pEquipmentSlot, "Idle", 
             function(timeUntilComplete: number)
                 table.insert(tweens, loadSlot(lInventoryData.slotObject, timeUntilComplete))
-                table.insert(tweens, loadSlot(pEquipmentData.slotObject, timeUntilComplete))
+                table.insert(tweens, loadSlot(pEquipmentSlot, timeUntilComplete))
                 for _, v in tweens do
                     v:Play()
                 end
 
                 changeSlotState(lInventoryData.slotObject, "BeingSwapped")
-                changeSlotState(pEquipmentData.slotObject, "BeingSwapped")
+                changeSlotState(pEquipmentSlot, "BeingSwapped")
             end,
             function() --onCancelled
                 for _, v in tweens do
@@ -341,7 +410,7 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
                 end
             end,
             function() --onResolved 
-                local pEquipmentTool = pEquipmentData.slotObject.tool
+                local pEquipmentTool = pEquipmentSlot.tool
                 local lootableInstance = References_Inventory.LootableInstanceObjectValue.Value 
                 if lootableInstance == nil then
                     bindables.DropToolBindable:Fire(pEquipmentTool)
@@ -349,11 +418,11 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
                     LootActions.TrySlotInteraction(lootableInstance, {
                         LayoutOrder = lInventoryData.slotObject._itself.LayoutOrder,
                         lootTool = nil,
-                        substituteTool = pEquipmentData.slotObject.tool
+                        substituteTool = pEquipmentSlot.tool
                     })
                     :andThen(function()
                         bindables.ImmediateUnequip:Fire(pEquipmentTool)
-                        emptySlot(pEquipmentData.slotObject)
+                        emptySlot(pEquipmentSlot)
                         fillSlot(lInventoryData.slotObject, pEquipmentTool)
                     end)
                     :catch(function(err)
@@ -363,7 +432,7 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
                 end
             end,
             function() --onFinished
-                changeSlotState(pEquipmentData.slotObject, "Idle")
+                changeSlotState(pEquipmentSlot, "Idle")
                 changeSlotState(lInventoryData.slotObject, "Idle")
             end
         )   
@@ -383,13 +452,13 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
             ToolStateMachine.SetTargets(temporarySlotObject, "Worn", 
                 function(timeUntilComplete: number)
                     table.insert(tweens, loadSlot(temporarySlotObject, timeUntilComplete))
-                    table.insert(tweens, loadSlot(pEquipmentData.slotObject, timeUntilComplete))
+                    table.insert(tweens, loadSlot(pEquipmentSlot, timeUntilComplete))
                     for _, v in tweens do
                         v:Play()
                     end
 
                     changeSlotState(temporarySlotObject, "BeingSwapped")
-                    changeSlotState(pEquipmentData.slotObject, "BeingSwapped")
+                    changeSlotState(pEquipmentSlot, "BeingSwapped")
                 end,
                 function() --onCancelled
                     for _, v in tweens do
@@ -407,11 +476,11 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
                 end,
                 function() --onResolved 
                     local wearableTool = temporarySlotObject.tool
-                    fillSlot(pEquipmentData.slotObject, wearableTool)
+                    fillSlot(pEquipmentSlot, wearableTool)
                 end,
                 function() --onFinished
                     destroySlot(temporarySlotObject)
-                    changeSlotState(pEquipmentData.slotObject, "Idle")
+                    changeSlotState(pEquipmentSlot, "Idle")
                 end
             )   
         end)
