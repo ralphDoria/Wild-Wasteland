@@ -29,7 +29,7 @@ function LootGuiManager.ResizeGui()
     References_Inventory_Client.LootingScrollingFrame.Size = UDim2.new(0, lootingSectionWidth - equipmentSlotsWidth, 1, 0)
 end
 
-function LootGuiManager.RenderData(lootable: Model | Tool, filledSlotsData: Types_LootSystem.FilledSlotsData)
+function LootGuiManager.RenderData(lootable: Model | Tool, filledSlotsData: Types_LootSystem.StandardFilledSlotsData)
     LootGuiManager.StopRendering()
 
     References_Inventory_Client.LootableInstanceObjectValue.Value = lootable

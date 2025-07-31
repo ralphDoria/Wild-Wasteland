@@ -1,7 +1,6 @@
 --!strict
 
 local RS = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
 local LootingSystem_Storage = RS.LootingSystem_Storage 
 local LootItemsHolding: Folder = LootingSystem_Storage.LootItemsHolding
 local LootableInstanceDataReplicators: Folder = LootingSystem_Storage.Remotes.LootableInstanceDataReplicators
@@ -15,7 +14,7 @@ local StandardLootable = {}
 
 StandardLootable.createdObjects = {}:: {[Model | Tool]: Types_LootSystem.StandardLootableObject}
 
-function StandardLootable.new(lootableInstance: Model | Tool, space: number, presetData: {[number]: Tool}?): Types_LootSystem.StandardLootableObject
+function StandardLootable.new(lootableInstance: Model | Tool, space: number, presetData: Types_LootSystem.StandardFilledSlotsData?): Types_LootSystem.StandardLootableObject
     local dataChangeReplicator = Instance.new("RemoteEvent")
     dataChangeReplicator.Parent = LootableInstanceDataReplicators
 
@@ -33,15 +32,16 @@ function StandardLootable.new(lootableInstance: Model | Tool, space: number, pre
     return self
 end
 
-function StandardLootable._initialize(self: Types_LootSystem.StandardLootableObject, presetData: {[number]: Tool}?)
+function StandardLootable._initialize(self: Types_LootSystem.StandardLootableObject, presetData: Types_LootSystem.StandardFilledSlotsData?)
     self._itself:SetAttribute("isEmpty_server", true) -- initial value
 
     if presetData then
-        local serializedData = self.FilledSlotsData
+        self.FilledSlotsData = presetData
         local numberOfItems = 0
-        for slotNumber: number, tool: Tool in presetData do
-            serializedData[tostring(slotNumber)] = tool
-            numberOfItems += 1
+        for _, tool: Tool? in presetData do
+            if tool then
+                numberOfItems += 1
+            end
         end
         StandardLootable.SetNumberOfItems(self, numberOfItems)
     end
@@ -57,10 +57,10 @@ function StandardLootable.SetNumberOfItems(self: Types_LootSystem.StandardLootab
     end
 end
 
-local function validate(self: Types_LootSystem.StandardLootableObject, dataChangeRequestPacket: Types_LootSystem.dataChangeRequestPacket): ((player: Player) -> ())?
+local function validate(self: Types_LootSystem.StandardLootableObject, dataChangeRequestPacket: Types_LootSystem.StandardDataChangeRequestPacket): ((player: Player) -> ())?
     local lootTool = dataChangeRequestPacket.lootTool
     local substituteTool = dataChangeRequestPacket.substituteTool
-    local slotNumber = dataChangeRequestPacket.LayoutOrder
+    local slotNumber = dataChangeRequestPacket.lootToolLayoutOrder
     local filledSlotsData = self.FilledSlotsData
     local currentLootTool = filledSlotsData[tostring(slotNumber)]
     if currentLootTool == lootTool then
@@ -91,7 +91,7 @@ local function validate(self: Types_LootSystem.StandardLootableObject, dataChang
                     end
                 end)
             end
-            changeReplicator:FireAllClients(dataChangeRequestPacket.LayoutOrder, substituteTool, lootTool)
+            changeReplicator:FireAllClients(dataChangeRequestPacket.lootToolLayoutOrder, substituteTool, lootTool)
         end
         return afterValidation
     else
@@ -100,7 +100,7 @@ local function validate(self: Types_LootSystem.StandardLootableObject, dataChang
     end
 end
 
-function StandardLootable.makeDataChange(self: Types_LootSystem.StandardLootableObject, player: Player, changeRequests: {Types_LootSystem.dataChangeRequestPacket})
+function StandardLootable.makeDataChange(self: Types_LootSystem.StandardLootableObject, player: Player, changeRequests: {Types_LootSystem.StandardDataChangeRequestPacket})
     local afterAllValidatedCallbacks = {}
 
     for _, changeRequest in changeRequests do

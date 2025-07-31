@@ -15,7 +15,7 @@ export type object = Type_SlotGroup.object
 local SlotGroup = {}
 SlotGroup.createdObjects = SlotGroupRegistry.createdObjects
 
-function SlotGroup.new(name: string, space: number, filledSlotsData: Types_LootSystem.FilledSlotsData, parent: Instance?): Type_SlotGroup.object
+function SlotGroup.new(name: string, space: number, filledSlotsData: Types_LootSystem.StandardFilledSlotsData, parent: Instance?): Type_SlotGroup.object
     local clone = References_Inventory.TemplateSlotGroup:Clone()
     local slotsFrame = clone:FindFirstChildOfClass("Frame"):: Frame
     local self: Type_SlotGroup.object = {
@@ -35,7 +35,7 @@ function SlotGroup.new(name: string, space: number, filledSlotsData: Types_LootS
     return self
 end
 
-function SlotGroup._initialize(self: Type_SlotGroup.object, filledSlotsData: Types_LootSystem.FilledSlotsData, parent: Instance?)
+function SlotGroup._initialize(self: Type_SlotGroup.object, filledSlotsData: Types_LootSystem.StandardFilledSlotsData, parent: Instance?)
 
     local num = 0
     for i = 1, self.Space, 1 do

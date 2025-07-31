@@ -22,7 +22,7 @@ local LootActions = {}
 
 function LootActions.GetData(lootable: Model | Tool)
     return Promise.new(function(resolve, reject, onCancel)
-        local filledSlotsData: Types_LootSystem.FilledSlotsData = rfn.GetLootData:InvokeServer(lootable)
+        local filledSlotsData: Types_LootSystem.StandardFilledSlotsData = rfn.GetLootData:InvokeServer(lootable)
         -- warn("received filledSlots from client")
         -- warn(filledSlotsData)
         
@@ -39,8 +39,8 @@ function LootActions.GetData(lootable: Model | Tool)
 end
 
 
-local function convertToFilledSlotsData(slotGroup: Type_SlotGroup.object): Types_LootSystem.FilledSlotsData
-    local filledSlotsData: Types_LootSystem.FilledSlotsData = {}
+local function convertToFilledSlotsData(slotGroup: Type_SlotGroup.object): Types_LootSystem.StandardFilledSlotsData
+    local filledSlotsData: Types_LootSystem.StandardFilledSlotsData = {}
     local slotInstanceToObjectMap = slotGroup.slotInstanceToObjectMap
     for _, v in slotGroup.SlotsFrame:GetChildren() do
         if v:IsA("Frame") then
@@ -65,7 +65,7 @@ end
 
 
 
-function LootActions.TrySlotInteraction(lootable: Model | Tool, ...: Types_LootSystem.dataChangeRequestPacket)
+function LootActions.TrySlotInteraction(lootable: Model | Tool, ...: Types_LootSystem.StandardDataChangeRequestPacket)
     local changeRequests = {...}
     return Promise.new(function(resolve, reject)
         local success: boolean = rfn.TrySlotInteraction:InvokeServer(lootable, changeRequests)

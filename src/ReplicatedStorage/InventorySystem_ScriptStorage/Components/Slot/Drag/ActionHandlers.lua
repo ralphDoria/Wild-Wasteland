@@ -80,7 +80,7 @@ local function P_INVENTORY__X__L_INVENTORY(inventoryOrHotbarSlotData: types_and_
         bindables.ImmediateUnequip:Fire(inventoryOrHotbarSlotTool)
     end
     LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
-        LayoutOrder = lootScrollingSlotData.slotObject._itself.LayoutOrder,
+        lootToolLayoutOrder = lootScrollingSlotData.slotObject._itself.LayoutOrder,
         lootTool = lootTool,
         substituteTool = inventoryOrHotbarSlotTool
     }):andThen(function()
@@ -231,12 +231,12 @@ local function L_INVENTORY__SWAP(lsData0: types_and_enums.SlotData, lsData1: typ
     LootActions.TrySlotInteraction(
         References_Inventory.LootableInstanceObjectValue.Value, 
         {
-            LayoutOrder = slot0._itself.LayoutOrder,
+            lootToolLayoutOrder = slot0._itself.LayoutOrder,
             lootTool = slot0Tool,
             substituteTool = slot1Tool
         },
         {
-            LayoutOrder = slot1._itself.LayoutOrder,
+            lootToolLayoutOrder = slot1._itself.LayoutOrder,
             lootTool = slot1Tool,
             substituteTool = slot0Tool,
         }
@@ -252,7 +252,7 @@ end
 local function L_INVENTORY__DROP(lootScrollingSlotData: types_and_enums.SlotData)
     local lootTool: Tool? = lootScrollingSlotData.slotObject.tool
     LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
-        LayoutOrder = lootScrollingSlotData.slotObject._itself.LayoutOrder,
+        lootToolLayoutOrder = lootScrollingSlotData.slotObject._itself.LayoutOrder,
         lootTool = lootTool,
         substituteTool = nil
     }):andThen(function()
@@ -316,7 +316,7 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
     local pIsEmpty = pEquipmentData.slotObject._isEmpty
     local lIsEmpty = lInventoryData.slotObject._isEmpty
 
-    if not pIsEmpty and not pEquipmentSlot.tool:GetAttribute("isEmpty_client") then
+    if not pIsEmpty and pEquipmentSlot.tool:GetAttribute("isEmpty_client") == false then
         DiegeticErrorMessagingManager.AddMessage("I need to empty my backpack if I want to do that")
         return
     end
@@ -331,7 +331,7 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
         local originalLootableInstance = References_Inventory.LootableInstanceObjectValue.Value
         local originalLootLayoutOrder = lInventorySlot._itself.LayoutOrder  
         LootActions.TrySlotInteraction(originalLootableInstance, {
-            LayoutOrder = originalLootLayoutOrder,
+            lootToolLayoutOrder = originalLootLayoutOrder,
             lootTool = lootTool,
             substituteTool = nil     
         })
@@ -378,7 +378,7 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
                     -- TODO put original tool in pEquipmentData in lootTool's previous position
                     if originalLootableInstance == References_Inventory.LootableInstanceObjectValue.Value then
                         LootActions.TrySlotInteraction(originalLootableInstance, {
-                            LayoutOrder = originalLootLayoutOrder,
+                            lootToolLayoutOrder = originalLootLayoutOrder,
                             lootTool = nil,
                             substituteTool = pEquipmentTool  
                         })
@@ -422,7 +422,7 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
                     bindables.DropToolBindable:Fire(pEquipmentTool)
                 else
                     LootActions.TrySlotInteraction(lootableInstance, {
-                        LayoutOrder = lInventoryData.slotObject._itself.LayoutOrder,
+                        lootToolLayoutOrder = lInventoryData.slotObject._itself.LayoutOrder,
                         lootTool = nil,
                         substituteTool = pEquipmentSlot.tool
                     })
@@ -446,7 +446,7 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
         -- item will be removed from server registry and the wearing process will start for it locally. If cancelled, the item will find a place in the inventory. If full, then it will be dropped.
         local lootTool = lInventoryData.slotObject.tool
         LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
-            LayoutOrder = lInventoryData.slotObject._itself.LayoutOrder,
+            lootToolLayoutOrder = lInventoryData.slotObject._itself.LayoutOrder,
             lootTool = lootTool,
             substituteTool = nil     
         })

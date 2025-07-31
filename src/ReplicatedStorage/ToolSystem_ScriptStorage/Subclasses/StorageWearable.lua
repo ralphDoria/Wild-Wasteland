@@ -48,7 +48,7 @@ function StorageWearable._initialize(self: StorageWearableObject)
         end,
         function() -- appyWornEffects 
             LootActions.GetData(self.tool)
-                :andThen(function(filledSlotsData: Types_LootSystem.FilledSlotsData)
+                :andThen(function(filledSlotsData: Types_LootSystem.StandardFilledSlotsData)
                     local slotGroup = SlotGroup.new(self.tool.Name, self.Space, filledSlotsData)
                     self.slotGroup = slotGroup
                     self.associatedSlotGroup.Value = slotGroup._itself

@@ -1,23 +1,47 @@
-export type FilledSlotsData = {
+local Types_LootSystem = {}
+
+export type StandardFilledSlotsData = {
     [string]: Tool? -- string will be a number in the form of a string which'll represent the Layout Order
+}
+
+export type CorpseFilledSlotsData = {
+    [string]: {
+        equipmentTool: Tool?,
+        slotGroupData: StandardFilledSlotsData
+    } 
+}
+
+Types_LootSystem.EnumEquipmentSlots = {
+    ["Head"] = 1,
+    ["Torso"] = 2,
+    ["Backpack"] = 3,
+    ["Legs"] = 4,
+    ["Feet"] = 5
 }
 
 export type StandardLootableObject = {
     _itself: Model | Tool,
     Space: number,
     _numberOfItems: number,
-    FilledSlotsData: FilledSlotsData,
+    FilledSlotsData: StandardFilledSlotsData,
     DataChangeReplicatorRemote: RemoteEvent
 }
 
-export type dataChangeRequestPacket = {
-    LayoutOrder: number,
+export type StandardDataChangeRequestPacket = {
+    lootToolLayoutOrder: number,
     lootTool: Tool?,
     substituteTool: Tool?
 }
 
-export type dropRequest_Data = {
-
+export type CorpseLootableObject = {
+    _itself: Model,
+    Space: number, --very fluid and can change depending on what equipment the corpse has on
+    _numberOfItems: number,
+    FilledSlotsData: CorpseFilledSlotsData,
+    DataChangeReplicatorRemote: RemoteEvent
 }
 
-return nil
+-- If the lootToolLayourOrder and lootTool properties are nil, then that means equipmentTool is to be replaced with the substitute tool.
+export type CorpseDataChangeRequestPacket = {equipmentToolLayoutOrder: number, equipmentTool: Tool} & StandardDataChangeRequestPacket  
+
+return Types_LootSystem

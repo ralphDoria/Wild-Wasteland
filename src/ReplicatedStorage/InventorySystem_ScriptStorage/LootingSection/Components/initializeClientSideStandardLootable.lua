@@ -37,7 +37,7 @@ local function initializeClientSideStandardLootable(lootable: Tool | Model): (Pr
             InventoryToggle.ChangeForm("LootingForm")
 
             LootActions.GetData(lootable)
-                :andThen(function(filledSlotsData: Types_LootSystem.FilledSlotsData)
+                :andThen(function(filledSlotsData: Types_LootSystem.StandardFilledSlotsData)
                     LootGuiManager.RenderData(lootable, filledSlotsData)
                     if changeReplicator then
                         onLootDataChanged = changeReplicator.OnClientEvent:Connect(function(layoutOrder: number, substituteTool: Tool?, lootTool: Tool?)  

@@ -42,13 +42,13 @@ function LootDataService.init()
         end
     )
 
-    rfn.GetLootData.OnServerInvoke = function(player, lootableInstance: Model | Tool): Types_LootSystem.FilledSlotsData
+    rfn.GetLootData.OnServerInvoke = function(player, lootableInstance: Model | Tool): Types_LootSystem.StandardFilledSlotsData
         -- warn("Sending filledSlotsData from server: ")
         -- warn(StandardLootable.createdObjects[lootableInstance].FilledSlotsData)
         return StandardLootable.createdObjects[lootableInstance].FilledSlotsData
     end
 
-    rfn.TrySlotInteraction.OnServerInvoke = function(player, lootableInstance: Model | Tool, changeRequests: {Types_LootSystem.dataChangeRequestPacket})
+    rfn.TrySlotInteraction.OnServerInvoke = function(player, lootableInstance: Model | Tool, changeRequests: {Types_LootSystem.StandardDataChangeRequestPacket})
         local standardLootable = StandardLootable.createdObjects[lootableInstance]
         print(`StandardLootale: {standardLootable}`)
         if not standardLootable then
@@ -59,7 +59,7 @@ function LootDataService.init()
         return success
     end
 
-    rfn.OverrideItemData.OnServerInvoke = function(player, lootableInstance: Model | Tool, filledSlotsData: Types_LootSystem.FilledSlotsData)
+    rfn.OverrideItemData.OnServerInvoke = function(player, lootableInstance: Model | Tool, filledSlotsData: Types_LootSystem.StandardFilledSlotsData)
         local lootableObject = StandardLootable.createdObjects[lootableInstance]
         lootableObject.FilledSlotsData = filledSlotsData
         local numberOfItems = 0
