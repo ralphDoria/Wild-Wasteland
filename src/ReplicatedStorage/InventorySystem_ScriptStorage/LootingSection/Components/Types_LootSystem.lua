@@ -1,5 +1,11 @@
 local Types_LootSystem = {}
 
+-- This is here to prevent bugs due to typos in other files
+Types_LootSystem.EnumLootableTypes = {
+    ["Standard"] = "Standard",
+    ["Corpse"] = "Corpse"
+}
+
 export type StandardFilledSlotsData = {
     [string]: Tool? -- string will be a number in the form of a string which'll represent the Layout Order
 }
@@ -27,12 +33,6 @@ export type StandardLootableObject = {
     DataChangeReplicatorRemote: RemoteEvent
 }
 
-export type StandardDataChangeRequestPacket = {
-    lootToolLayoutOrder: number,
-    lootTool: Tool?,
-    substituteTool: Tool?
-}
-
 export type CorpseLootableObject = {
     _itself: Model,
     Space: number, --very fluid and can change depending on what equipment the corpse has on
@@ -41,7 +41,16 @@ export type CorpseLootableObject = {
     DataChangeReplicatorRemote: RemoteEvent
 }
 
+type DataChangeRequestPacket<T> = {
+    __type: T, 
+    lootToolLayoutOrder: number,
+    lootTool: Tool?,
+    substituteTool: Tool?
+}
+
+export type StandardDataChangeRequestPacket = DataChangeRequestPacket<"Standard">
+
 -- If the lootToolLayourOrder and lootTool properties are nil, then that means equipmentTool is to be replaced with the substitute tool.
-export type CorpseDataChangeRequestPacket = {equipmentToolLayoutOrder: number, equipmentTool: Tool} & StandardDataChangeRequestPacket  
+export type CorpseDataChangeRequestPacket =  DataChangeRequestPacket<"Corpse"> & {equipmentToolLayoutOrder: number, equipmentTool: Tool}
 
 return Types_LootSystem

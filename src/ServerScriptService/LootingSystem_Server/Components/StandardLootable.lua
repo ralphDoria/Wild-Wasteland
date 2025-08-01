@@ -91,7 +91,7 @@ local function validate(self: Types_LootSystem.StandardLootableObject, dataChang
                     end
                 end)
             end
-            changeReplicator:FireAllClients(dataChangeRequestPacket.lootToolLayoutOrder, substituteTool, lootTool)
+            changeReplicator:FireAllClients(dataChangeRequestPacket)
         end
         return afterValidation
     else

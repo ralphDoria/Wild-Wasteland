@@ -47,11 +47,9 @@ function CorpseLootable._initialize(self: Types_LootSystem.CorpseLootableObject,
     if presetData then
         self.FilledSlotsData = presetData
         local numberOfItems = 0
-        for equipmentSlotString: string, equipmentToolAndSlotGroiupData: {EquipmentTool: Tool?, SlotGroupData: Types_LootSystem.StandardFilledSlotsData} in presetData do
-            local equipmentSlotNumber: number? = tonumber(equipmentSlotString)
-            if findValueInDictionary(Types_LootSystem.EnumEquipmentSlots, equipmentSlotNumber) then
-                local slotGroupData: Types_LootSystem.StandardFilledSlotsData = equipmentToolAndSlotGroiupData.SlotGroupData
-                for _, tool: Tool? in slotGroupData do
+        for equipmentSlotString: string, equipmentToolAndSlotGroupData: {equipmentTool: Tool?, slotGroupData: Types_LootSystem.StandardFilledSlotsData} in presetData do
+            if findValueInDictionary(Types_LootSystem.EnumEquipmentSlots, tonumber(equipmentSlotString)) then
+                for _, tool: Tool? in equipmentToolAndSlotGroupData.slotGroupData do
                     if tool then
                         numberOfItems += 1
                     end
@@ -73,47 +71,61 @@ function CorpseLootable.SetNumberOfItems(self: Types_LootSystem.CorpseLootableOb
 end
 
 local function validate(self: Types_LootSystem.CorpseLootableObject, dataChangeRequestPacket: Types_LootSystem.CorpseDataChangeRequestPacket): ((player: Player) -> ())?
+    local equipmentTool = dataChangeRequestPacket.equipmentTool
     local lootTool = dataChangeRequestPacket.lootTool
     local substituteTool = dataChangeRequestPacket.substituteTool
+
     local equipmentNumber = dataChangeRequestPacket.equipmentToolLayoutOrder
-    local slotNumber = dataChangeRequestPacket.lootToolLayoutOrder
+    local lootNumber = dataChangeRequestPacket.lootToolLayoutOrder
+
     local filledSlotsData = self.FilledSlotsData
-    local currentLootTool = filledSlotsData[tostring(slotNumber)]
+    local currentEquipmentTool = filledSlotsData[tostring(equipmentNumber)].equipmentTool
+    local slotGroupData = filledSlotsData[tostring(equipmentNumber)].slotGroupData
+
     -- make sure equipment slot is still there and it's the same as beofre, then make sure loot tool is still there.
-    if currentLootTool == lootTool then
-        local function afterValidation(player: Player)
-            local changeReplicator = self.DataChangeReplicatorRemote
-            filledSlotsData[tostring(slotNumber)] = substituteTool
+    local isValidEquipmentNumber: boolean = Types_LootSystem.EnumEquipmentSlots[equipmentNumber] ~= nil
+    if isValidEquipmentNumber and self.FilledSlotsData[tostring(equipmentNumber)].equipmentTool == dataChangeRequestPacket.equipmentTool then
+        if dataChangeRequestPacket.lootTool == nil and dataChangeRequestPacket.lootToolLayoutOrder == nil then
+            -- equipmentTool is to be replaced
+        else
+            -- loot tool in specified location is to be replaced 
+            local currentLootTool = slotGroupData[tostring(lootNumber)]
+            if currentLootTool == lootTool then
+                local function afterValidation(player: Player)
+                    local changeReplicator = self.DataChangeReplicatorRemote
+                    slotGroupData[tostring(lootNumber)] = substituteTool
 
-            if substituteTool then
-                if not lootTool then
-                    CorpseLootable.SetNumberOfItems(self, self._numberOfItems + 1)
-                end
+                    if substituteTool then
+                        if not lootTool then
+                            CorpseLootable.SetNumberOfItems(self, self._numberOfItems + 1)
+                        end
 
-                substituteTool.Parent = LootItemsHolding
-            end
-
-            if lootTool then
-                if not substituteTool then
-                    CorpseLootable.SetNumberOfItems(self, self._numberOfItems - 1)
-                end
-                
-                -- warn(`Adding looted attribute to {lootTool}`)
-                lootTool:AddTag("Looted")
-                lootTool.Parent = player.Backpack
-                remotes.LootedTagReplicatedToClient.OnServerEvent:Once(function(thisPlayer: Player, tool: Tool)  
-                    if tool == lootTool then
-                        warn("Looting tag replicated successfully, now removing it")
-                        lootTool:RemoveTag("Looted")                    
+                        substituteTool.Parent = LootItemsHolding
                     end
-                end)
+
+                    if lootTool then
+                        if not substituteTool then
+                            CorpseLootable.SetNumberOfItems(self, self._numberOfItems - 1)
+                        end
+                        
+                        -- warn(`Adding looted attribute to {lootTool}`)
+                        lootTool:AddTag("Looted")
+                        lootTool.Parent = player.Backpack
+                        remotes.LootedTagReplicatedToClient.OnServerEvent:Once(function(thisPlayer: Player, tool: Tool)  
+                            if tool == lootTool then
+                                warn("Looting tag replicated successfully, now removing it")
+                                lootTool:RemoveTag("Looted")                    
+                            end
+                        end)
+                    end
+                    changeReplicator:FireAllClients(dataChangeRequestPacket.lootToolLayoutOrder, substituteTool, lootTool)
+                end
+                return afterValidation
+            else
+                warn(`Failed state validation because {currentLootTool} ~= {lootTool}`)
+                return nil
             end
-            changeReplicator:FireAllClients(dataChangeRequestPacket.LayoutOrder, substituteTool, lootTool)
         end
-        return afterValidation
-    else
-        warn(`Failed state validation because {currentLootTool} ~= {lootTool}`)
-        return nil
     end
 end
 

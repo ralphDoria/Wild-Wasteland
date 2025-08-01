@@ -40,9 +40,9 @@ local function initializeClientSideStandardLootable(lootable: Tool | Model): (Pr
                 :andThen(function(filledSlotsData: Types_LootSystem.StandardFilledSlotsData)
                     LootGuiManager.RenderData(lootable, filledSlotsData)
                     if changeReplicator then
-                        onLootDataChanged = changeReplicator.OnClientEvent:Connect(function(layoutOrder: number, substituteTool: Tool?, lootTool: Tool?)  
+                        onLootDataChanged = changeReplicator.OnClientEvent:Connect(function(dataChangeRequestPacket: Types_LootSystem.StandardDataChangeRequestPacket | Types_LootSystem.CorpseDataChangeRequestPacket)  
                             warn("received changeReplicator fire signal")
-                            LootGuiManager.replaceSlot(layoutOrder, substituteTool) 
+                            LootGuiManager.replaceSlot(dataChangeRequestPacket)
                         end)
                     else
                         warn("Change replicator came back nil because taggedInstance was deregistered")
