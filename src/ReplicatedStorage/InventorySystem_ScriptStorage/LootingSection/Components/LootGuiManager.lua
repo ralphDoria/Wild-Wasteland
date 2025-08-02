@@ -63,7 +63,7 @@ function LootGuiManager.RenderData(lootable: Model | Tool, filledSlotsData: any)
     References_Inventory_Client.LootableInstanceObjectValue.Value = lootable
     References_Inventory_Client.LootingSectionTitle.Text = lootable.Name
 
-    if filledSlotsData["1"] then
+    if Types_LootSystem.isCorpseFilledSlotsDataType(filledSlotsData) then
         local filledSlotsData = filledSlotsData:: Types_LootSystem.CorpseFilledSlotsData
         local lootingEquipmentSlots = initLootingEquipmentSlots()
         local currentlyRendering: CorpseRenderType = {
@@ -156,7 +156,7 @@ end
 
 function LootGuiManager.StopRendering()
     if References_Inventory_Client.LootableInstanceObjectValue.Value and LootGuiManager.currentlyRendering then
-        if type_currentlyRendering == "Standard" then
+        if type_currentlyRendering == "Corpse" then
             local currentlyRendering = LootGuiManager.currentlyRendering:: CorpseRenderType
             for _, lootEquipmentSlot in currentlyRendering.equipmentSlots do
                 Slot.destroy(lootEquipmentSlot:: Slot.SlotObject) 
@@ -164,7 +164,7 @@ function LootGuiManager.StopRendering()
             for _, slotGroupObject in currentlyRendering.slotGroupObjects do
                 SlotGroup.Destroy(slotGroupObject:: SlotGroup.object)
             end
-        elseif type_currentlyRendering == "Corpse" then
+        elseif type_currentlyRendering == "Standard" then
             local currentlyRendering = LootGuiManager.currentlyRendering:: SlotGroup.object
             SlotGroup.Destroy(currentlyRendering)
         else

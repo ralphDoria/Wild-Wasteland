@@ -5,6 +5,7 @@ local LootingSystem_Storage = RS.LootingSystem_Storage
 local LootItemsHolding: Folder = LootingSystem_Storage.LootItemsHolding
 local LootableInstanceDataReplicators: Folder = LootingSystem_Storage.Remotes.LootableInstanceDataReplicators
 local Types_LootSystem = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.LootingSection.Components.Types_LootSystem)
+local SharedFunctions = require("./SharedFunctions")
 
 local remotes = {
     LootedTagReplicatedToClient = LootingSystem_Storage.Remotes.LootedTagReplicatedToClient
@@ -47,21 +48,11 @@ function CorpseLootable._initialize(self: Types_LootSystem.CorpseLootableObject,
                 end
             end
         end
-        CorpseLootable.SetNumberOfItems(self, numberOfItems)
+        SharedFunctions.SetNumberOfItems(self, numberOfItems)
     end
 end
 
-function CorpseLootable.SetNumberOfItems(self: Types_LootSystem.CorpseLootableObject, num: number)
-    self._numberOfItems = num
-    local isEmpty = num == 0
-    local instance = self._itself
-    local currentValue = instance:GetAttribute("isEmpty_server")
-    if currentValue ~= isEmpty then
-        instance:SetAttribute("isEmpty_server", isEmpty)
-    end
-end
-
-local function validate(self: Types_LootSystem.CorpseLootableObject, dataChangeRequest: Types_LootSystem.CorpseDataChangeRequest): ((player: Player) -> ())?
+function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, dataChangeRequest: Types_LootSystem.CorpseDataChangeRequest): Types_LootSystem.callbacks?
     local equipmentTool = dataChangeRequest.equipmentTool
     local lootTool = dataChangeRequest.lootTool
     local substituteTool = dataChangeRequest.substituteTool
@@ -78,101 +69,55 @@ local function validate(self: Types_LootSystem.CorpseLootableObject, dataChangeR
     if isValidEquipmentNumber and self.FilledSlotsData[tostring(equipmentNumber)].equipmentTool == dataChangeRequest.equipmentTool then
         if dataChangeRequest.lootToolLayoutOrder == nil then
             -- equipmentTool is to be replaced
+            error("WIP, CorpseLootable's afterValidation now will cause unexpected behavior")
             if currentEquipmentTool == dataChangeRequest.equipmentTool then
-                local function afterValidation(player: Player)
-                    error("WIP, CorpseLootable's afterValidation now will cause unexpected behavior")
-                    local changeReplicator = self.DataChangeReplicatorRemote
-                    slotGroupData[tostring(lootNumber)] = substituteTool
-
-                    if substituteTool then
-                        if not lootTool then
-                            CorpseLootable.SetNumberOfItems(self, self._numberOfItems + 1)
-                        end
-
-                        substituteTool.Parent = LootItemsHolding
-                    end
-
-                    if lootTool then
-                        if not substituteTool then
-                            CorpseLootable.SetNumberOfItems(self, self._numberOfItems - 1)
-                        end
-                        
-                        -- warn(`Adding looted attribute to {lootTool}`)
-                        lootTool:AddTag("Looted")
-                        lootTool.Parent = player.Backpack
-                        remotes.LootedTagReplicatedToClient.OnServerEvent:Once(function(thisPlayer: Player, tool: Tool)  
-                            if tool == lootTool then
-                                warn("Looting tag replicated successfully, now removing it")
-                                lootTool:RemoveTag("Looted")                    
+                local callbacks: Types_LootSystem.callbacks = {
+                    takeLoot = function(player: Player)
+                        if lootTool then
+                            if not substituteTool then
+                                SharedFunctions.SetNumberOfItems(serverLootableObject, serverLootableObject._numberOfItems - 1)
                             end
-                        end)
+                            
+                            -- warn(`Adding looted attribute to {lootTool}`)
+                            lootTool:AddTag("Looted")
+                            lootTool.Parent = player.Backpack
+                            remotes.LootedTagReplicatedToClient.OnServerEvent:Once(function(thisPlayer: Player, tool: Tool)  
+                                if tool == lootTool then
+                                    warn("Looting tag replicated successfully, now removing it")
+                                    lootTool:RemoveTag("Looted")                    
+                                end
+                            end)
+                        end
+                    end,
+                    doSubstitution = function()
+                        slotGroupData[tostring(slotNumber)] = substituteTool
+
+                        if substituteTool then
+                            if not lootTool then
+                                SharedFunctions.SetNumberOfItems(serverLootableObject, serverLootableObject._numberOfItems + 1)
+                            end
+
+                            substituteTool.Parent = LootItemsHolding
+                        end
+
+                        local changeReplicator = serverLootableObject.DataChangeReplicatorRemote
+                        changeReplicator:FireAllClients(dataChangeRequest)
                     end
-                    changeReplicator:FireAllClients(dataChangeRequest.lootToolLayoutOrder, substituteTool, lootTool)
-                end
-                return afterValidation
-            else
-                return nil
+                }
+                return callbacks
             end
         else
             -- loot tool in specified location is to be replaced 
-            local currentLootTool = slotGroupData[tostring(lootNumber)]
-            if currentLootTool == lootTool then
-                local function afterValidation(player: Player)
-                    local changeReplicator = self.DataChangeReplicatorRemote
-                    slotGroupData[tostring(lootNumber)] = substituteTool
-
-                    if substituteTool then
-                        if not lootTool then
-                            CorpseLootable.SetNumberOfItems(self, self._numberOfItems + 1)
-                        end
-
-                        substituteTool.Parent = LootItemsHolding
-                    end
-
-                    if lootTool then
-                        if not substituteTool then
-                            CorpseLootable.SetNumberOfItems(self, self._numberOfItems - 1)
-                        end
-                        
-                        -- warn(`Adding looted attribute to {lootTool}`)
-                        lootTool:AddTag("Looted")
-                        lootTool.Parent = player.Backpack
-                        remotes.LootedTagReplicatedToClient.OnServerEvent:Once(function(thisPlayer: Player, tool: Tool)  
-                            if tool == lootTool then
-                                warn("Looting tag replicated successfully, now removing it")
-                                lootTool:RemoveTag("Looted")                    
-                            end
-                        end)
-                    end
-                    changeReplicator:FireAllClients(dataChangeRequest.lootToolLayoutOrder, substituteTool, lootTool)
-                end
-                return afterValidation
-            else
-                warn(`Failed state validation because {currentLootTool} ~= {lootTool}`)
-                return nil
-            end
+            return SharedFunctions.standardValidate(self, dataChangeRequest)
         end
     end
+
     return nil
 end
 
 function CorpseLootable.processDataChangeRequest(self: Types_LootSystem.CorpseLootableObject, player: Player, changeRequests: {Types_LootSystem.CorpseDataChangeRequest})
-    local afterAllValidatedCallbacks = {}
-
-    for _, changeRequest in changeRequests do
-        local result = validate(self, changeRequest)
-        if result then
-            table.insert(afterAllValidatedCallbacks, result)
-        else
-            return false
-        end
-    end
-
-    for _, v in afterAllValidatedCallbacks do
-        v(player)
-    end
-    return true
-    
+    local result = SharedFunctions.processDataChangeRequest(CorpseLootable._validate, self, player, changeRequests)
+    return result
 end
 
 function CorpseLootable.Destroy(self: Types_LootSystem.CorpseLootableObject)

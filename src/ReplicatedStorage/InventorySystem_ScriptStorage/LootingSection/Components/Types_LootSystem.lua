@@ -17,6 +17,13 @@ export type CorpseFilledSlotsData = {
     } 
 }
 
+--[[
+    Narrows FilledSlotsData type with property checks
+]]
+function Types_LootSystem.isCorpseFilledSlotsDataType(filledSlotsData: any)
+    return filledSlotsData["1"] and not (filledSlotsData["1"].ClassName == "Tool")
+end
+
 Types_LootSystem.EnumEquipmentSlots = {
     ["Carry Belt"] = 0, -- Represents the items in the player's hotbar
     ["Head"] = 1,
@@ -69,5 +76,10 @@ export type StandardDataChangeRequest = DataChangeRequest<"Standard">
 
 -- If the lootToolLayourOrder and lootTool properties are nil, then that means equipmentTool is to be replaced with the substitute tool.
 export type CorpseDataChangeRequest =  DataChangeRequest<"Corpse"> & {equipmentToolLayoutOrder: number, equipmentTool: Tool}
+
+export type callbacks = {
+    takeLoot: (Player) -> (),
+    doSubstitution: () -> ()
+}
 
 return Types_LootSystem
