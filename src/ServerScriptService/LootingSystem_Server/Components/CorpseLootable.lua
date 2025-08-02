@@ -6,6 +6,7 @@ local LootItemsHolding: Folder = LootingSystem_Storage.LootItemsHolding
 local LootableInstanceDataReplicators: Folder = LootingSystem_Storage.Remotes.LootableInstanceDataReplicators
 local Types_LootSystem = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.LootingSection.Components.Types_LootSystem)
 local SharedFunctions = require("./SharedFunctions")
+local StandardLootable = require("./StandardLootable")
 
 local remotes = {
     LootedTagReplicatedToClient = LootingSystem_Storage.Remotes.LootedTagReplicatedToClient
@@ -23,7 +24,7 @@ function CorpseLootable.new(lootableInstance: Model, space: number, presetData: 
         _itself = lootableInstance,
         Space = space,
         _numberOfItems = 0,
-        FilledSlotsData = {},
+        FilledSlotsData = CorpseLootable.createEmptyFilledSlotsData(),
         DataChangeReplicatorRemote = dataChangeReplicator
     }
 
@@ -31,6 +32,17 @@ function CorpseLootable.new(lootableInstance: Model, space: number, presetData: 
 
     CorpseLootable.createdObjects[lootableInstance] = self
     return self
+end
+
+function CorpseLootable.createEmptyFilledSlotsData(): Types_LootSystem.CorpseFilledSlotsData
+    local filledSlotsData = {}
+    for _, equipmentSlotNumber in Types_LootSystem.EnumEquipmentSlots do
+        filledSlotsData[tostring(equipmentSlotNumber)] = {
+            equipmentTool = nil,
+            slotGroupData = {}
+        } 
+    end
+    return filledSlotsData
 end
 
 function CorpseLootable._initialize(self: Types_LootSystem.CorpseLootableObject, presetData: Types_LootSystem.CorpseFilledSlotsData?)
@@ -53,59 +65,68 @@ function CorpseLootable._initialize(self: Types_LootSystem.CorpseLootableObject,
 end
 
 function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, dataChangeRequest: Types_LootSystem.CorpseDataChangeRequest): Types_LootSystem.callbacks?
-    local equipmentTool = dataChangeRequest.equipmentTool
-    local lootTool = dataChangeRequest.lootTool
-    local substituteTool = dataChangeRequest.substituteTool
-
+    local equipmentTool: Tool? = dataChangeRequest.equipmentTool
     local equipmentNumber = dataChangeRequest.equipmentToolLayoutOrder
-    local lootNumber = dataChangeRequest.lootToolLayoutOrder
 
     local filledSlotsData = self.FilledSlotsData
     local currentEquipmentTool = filledSlotsData[tostring(equipmentNumber)].equipmentTool
-    local slotGroupData = filledSlotsData[tostring(equipmentNumber)].slotGroupData
 
     -- make sure equipment slot is still there and it's the same as beofre, then make sure loot tool is still there.
-    local isValidEquipmentNumber: boolean = Types_LootSystem.EnumEquipmentSlots[equipmentNumber] ~= nil
-    if isValidEquipmentNumber and self.FilledSlotsData[tostring(equipmentNumber)].equipmentTool == dataChangeRequest.equipmentTool then
+    if currentEquipmentTool == equipmentTool then
         if dataChangeRequest.lootToolLayoutOrder == nil then
             -- equipmentTool is to be replaced
-            error("WIP, CorpseLootable's afterValidation now will cause unexpected behavior")
-            if currentEquipmentTool == dataChangeRequest.equipmentTool then
-                local callbacks: Types_LootSystem.callbacks = {
-                    takeLoot = function(player: Player)
-                        if lootTool then
-                            if not substituteTool then
-                                SharedFunctions.SetNumberOfItems(serverLootableObject, serverLootableObject._numberOfItems - 1)
+            local substituteTool = dataChangeRequest.substituteTool
+
+            local callbacks: Types_LootSystem.callbacks = {
+                takeLoot = function(player: Player)
+                    if equipmentTool then
+                        if not substituteTool then
+                            -- Subtract the number of slots in the equipmentTool's slot group, or the value of the space attribute of the equipment tool
+                            local space_equipmentTool: number? = equipmentTool:GetAttribute("Space"):: number?
+                            if space_equipmentTool then
+                                SharedFunctions.SetNumberOfItems(self, self._numberOfItems - space_equipmentTool)
+                            else
+                                warn(`{equipmentTool}'s 'Space' attribute not found: this is either an error or tool is not a storage wearable; {self._itself.Name}'s 'Space' attribute remains unchanged.`)
                             end
-                            
-                            -- warn(`Adding looted attribute to {lootTool}`)
-                            lootTool:AddTag("Looted")
-                            lootTool.Parent = player.Backpack
-                            remotes.LootedTagReplicatedToClient.OnServerEvent:Once(function(thisPlayer: Player, tool: Tool)  
-                                if tool == lootTool then
-                                    warn("Looting tag replicated successfully, now removing it")
-                                    lootTool:RemoveTag("Looted")                    
-                                end
-                            end)
                         end
-                    end,
-                    doSubstitution = function()
-                        slotGroupData[tostring(slotNumber)] = substituteTool
-
-                        if substituteTool then
-                            if not lootTool then
-                                SharedFunctions.SetNumberOfItems(serverLootableObject, serverLootableObject._numberOfItems + 1)
+                        
+                        -- warn(`Adding looted attribute to {equipmentTool}`)
+                        equipmentTool:AddTag("Looted")
+                        equipmentTool.Parent = player.Backpack
+                        remotes.LootedTagReplicatedToClient.OnServerEvent:Once(function(thisPlayer: Player, tool: Tool)  
+                            if tool == equipmentTool then
+                                warn("Looting tag replicated successfully, now removing it")
+                                equipmentTool:RemoveTag("Looted")                    
                             end
-
-                            substituteTool.Parent = LootItemsHolding
-                        end
-
-                        local changeReplicator = serverLootableObject.DataChangeReplicatorRemote
-                        changeReplicator:FireAllClients(dataChangeRequest)
+                        end)
                     end
-                }
-                return callbacks
-            end
+                end,
+                doSubstitution = function()
+                    local equipmentToolAndSlotGroupData = filledSlotsData[tostring(equipmentNumber)]
+                    equipmentToolAndSlotGroupData.equipmentTool = substituteTool
+                    if substituteTool then
+                        local substituteLootableObject: Types_LootSystem.StandardLootableObject = StandardLootable.createdObjects[substituteTool]
+                        equipmentToolAndSlotGroupData.slotGroupData = substituteLootableObject.FilledSlotsData
+
+                        if not equipmentTool then
+                            local space_substituteTool: number? = substituteTool:GetAttribute("Space"):: number? 
+                            if space_substituteTool then
+                                SharedFunctions.SetNumberOfItems(self, self._numberOfItems - space_substituteTool)
+                            else
+                                warn(`{equipmentTool}'s 'Space' attribute not found: this is either an error or tool is not a storage wearable; {self._itself.Name}'s 'Space' attribute remains unchanged.`)
+                            end
+                        end
+
+                        substituteTool.Parent = LootItemsHolding
+                    else
+                        equipmentToolAndSlotGroupData.slotGroupData = {}
+                    end
+
+                    local changeReplicator = self.DataChangeReplicatorRemote
+                    changeReplicator:FireAllClients(dataChangeRequest)
+                end
+            }
+            return callbacks
         else
             -- loot tool in specified location is to be replaced 
             return SharedFunctions.standardValidate(self, dataChangeRequest)
