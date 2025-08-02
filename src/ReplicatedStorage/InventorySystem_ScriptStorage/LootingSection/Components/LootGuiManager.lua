@@ -63,7 +63,7 @@ function LootGuiManager.RenderData(lootable: Model | Tool, filledSlotsData: any)
     References_Inventory_Client.LootableInstanceObjectValue.Value = lootable
     References_Inventory_Client.LootingSectionTitle.Text = lootable.Name
 
-    if filledSlotsData["1"].slotGroupData then
+    if filledSlotsData["1"] then
         local filledSlotsData = filledSlotsData:: Types_LootSystem.CorpseFilledSlotsData
         local lootingEquipmentSlots = initLootingEquipmentSlots()
         local currentlyRendering: CorpseRenderType = {
