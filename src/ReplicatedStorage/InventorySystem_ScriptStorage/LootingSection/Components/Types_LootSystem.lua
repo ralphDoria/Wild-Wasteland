@@ -18,6 +18,7 @@ export type CorpseFilledSlotsData = {
 }
 
 Types_LootSystem.EnumEquipmentSlots = {
+    ["Carry Belt"] = 0, -- Represents the items in the player's hotbar
     ["Head"] = 1,
     ["Torso"] = 2,
     ["Backpack"] = 3,
@@ -25,32 +26,48 @@ Types_LootSystem.EnumEquipmentSlots = {
     ["Feet"] = 5
 }
 
-export type StandardLootableObject = {
+local function findValueInDictionary(dictionary: {any: any}, value: any)
+    for _, v in dictionary do
+        if v == value then
+            return v
+        end
+    end
+    return nil
+end
+
+--[[
+    Gets the equipment slot name based on the equipment slot number
+]]
+Types_LootSystem.getEquipmentSlotName = function(equipmentSlotNumber: number): string?
+    assert(type(equipmentSlotNumber) == "number", "This function uses equipmentSlotNumber, so type of parameter needs to be a number")
+    return findValueInDictionary(Types_LootSystem.EnumEquipmentSlots, equipmentSlotNumber)
+end
+
+type LootableObject = {
     _itself: Model | Tool,
     Space: number,
     _numberOfItems: number,
+    DataChangeReplicatorRemote: RemoteEvent
+}
+
+export type StandardLootableObject = LootableObject & {
     FilledSlotsData: StandardFilledSlotsData,
-    DataChangeReplicatorRemote: RemoteEvent
 }
 
-export type CorpseLootableObject = {
-    _itself: Model,
-    Space: number, --very fluid and can change depending on what equipment the corpse has on
-    _numberOfItems: number,
+export type CorpseLootableObject = LootableObject & {
     FilledSlotsData: CorpseFilledSlotsData,
-    DataChangeReplicatorRemote: RemoteEvent
 }
 
-type DataChangeRequestPacket<T> = {
+export type DataChangeRequest<T> = {
     __type: T, 
     lootToolLayoutOrder: number,
     lootTool: Tool?,
     substituteTool: Tool?
 }
 
-export type StandardDataChangeRequestPacket = DataChangeRequestPacket<"Standard">
+export type StandardDataChangeRequest = DataChangeRequest<"Standard">
 
 -- If the lootToolLayourOrder and lootTool properties are nil, then that means equipmentTool is to be replaced with the substitute tool.
-export type CorpseDataChangeRequestPacket =  DataChangeRequestPacket<"Corpse"> & {equipmentToolLayoutOrder: number, equipmentTool: Tool}
+export type CorpseDataChangeRequest =  DataChangeRequest<"Corpse"> & {equipmentToolLayoutOrder: number, equipmentTool: Tool}
 
 return Types_LootSystem

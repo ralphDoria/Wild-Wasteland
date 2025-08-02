@@ -48,14 +48,14 @@ function LootDataService.init()
         return StandardLootable.createdObjects[lootableInstance].FilledSlotsData
     end
 
-    rfn.TrySlotInteraction.OnServerInvoke = function(player, lootableInstance: Model | Tool, changeRequests: {Types_LootSystem.StandardDataChangeRequestPacket})
+    rfn.TrySlotInteraction.OnServerInvoke = function(player, lootableInstance: Model | Tool, changeRequests: {Types_LootSystem.StandardDataChangeRequest})
         local standardLootable = StandardLootable.createdObjects[lootableInstance]
         print(`StandardLootale: {standardLootable}`)
         if not standardLootable then
             warn(`{lootableInstance} is not registered.`)
             return false
         end
-        local success: boolean = StandardLootable.makeDataChange(standardLootable, player, changeRequests)
+        local success: boolean = StandardLootable.processDataChangeRequest(standardLootable, player, changeRequests)
         return success
     end
 

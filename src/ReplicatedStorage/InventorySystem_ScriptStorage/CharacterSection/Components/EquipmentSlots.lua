@@ -12,16 +12,17 @@ local EquipmentSlots = {}
 function EquipmentSlots.init()
     for key, v in initData do
         Type_Equipment.typeCheck(key)
-        v.slot = Slot.new("Wearable", key:: Type_Equipment.EquipmentCategory)
-        Slot.wearableCategoryToObjectMap[key] = v.slot
-        v.slot._itself.AnchorPoint = Vector2.new(0.5, 0.5)
-        v.slot._itself.ZIndex = 2
-        v.slot._itself.LayoutOrder = v.LayoutOrder
-        v.slot.ImageButton.Image = v.image
-        v.slot.ImageButton.Rotation = 0
-        v.slot.ImageButton.Visible = true
-        v.slot._itself.Name = key
-        v.slot._itself.Parent = References_Inventory.CharacterEquipmentSlots
+        local slot: Slot.SlotObject
+        slot = Slot.new("Wearable", key:: Type_Equipment.EquipmentCategory)
+        Slot.wearableCategoryToObjectMap[key] = slot
+        slot._itself.AnchorPoint = Vector2.new(0.5, 0.5)
+        slot._itself.ZIndex = 2
+        slot._itself.LayoutOrder = v.LayoutOrder
+        slot.ImageButton.Image = v.image
+        slot.ImageButton.Rotation = 0
+        slot.ImageButton.Visible = true
+        slot._itself.Name = key
+        slot._itself.Parent = References_Inventory.CharacterEquipmentSlots
 
         -- For if you want the lines conecting the slots to their corresponding body parts
         -------

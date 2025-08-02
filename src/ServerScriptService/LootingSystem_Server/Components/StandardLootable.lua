@@ -57,10 +57,10 @@ function StandardLootable.SetNumberOfItems(self: Types_LootSystem.StandardLootab
     end
 end
 
-local function validate(self: Types_LootSystem.StandardLootableObject, dataChangeRequestPacket: Types_LootSystem.StandardDataChangeRequestPacket): ((player: Player) -> ())?
-    local lootTool = dataChangeRequestPacket.lootTool
-    local substituteTool = dataChangeRequestPacket.substituteTool
-    local slotNumber = dataChangeRequestPacket.lootToolLayoutOrder
+local function validate(self: Types_LootSystem.StandardLootableObject, dataChangeRequest: Types_LootSystem.StandardDataChangeRequest): ((player: Player) -> ())?
+    local lootTool = dataChangeRequest.lootTool
+    local substituteTool = dataChangeRequest.substituteTool
+    local slotNumber = dataChangeRequest.lootToolLayoutOrder
     local filledSlotsData = self.FilledSlotsData
     local currentLootTool = filledSlotsData[tostring(slotNumber)]
     if currentLootTool == lootTool then
@@ -91,7 +91,7 @@ local function validate(self: Types_LootSystem.StandardLootableObject, dataChang
                     end
                 end)
             end
-            changeReplicator:FireAllClients(dataChangeRequestPacket)
+            changeReplicator:FireAllClients(dataChangeRequest)
         end
         return afterValidation
     else
@@ -100,7 +100,7 @@ local function validate(self: Types_LootSystem.StandardLootableObject, dataChang
     end
 end
 
-function StandardLootable.makeDataChange(self: Types_LootSystem.StandardLootableObject, player: Player, changeRequests: {Types_LootSystem.StandardDataChangeRequestPacket})
+function StandardLootable.processDataChangeRequest(self: Types_LootSystem.StandardLootableObject, player: Player, changeRequests: {Types_LootSystem.StandardDataChangeRequest})
     local afterAllValidatedCallbacks = {}
 
     for _, changeRequest in changeRequests do

@@ -65,7 +65,7 @@ end
 
 
 
-function LootActions.TrySlotInteraction(lootable: Model | Tool, ...: Types_LootSystem.StandardDataChangeRequestPacket)
+function LootActions.TrySlotInteraction(lootable: Model | Tool, ...: Types_LootSystem.StandardDataChangeRequest)
     local changeRequests = {...}
     return Promise.new(function(resolve, reject)
         local success: boolean = rfn.TrySlotInteraction:InvokeServer(lootable, changeRequests)

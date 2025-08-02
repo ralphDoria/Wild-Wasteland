@@ -144,11 +144,12 @@ function StorageWearable._initialize(self: StorageWearableObject)
         lootPrompt.Enabled = pickUpPrompt.Enabled
     end)
 
-    LootGuiManager.renderChanged:Connect(function(lootableInstance: (Model | Tool)?)
+    LootGuiManager.renderChanged:Connect(function(lootableInstance: (Tool)?)
         -- print(self.State)
+        warn("Check if this event connection here is dead code")
         if self.tool.Parent == workspace then
             -- print(`render changed to {lootableInstance}`)
-            pickUpPrompt.Enabled =  lootableInstance == self.associatedSlotGroup.Value
+            pickUpPrompt.Enabled =  lootableInstance == self.tool
         end
 
         updatePromptText()

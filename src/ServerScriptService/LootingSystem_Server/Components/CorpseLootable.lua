@@ -32,23 +32,14 @@ function CorpseLootable.new(lootableInstance: Model, space: number, presetData: 
     return self
 end
 
-local function findValueInDictionary(dictionary: {any: any}, value: any)
-    for _, v in dictionary do
-        if v == value then
-            return true
-        end
-    end
-    return false
-end
-
 function CorpseLootable._initialize(self: Types_LootSystem.CorpseLootableObject, presetData: Types_LootSystem.CorpseFilledSlotsData?)
     self._itself:SetAttribute("isEmpty_server", true) -- initial value
 
     if presetData then
         self.FilledSlotsData = presetData
         local numberOfItems = 0
-        for equipmentSlotString: string, equipmentToolAndSlotGroupData: {equipmentTool: Tool?, slotGroupData: Types_LootSystem.StandardFilledSlotsData} in presetData do
-            if findValueInDictionary(Types_LootSystem.EnumEquipmentSlots, tonumber(equipmentSlotString)) then
+        for string_equipmentSlotNumber: string, equipmentToolAndSlotGroupData: {equipmentTool: Tool?, slotGroupData: Types_LootSystem.StandardFilledSlotsData} in presetData do
+            if Types_LootSystem.getEquipmentSlotName(tonumber(string_equipmentSlotNumber):: number) then
                 for _, tool: Tool? in equipmentToolAndSlotGroupData.slotGroupData do
                     if tool then
                         numberOfItems += 1
@@ -70,13 +61,13 @@ function CorpseLootable.SetNumberOfItems(self: Types_LootSystem.CorpseLootableOb
     end
 end
 
-local function validate(self: Types_LootSystem.CorpseLootableObject, dataChangeRequestPacket: Types_LootSystem.CorpseDataChangeRequestPacket): ((player: Player) -> ())?
-    local equipmentTool = dataChangeRequestPacket.equipmentTool
-    local lootTool = dataChangeRequestPacket.lootTool
-    local substituteTool = dataChangeRequestPacket.substituteTool
+local function validate(self: Types_LootSystem.CorpseLootableObject, dataChangeRequest: Types_LootSystem.CorpseDataChangeRequest): ((player: Player) -> ())?
+    local equipmentTool = dataChangeRequest.equipmentTool
+    local lootTool = dataChangeRequest.lootTool
+    local substituteTool = dataChangeRequest.substituteTool
 
-    local equipmentNumber = dataChangeRequestPacket.equipmentToolLayoutOrder
-    local lootNumber = dataChangeRequestPacket.lootToolLayoutOrder
+    local equipmentNumber = dataChangeRequest.equipmentToolLayoutOrder
+    local lootNumber = dataChangeRequest.lootToolLayoutOrder
 
     local filledSlotsData = self.FilledSlotsData
     local currentEquipmentTool = filledSlotsData[tostring(equipmentNumber)].equipmentTool
@@ -84,9 +75,44 @@ local function validate(self: Types_LootSystem.CorpseLootableObject, dataChangeR
 
     -- make sure equipment slot is still there and it's the same as beofre, then make sure loot tool is still there.
     local isValidEquipmentNumber: boolean = Types_LootSystem.EnumEquipmentSlots[equipmentNumber] ~= nil
-    if isValidEquipmentNumber and self.FilledSlotsData[tostring(equipmentNumber)].equipmentTool == dataChangeRequestPacket.equipmentTool then
-        if dataChangeRequestPacket.lootTool == nil and dataChangeRequestPacket.lootToolLayoutOrder == nil then
+    if isValidEquipmentNumber and self.FilledSlotsData[tostring(equipmentNumber)].equipmentTool == dataChangeRequest.equipmentTool then
+        if dataChangeRequest.lootToolLayoutOrder == nil then
             -- equipmentTool is to be replaced
+            if currentEquipmentTool == dataChangeRequest.equipmentTool then
+                local function afterValidation(player: Player)
+                    error("WIP, CorpseLootable's afterValidation now will cause unexpected behavior")
+                    local changeReplicator = self.DataChangeReplicatorRemote
+                    slotGroupData[tostring(lootNumber)] = substituteTool
+
+                    if substituteTool then
+                        if not lootTool then
+                            CorpseLootable.SetNumberOfItems(self, self._numberOfItems + 1)
+                        end
+
+                        substituteTool.Parent = LootItemsHolding
+                    end
+
+                    if lootTool then
+                        if not substituteTool then
+                            CorpseLootable.SetNumberOfItems(self, self._numberOfItems - 1)
+                        end
+                        
+                        -- warn(`Adding looted attribute to {lootTool}`)
+                        lootTool:AddTag("Looted")
+                        lootTool.Parent = player.Backpack
+                        remotes.LootedTagReplicatedToClient.OnServerEvent:Once(function(thisPlayer: Player, tool: Tool)  
+                            if tool == lootTool then
+                                warn("Looting tag replicated successfully, now removing it")
+                                lootTool:RemoveTag("Looted")                    
+                            end
+                        end)
+                    end
+                    changeReplicator:FireAllClients(dataChangeRequest.lootToolLayoutOrder, substituteTool, lootTool)
+                end
+                return afterValidation
+            else
+                return nil
+            end
         else
             -- loot tool in specified location is to be replaced 
             local currentLootTool = slotGroupData[tostring(lootNumber)]
@@ -118,7 +144,7 @@ local function validate(self: Types_LootSystem.CorpseLootableObject, dataChangeR
                             end
                         end)
                     end
-                    changeReplicator:FireAllClients(dataChangeRequestPacket.lootToolLayoutOrder, substituteTool, lootTool)
+                    changeReplicator:FireAllClients(dataChangeRequest.lootToolLayoutOrder, substituteTool, lootTool)
                 end
                 return afterValidation
             else
@@ -127,9 +153,10 @@ local function validate(self: Types_LootSystem.CorpseLootableObject, dataChangeR
             end
         end
     end
+    return nil
 end
 
-function CorpseLootable.makeDataChange(self: Types_LootSystem.CorpseLootableObject, player: Player, changeRequests: {Types_LootSystem.CorpseDataChangeRequestPacket})
+function CorpseLootable.processDataChangeRequest(self: Types_LootSystem.CorpseLootableObject, player: Player, changeRequests: {Types_LootSystem.CorpseDataChangeRequest})
     local afterAllValidatedCallbacks = {}
 
     for _, changeRequest in changeRequests do
