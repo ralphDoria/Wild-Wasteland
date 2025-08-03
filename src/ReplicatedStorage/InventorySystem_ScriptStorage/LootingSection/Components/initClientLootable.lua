@@ -26,7 +26,7 @@ local function getPrimaryPart(lootable: Tool | Model)
     return lootable.PrimaryPart   
 end
 
-local function initializeClientSideStandardLootable(lootable: Tool | Model): (ProximityPrompt, Highlight)
+local function initClientLootable(lootable: Tool | Model): (ProximityPrompt, Highlight)
     local changeReplicator: RemoteEvent? = rfn.GetChangeReplicatorRemote:InvokeServer(lootable)
     local onLootDataChanged: RBXScriptConnection?
 
@@ -156,4 +156,4 @@ local function initializeClientSideStandardLootable(lootable: Tool | Model): (Pr
     return hppManagerObject.pp, hppManagerObject.highlight
 end
 
-return initializeClientSideStandardLootable
+return initClientLootable

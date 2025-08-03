@@ -1,5 +1,6 @@
 local TAGS_LOOT = {
-    STANDARD_CONTAINER = "StandardLootable"
+    STANDARD_LOOTABLE = "StandardLootable",
+    CORPSE_LOOTABLE = "CorpseLootable"
 }
 
 return TAGS_LOOT

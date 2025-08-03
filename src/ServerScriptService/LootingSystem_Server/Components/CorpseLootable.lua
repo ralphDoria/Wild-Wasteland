@@ -16,13 +16,13 @@ local CorpseLootable = {}
 
 CorpseLootable.createdObjects = {}:: {[Model]: Types_LootSystem.CorpseLootableObject}
 
-function CorpseLootable.new(lootableInstance: Model, space: number, presetData: Types_LootSystem.CorpseFilledSlotsData?): Types_LootSystem.CorpseLootableObject
+function CorpseLootable.new(lootableInstance: Model, presetData: Types_LootSystem.CorpseFilledSlotsData?): Types_LootSystem.CorpseLootableObject
     local dataChangeReplicator = Instance.new("RemoteEvent")
     dataChangeReplicator.Parent = LootableInstanceDataReplicators
 
     local self: Types_LootSystem.CorpseLootableObject = {
         _itself = lootableInstance,
-        Space = space,
+        Space = 0, -- space will be calculated for in _initialize()
         _numberOfItems = 0,
         FilledSlotsData = CorpseLootable.createEmptyFilledSlotsData(),
         DataChangeReplicatorRemote = dataChangeReplicator

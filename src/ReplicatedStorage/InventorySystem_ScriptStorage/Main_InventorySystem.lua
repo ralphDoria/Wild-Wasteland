@@ -40,7 +40,7 @@ function InventorySystem.init()
 	CharacterSection.init()
 	HotbarSection.init(References_Inventory.TemplateSlot, References_Inventory.Hotbar)
 	InventoryToggle.ChangeForm("Closed")
-	LootingSection.init()
+	LootingSection.init() -- responsible for cleaning up inventory. May want to change organization of that so that main functionality is more obvious here since this file is supposed to be the "main hub"
 	
 	ItemMovementTracker(
 		function(tool) --onAdded

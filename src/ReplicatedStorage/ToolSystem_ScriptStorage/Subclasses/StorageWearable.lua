@@ -15,7 +15,7 @@ type StorageWearableObject = Wearable.WearableType & {
 }
 
 local InventoryScriptStorage = ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage
-local initializeClientSideStandardLootable = require(InventoryScriptStorage.LootingSection.Components.initializeClientSideStandardLootable)
+local initClientLootable = require(InventoryScriptStorage.LootingSection.Components.initClientLootable)
 local LootActions = require(InventoryScriptStorage.LootingSection.Components.LootActions)
 local Types_LootSystem = require(InventoryScriptStorage.LootingSection.Components.Types_LootSystem)
 local LootGuiManager = require(InventoryScriptStorage.LootingSection.Components.LootGuiManager)
@@ -76,7 +76,7 @@ function StorageWearable._initialize(self: StorageWearableObject)
     )
 
     local pickUpPrompt = self.ToolHighlightAndProxPromptManager.pp
-    local lootPrompt: ProximityPrompt, lootHighlight: Highlight = initializeClientSideStandardLootable(self.tool)
+    local lootPrompt: ProximityPrompt, lootHighlight: Highlight = initClientLootable(self.tool)
     lootHighlight:Destroy()
 
     pickUpPrompt.UIOffset = Vector2.new(0, 15)
@@ -149,7 +149,7 @@ function StorageWearable._initialize(self: StorageWearableObject)
         warn("Check if this event connection here is dead code")
         if self.tool.Parent == workspace then
             -- print(`render changed to {lootableInstance}`)
-            pickUpPrompt.Enabled =  lootableInstance == self.tool
+            pickUpPrompt.Enabled =  lootableInstance ~= self.tool
         end
 
         updatePromptText()

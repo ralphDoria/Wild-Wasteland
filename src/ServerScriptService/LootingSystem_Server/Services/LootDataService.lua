@@ -2,6 +2,7 @@
 -- local InventoryScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 local handleTaggedInstances = require(ReplicatedStorage.RojoManaged_RS.Utility.handleTaggedInstances)
 local InventoryScriptStorage = ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage
 local TAGS_LOOT = require(InventoryScriptStorage.LootingSection.Components.TAGS_LOOT)
@@ -23,8 +24,20 @@ local LootDataService = {
     initialized = false
 }
 
+local function track_player_and_tag_them_with_corpse_tag_when_they_die(player: Player)
+    local char = player.Character 
+    if not char then
+        return --end function here because CharacterAdded connection will handle it from here 
+    end
+    local humanoid: Humanoid = char:WaitForChild("Humanoid"):: Humanoid
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    humanoid.Died:Once(function()  
+        hrp:AddTag(TAGS_LOOT.CORPSE_LOOTABLE)
+    end)        
+end
+
 function LootDataService.init()
-    local connections = handleTaggedInstances(TAGS_LOOT.STANDARD_CONTAINER, 
+    local connections = handleTaggedInstances(TAGS_LOOT.STANDARD_LOOTABLE, 
         function(taggedInstance: Instance)
             local space: number
             if taggedInstance:HasTag("StorageWearable") then
@@ -41,6 +54,13 @@ function LootDataService.init()
             StandardLootable.Destroy(StandardLootable.createdObjects[taggedInstance:: Model | Tool])
         end
     )
+
+    for _, player in Players:GetPlayers() do
+        track_player_and_tag_them_with_corpse_tag_when_they_die(player)
+    end
+    Players.PlayerAdded:Connect(function(player: Player)  
+        track_player_and_tag_them_with_corpse_tag_when_they_die(player)
+    end)
 
     rfn.GetLootData.OnServerInvoke = function(player, lootableInstance: Model | Tool): Types_LootSystem.StandardFilledSlotsData
         -- warn("Sending filledSlotsData from server: ")
