@@ -72,20 +72,27 @@ function LootGuiManager.RenderData(lootable: Model | Tool, filledSlotsData: any)
         }
         for string_equipmentSlotNumber: string, equipmentToolAndSlotGroupData in filledSlotsData do
             local equipmentSlotName: string? = Types_LootSystem.getEquipmentSlotName(tonumber(string_equipmentSlotNumber):: number)
-            local lootingEquipmentSlot: Slot.SlotObject? = if equipmentSlotName then lootingEquipmentSlots[equipmentSlotName] else nil
+            if tonumber(string_equipmentSlotNumber) ~= 0 then
+                local lootingEquipmentSlot: Slot.SlotObject? = if equipmentSlotName then lootingEquipmentSlots[equipmentSlotName] else nil
 
-            if lootingEquipmentSlot then
-                local equipmentTool: Tool? = equipmentToolAndSlotGroupData.equipmentTool
-                if equipmentTool then -- If an equipmentTool exists, then the lootingEquipmentSlot is supposed to be filled
-                    Slot.FillSlot(lootingEquipmentSlot, equipmentTool)
+                if lootingEquipmentSlot then
+                    local equipmentTool: Tool? = equipmentToolAndSlotGroupData.equipmentTool
+                    if equipmentTool then -- If an equipmentTool exists, then the lootingEquipmentSlot is supposed to be filled
+                        Slot.FillSlot(lootingEquipmentSlot, equipmentTool)
 
-                    local slotGroupData = equipmentToolAndSlotGroupData.slotGroupData
-                    local slotGroupObject = SlotGroup.new(equipmentSlotName:: string, lootable:GetAttribute("Space"):: number, slotGroupData, References_Inventory_Client.LootingScrollingFrame)
-                    slotGroupObject._itself.LayoutOrder = tonumber(string_equipmentSlotNumber):: number
-                    currentlyRendering.slotGroupObjects[tonumber(string_equipmentSlotNumber):: number] = slotGroupObject
+                        local slotGroupData = equipmentToolAndSlotGroupData.slotGroupData
+                        local slotGroupObject = SlotGroup.new(equipmentTool.Name, equipmentTool:GetAttribute("Space"):: number, slotGroupData, References_Inventory_Client.LootingScrollingFrame)
+                        slotGroupObject._itself.LayoutOrder = tonumber(string_equipmentSlotNumber):: number
+                        currentlyRendering.slotGroupObjects[tonumber(string_equipmentSlotNumber):: number] = slotGroupObject
+                    end
+                else
+                    warn(`{string_equipmentSlotNumber} is not a valid equipment slot number`)
                 end
             else
-                warn(`{string_equipmentSlotNumber} is not a valid equipment slot number`)
+                local slotGroupData = equipmentToolAndSlotGroupData.slotGroupData
+                local slotGroupObject = SlotGroup.new("Carry Belt", 5, slotGroupData, References_Inventory_Client.LootingScrollingFrame)
+                slotGroupObject._itself.LayoutOrder = tonumber(string_equipmentSlotNumber):: number
+                currentlyRendering.slotGroupObjects[tonumber(string_equipmentSlotNumber):: number] = slotGroupObject
             end
         end
 

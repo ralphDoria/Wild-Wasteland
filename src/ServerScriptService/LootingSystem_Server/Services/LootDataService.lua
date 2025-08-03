@@ -29,6 +29,15 @@ local LootDataService = {
     initialized = false
 }
 
+local standardLootableObjects = StandardLootable.createdObjects
+local corpseLootableObjects = CorpseLootable.createdObjects
+local function getStandardLootable(lootableInstance)
+    return standardLootableObjects[lootableInstance]
+end
+local function getCorpseLootable(lootableInstance)
+    return corpseLootableObjects[lootableInstance]
+end
+
 local function track_player_and_tag_them_with_corpse_tag_when_they_die(char: Model)
     if not char then
         return --end function here because CharacterAdded connection will handle it from here 
@@ -38,7 +47,7 @@ local function track_player_and_tag_them_with_corpse_tag_when_they_die(char: Mod
     humanoid.Died:Once(function()  
         -- wait for corpseFilledSlotsData to be sent over from the client
         remotes.SendClientCorpseFilledSlotsData.OnServerEvent:Once(function(player: Player, corpseFilledSlotsData: Types_LootSystem.CorpseFilledSlotsData)
-            CorpseLootable.new(char, corpseFilledSlotsData)
+            CorpseLootable.new(hrp:: any, corpseFilledSlotsData)
         end)
         hrp:AddTag(TAGS_LOOT.CORPSE_LOOTABLE)
     end)        
@@ -76,7 +85,7 @@ function LootDataService.init()
     rfn.GetLootData.OnServerInvoke = function(player, lootableInstance: Model | Tool): Types_LootSystem.StandardFilledSlotsData
         -- warn("Sending filledSlotsData from server: ")
         -- warn(StandardLootable.createdObjects[lootableInstance].FilledSlotsData)
-        return StandardLootable.createdObjects[lootableInstance].FilledSlotsData
+        return if getStandardLootable(lootableInstance) then getStandardLootable(lootableInstance).FilledSlotsData else getCorpseLootable(lootableInstance).FilledSlotsData
     end
 
     rfn.TrySlotInteraction.OnServerInvoke = function(player, lootableInstance: Model | Tool, changeRequests: {Types_LootSystem.StandardDataChangeRequest})
@@ -106,12 +115,11 @@ function LootDataService.init()
     LootDataService.initialized = true
 
     rfn.GetChangeReplicatorRemote.OnServerInvoke = function(player, lootableInstance: Tool | Model): RemoteEvent
-        local standardLootableObjects = StandardLootable.createdObjects
-        while standardLootableObjects[lootableInstance] == nil do
+        while getStandardLootable(lootableInstance) == nil and getCorpseLootable(lootableInstance) == nil do
             task.wait()
             print(`Waiting for {lootableInstance} to be initialized on the server`)
         end
-        return standardLootableObjects[lootableInstance].DataChangeReplicatorRemote
+        return if getStandardLootable(lootableInstance) then getStandardLootable(lootableInstance).DataChangeReplicatorRemote else getCorpseLootable(lootableInstance).DataChangeReplicatorRemote
     end
 end
 

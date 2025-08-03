@@ -13,7 +13,7 @@ local SlotRegistry = require(ScriptStorage.Components.Slot.SlotRegistry)
 export type object = Type_SlotGroup.object
 
 local SlotGroup = {}
-SlotGroup.createdObjects = SlotGroupRegistry.createdObjects
+SlotGroup.instancetoObjectMap = SlotGroupRegistry.instanceToObjectMap
 
 function SlotGroup.new(name: string, space: number, filledSlotsData: Types_LootSystem.StandardFilledSlotsData, parent: Instance?): Type_SlotGroup.object
     local clone = References_Inventory.TemplateSlotGroup:Clone()
@@ -30,8 +30,8 @@ function SlotGroup.new(name: string, space: number, filledSlotsData: Types_LootS
     }
 
     SlotGroup._initialize(self, filledSlotsData, parent)
-    table.insert(SlotGroup.createdObjects, self)
-
+    
+    SlotGroup.instancetoObjectMap[self._itself] = self
     return self
 end
 
@@ -109,10 +109,7 @@ function SlotGroup._SetFilledSlots(self: Type_SlotGroup.object, num: number)
 end
 
 function SlotGroup.Destroy(self: Type_SlotGroup.object)
-    local index = table.find(SlotGroup.createdObjects, self)
-    if index then
-        table.remove(SlotGroup.createdObjects, index)
-    end
+    SlotGroup.instancetoObjectMap[self._itself] = nil
 
     for _, v in self.Connections do
         v:Disconnect()

@@ -1,4 +1,3 @@
---!strict
 
 local RS = game:GetService("ReplicatedStorage")
 local LootingSystem_Storage = RS.LootingSystem_Storage 
@@ -31,6 +30,7 @@ function CorpseLootable.new(lootableInstance: Model, presetData: Types_LootSyste
     CorpseLootable._initialize(self, presetData)
 
     CorpseLootable.createdObjects[lootableInstance] = self
+    warn(`Created server CorpseLootale for {lootableInstance}`)
     return self
 end
 

@@ -2,6 +2,6 @@ local Type_SlotGroup = require(game:GetService("ReplicatedStorage").RojoManaged_
 
 local SlotGroupRegistry = {}
 
-SlotGroupRegistry.createdObjects = {}:: {[number]: Type_SlotGroup.object}
+SlotGroupRegistry.instanceToObjectMap = {}:: {[Frame]: Type_SlotGroup.object}
 
 return SlotGroupRegistry

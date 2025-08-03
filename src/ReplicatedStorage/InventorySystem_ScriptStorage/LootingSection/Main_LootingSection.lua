@@ -62,7 +62,7 @@ function LootingSection.init()
         for _, hotbarSlotInstance in hotbar:GetChildren() do
             local hotbarSlotObject = SlotRegistry.instanceToObjectMap[hotbarSlotInstance]
             if hotbarSlotObject then
-                carryBelt_slotGroupData[tostring(hotbarSlotObject.HotbarNumber)] = hotbarSlotObject.tool 
+                carryBelt_slotGroupData[hotbarSlotObject.HotbarNumber.Text] = hotbarSlotObject.tool 
                 Slot.destroy(hotbarSlotObject)
             else
                 warn(`{hotbarSlotInstance} is not registered in slot registry`)
@@ -75,14 +75,20 @@ function LootingSection.init()
             equipmentSlotAndHotbarData.equipmentTool = equipmentTool
             local associatedItemGroup: ObjectValue? = if equipmentTool then equipmentTool:FindFirstChild("AssociatedItemGroup") else nil
             if associatedItemGroup then
-                local slotGroupObject = SlotGroupRegistry.createdObjects[associatedItemGroup.Value]
-                local slotGroupData = {}
-                for _, slotObject in slotGroupObject.slotInstanceToObjectMap do
-                   slotGroupData[tostring(slotObject._itself.LayoutOrder)] = slotObject.tool 
+                local slotGroupObject = SlotGroupRegistry.instanceToObjectMap[associatedItemGroup.Value]
+                print(associatedItemGroup.Value, slotGroupObject)
+                if slotGroupObject then
+                    local slotGroupData = {}
+                    for _, slotObject in slotGroupObject.slotInstanceToObjectMap do
+                    slotGroupData[tostring(slotObject._itself.LayoutOrder)] = slotObject.tool 
+                    end
+                    print(slotGroupData)
+                    equipmentSlotAndHotbarData.slotGroupData = slotGroupData
+                    
+                    SlotGroup.Destroy(slotGroupObject)
+                else
+                    warn(`{associatedItemGroup.Value} is not mapped to a slotGroupObject in slot group registry`)
                 end
-                equipmentSlotAndHotbarData.slotGroupData = slotGroupData
-                
-                SlotGroup.Destroy(slotGroupObject)
             end
 
             Slot.destroy(equipmentSlotObject)
@@ -97,7 +103,9 @@ function LootingSection.init()
             warn("Waiting for server to tag hrp w/ corpse lootable tag, signifying that event receiver is connected")
             task.wait()
         end
-        remotes.SendClientCorpseFilledSlotsData:FireServer(constructCorpseFilledSlotsDataAndDestroyInventory())
+        local filledSlotsData = constructCorpseFilledSlotsDataAndDestroyInventory()
+        print(filledSlotsData)
+        remotes.SendClientCorpseFilledSlotsData:FireServer(filledSlotsData)
     end
 
     local appendConnections = handleTaggedInstances(

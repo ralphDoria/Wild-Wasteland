@@ -29,7 +29,7 @@ function EmptySlotFinder.inventory(): Type_Slot.SlotObject?
 	local slotObjectToReturn: Type_Slot.SlotObject?
 
     local lowestLayoutOrder: number = math.huge
-    for _, slotGroupObject in SlotGroupRegistry.createdObjects do
+    for _, slotGroupObject in SlotGroupRegistry.instanceToObjectMap do
         for instance, object in slotGroupObject.slotInstanceToObjectMap do
             if object._isEmpty and object.State ~= "BeingSwapped" then
                 local layoutOrder = instance.LayoutOrder 
