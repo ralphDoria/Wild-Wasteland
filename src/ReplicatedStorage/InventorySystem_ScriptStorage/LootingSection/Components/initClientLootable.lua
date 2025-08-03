@@ -27,12 +27,13 @@ local function getPrimaryPart(lootable: Tool | Model)
 end
 
 local function initClientLootable(lootable: Tool | Model): (ProximityPrompt, Highlight)
+    warn(`Running initClientLootable for {lootable}`)
     local changeReplicator: RemoteEvent? = rfn.GetChangeReplicatorRemote:InvokeServer(lootable)
     local onLootDataChanged: RBXScriptConnection?
 
-    local primaryPart = getPrimaryPart(lootable)
+    local ppContainer = if lootable.Name == "HumanoidRootPart" then lootable else getPrimaryPart(lootable) 
 
-    local hppManagerObject = StandardLootHPPManager.new(lootable, primaryPart, 
+    local hppManagerObject = StandardLootHPPManager.new(lootable, ppContainer, 
         function(pp: ProximityPrompt)  
             InventoryToggle.ChangeForm("LootingForm")
 
@@ -91,8 +92,8 @@ local function initClientLootable(lootable: Tool | Model): (ProximityPrompt, Hig
                 local hrp = char:WaitForChild("HumanoidRootPart")
 
                 References_Inventory_Client.RunService:BindToRenderStep("DistanceCheckFromLootable", 2000, function(delta: number)  
-                    if primaryPart and hrp then
-                        local distance = getDistanceBetween2Points(primaryPart.Position, hrp.Position)
+                    if ppContainer and hrp then
+                        local distance = getDistanceBetween2Points(ppContainer.Position, hrp.Position)
                         if distance > 5 then
                             References_Inventory_Client.RunService:UnbindFromRenderStep("DistanceCheckFromLootable")
                             InventoryToggle.ChangeForm("Closed")
@@ -102,7 +103,7 @@ local function initClientLootable(lootable: Tool | Model): (ProximityPrompt, Hig
                             resolve(promisesToCancel)
                         end
                     else
-                        warn(`PrimaryPart ({primaryPart}) or HumanoidRootPart ({hrp}) is nil, so distance check cannot be done.`)
+                        warn(`PrimaryPart ({ppContainer}) or HumanoidRootPart ({hrp}) is nil, so distance check cannot be done.`)
                     end
                 end)
 

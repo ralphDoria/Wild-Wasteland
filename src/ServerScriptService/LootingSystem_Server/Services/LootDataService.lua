@@ -10,6 +10,7 @@ local Types_LootSystem = require(InventoryScriptStorage.LootingSection.Component
 
 local LootingSystem_Server = game:GetService("ServerScriptService").RojoManaged_SSS.LootingSystem_Server
 local StandardLootable = require(LootingSystem_Server.Components.StandardLootable)
+local CorpseLootable = require(LootingSystem_Server.Components.CorpseLootable)
 
 local LootingSystem_Storage = ReplicatedStorage.LootingSystem_Storage
 
@@ -20,24 +21,32 @@ local rfn: {[string] : RemoteFunction} = {
     OverrideItemData = LootingSystem_Storage.Remotes.OverrideItemData
 }
 
+local remotes = {
+    SendClientCorpseFilledSlotsData = LootingSystem_Storage.Remotes.SendClientCorpseFilledSlotsData:: RemoteEvent
+}
+
 local LootDataService = {
     initialized = false
 }
 
-local function track_player_and_tag_them_with_corpse_tag_when_they_die(player: Player)
-    local char = player.Character 
+local function track_player_and_tag_them_with_corpse_tag_when_they_die(char: Model)
     if not char then
         return --end function here because CharacterAdded connection will handle it from here 
     end
     local humanoid: Humanoid = char:WaitForChild("Humanoid"):: Humanoid
     local hrp = char:WaitForChild("HumanoidRootPart")
     humanoid.Died:Once(function()  
+        -- wait for corpseFilledSlotsData to be sent over from the client
+        remotes.SendClientCorpseFilledSlotsData.OnServerEvent:Once(function(player: Player, corpseFilledSlotsData: Types_LootSystem.CorpseFilledSlotsData)
+            CorpseLootable.new(char, corpseFilledSlotsData)
+        end)
         hrp:AddTag(TAGS_LOOT.CORPSE_LOOTABLE)
     end)        
 end
 
 function LootDataService.init()
-    local connections = handleTaggedInstances(TAGS_LOOT.STANDARD_LOOTABLE, 
+    local connections = handleTaggedInstances(
+        TAGS_LOOT.STANDARD_LOOTABLE, 
         function(taggedInstance: Instance)
             local space: number
             if taggedInstance:HasTag("StorageWearable") then
@@ -56,10 +65,12 @@ function LootDataService.init()
     )
 
     for _, player in Players:GetPlayers() do
-        track_player_and_tag_them_with_corpse_tag_when_they_die(player)
+        track_player_and_tag_them_with_corpse_tag_when_they_die(player.Character)
     end
     Players.PlayerAdded:Connect(function(player: Player)  
-        track_player_and_tag_them_with_corpse_tag_when_they_die(player)
+        player.CharacterAdded:Connect(function(char: Model) 
+            track_player_and_tag_them_with_corpse_tag_when_they_die(char)
+        end)
     end)
 
     rfn.GetLootData.OnServerInvoke = function(player, lootableInstance: Model | Tool): Types_LootSystem.StandardFilledSlotsData
@@ -98,7 +109,7 @@ function LootDataService.init()
         local standardLootableObjects = StandardLootable.createdObjects
         while standardLootableObjects[lootableInstance] == nil do
             task.wait()
-            print(`Waiting for {Instance} to be initialized on the server`)
+            print(`Waiting for {lootableInstance} to be initialized on the server`)
         end
         return standardLootableObjects[lootableInstance].DataChangeReplicatorRemote
     end

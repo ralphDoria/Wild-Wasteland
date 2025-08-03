@@ -20,9 +20,9 @@ local ItemMovementTracker = require("./Components/Misc/ItemMovementTracker")
 local InventoryToggle = require(ScriptStorage.Components.InventoryToggle)
 local LootedTagReplicatedToClient: RemoteEvent = RS.LootingSystem_Storage.Remotes.LootedTagReplicatedToClient
 local character = References_Inventory.player.Character or References_Inventory.player.CharacterAdded:Wait()
-character:WaitForChild("Humanoid").Died:Connect(function()
-    error("TODO: Come back to this script to implement death procedures")
-end)
+-- character:WaitForChild("Humanoid").Died:Connect(function()
+--     error("TODO: Come back to this script to implement death procedures")
+-- end)
 
 local InventorySystem = {
 	Connections = {}

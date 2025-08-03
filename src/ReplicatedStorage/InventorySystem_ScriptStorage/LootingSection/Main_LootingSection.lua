@@ -14,10 +14,14 @@ local ScriptStorage = RS.RojoManaged_RS.InventorySystem_ScriptStorage
 local SlotRegistry = require(ScriptStorage.Components.Slot.SlotRegistry)
 local SlotGroupRegistry = require(ScriptStorage.Components.Slot.SlotGroupRegistry)
 local Slot = require(ScriptStorage.Components.Slot.Slot)
+local SlotGroup = require(ScriptStorage.Components.Slot.SlotGroup)
+local remotes: {[string]: RemoteEvent} = {
+    SendClientCorpseFilledSlotsData = References_Inventory_Client.LootingRemotes.SendClientCorpseFilledSlotsData:: RemoteEvent
+}
 
 local LootingSection = {}
 
-local function constructCorpseLootData(): Types_LootSystem.CorpseFilledSlotsData
+local function constructEmptyCorpseLootData(): Types_LootSystem.CorpseFilledSlotsData
     local filledSlotsData = {}
     for _, equipmentSlotNumber in Types_LootSystem.EnumEquipmentSlots do
 
@@ -46,58 +50,71 @@ function LootingSection.init()
         end
     )
 
-    local appendConnections = handleTaggedInstances(TAGS_LOOT.CORPSE_LOOTABLE, 
-        function(taggedInstance: Model | Tool) 
-            initClientLootable(taggedInstance)
-        end,
-        function(taggedInstance: Instance)  
-
-        end
-    )
-
-    for _, v in appendConnections do
-        table.insert(connections, v)
-    end
-
-    local function constructCorpserFilledSlotsDataAndDestroyInventory(): Types_LootSystem.CorpseFilledSlotsData
-        local corpseFilledSlotsData = {}
+    local function constructCorpseFilledSlotsDataAndDestroyInventory(): Types_LootSystem.CorpseFilledSlotsData
+        local corpseFilledSlotsData = constructEmptyCorpseLootData()
         local hotbar = References_Inventory_Client.Hotbar
-        local inventory = References_Inventory_Client.InventoryScrollingFrame
 
         corpseFilledSlotsData["0"] = {
            equipmentTool = nil,
            slotGroupData = {} 
         }:: Types_LootSystem.CorpseFilledSlotsData
-        carryBelt_slotGroupData = corpseFilledSlotsData["0"].slotGroupData
+        local carryBelt_slotGroupData = corpseFilledSlotsData["0"].slotGroupData
         for _, hotbarSlotInstance in hotbar:GetChildren() do
-           local hotbarSlotObject = SlotRegistry.instanceToObjectMap[hotbarSlotInstance]
-            carryBelt_slotGroupData[tostring(hotbarSlotObject.HotbarNumber)] = hotbarSlotObject.tool 
-            Slot.destroy(hotbarSlotObject)
+            local hotbarSlotObject = SlotRegistry.instanceToObjectMap[hotbarSlotInstance]
+            if hotbarSlotObject then
+                carryBelt_slotGroupData[tostring(hotbarSlotObject.HotbarNumber)] = hotbarSlotObject.tool 
+                Slot.destroy(hotbarSlotObject)
+            else
+                warn(`{hotbarSlotInstance} is not registered in slot registry`)
+            end
         end
 
         for equipmentCategory, equipmentSlotObject in SlotRegistry.wearableCategoryToObjectMap do
             local equipmentSlotAndHotbarData = corpseFilledSlotsData[tostring(equipmentSlotObject._itself.LayoutOrder)]
             local equipmentTool = equipmentSlotObject.tool
             equipmentSlotAndHotbarData.equipmentTool = equipmentTool
-            local associatedItemGroup: ObjectValue? = equipmentTool:FindFirstChild("AssociatedItemGroup")
-            equipmentSlotAndHotbarData.slotGroupData = SlotGroupRegistry[associatedItemGroup.Value]
+            local associatedItemGroup: ObjectValue? = if equipmentTool then equipmentTool:FindFirstChild("AssociatedItemGroup") else nil
+            if associatedItemGroup then
+                local slotGroupObject = SlotGroupRegistry.createdObjects[associatedItemGroup.Value]
+                local slotGroupData = {}
+                for _, slotObject in slotGroupObject.slotInstanceToObjectMap do
+                   slotGroupData[tostring(slotObject._itself.LayoutOrder)] = slotObject.tool 
+                end
+                equipmentSlotAndHotbarData.slotGroupData = slotGroupData
+                
+                SlotGroup.Destroy(slotGroupObject)
+            end
 
             Slot.destroy(equipmentSlotObject)
         end
-        for _, slotGroupInstance in inventory:GetChildren() do
-        
-        end
+
+       return corpseFilledSlotsData 
     end
 
-    table.insert(
-        connections,
-        Players.PlayerAdded:Connect(function(player: Player)  
-            local char = player.Character
-            if not char then
-                
-            end
-        end)
+    local function sendCorpseFilledSlotsData(character)
+        local hrp = character:WaitForChild("HumanoidRootPart")
+        while not hrp:HasTag(TAGS_LOOT.CORPSE_LOOTABLE) do
+            warn("Waiting for server to tag hrp w/ corpse lootable tag, signifying that event receiver is connected")
+            task.wait()
+        end
+        remotes.SendClientCorpseFilledSlotsData:FireServer(constructCorpseFilledSlotsDataAndDestroyInventory())
+    end
+
+    local appendConnections = handleTaggedInstances(
+        TAGS_LOOT.CORPSE_LOOTABLE, 
+        function(taggedInstance: Instance)  
+            -- taggedInstance should be the HumanoidRootPart of the character model, regardless of if it's a player or NPC
+            local character = taggedInstance.Parent:: Model
+            sendCorpseFilledSlotsData(character)
+            initClientLootable(taggedInstance:: Model)
+        end, 
+        function(taggedInstance: Instance)  
+        end
     )
+
+    for _, v in appendConnections do
+        table.insert(connections, v)
+    end
 end
 
 function LootingSection.ResizeGui()

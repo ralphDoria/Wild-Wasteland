@@ -47,6 +47,7 @@ References_Inventory_Client.LootingScrollingFrame = References_Inventory_Client.
 References_Inventory_Client.LootingEquipmentSlots = References_Inventory_Client._frame:WaitForChild("LootingEquipmentSlots"):: Frame
 References_Inventory_Client.LootableInstanceObjectValue = References_Inventory_Client.LootingSection:WaitForChild("LootableInstanceObjectValue"):: ObjectValue
 References_Inventory_Client.LootItemsHolding = References_Inventory_Client.ReplicatedStorage.LootingSystem_Storage.LootItemsHolding
+References_Inventory_Client.LootingRemotes = References_Inventory_Client.ReplicatedStorage.LootingSystem_Storage.Remotes
 
 -- Templates
 References_Inventory_Client.Templates = References_Inventory_Client.InventoryScreenGui:WaitForChild("Templates")
