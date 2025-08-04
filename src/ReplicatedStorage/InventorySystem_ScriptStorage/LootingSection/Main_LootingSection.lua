@@ -113,7 +113,10 @@ function LootingSection.init()
         function(taggedInstance: Instance)  
             -- taggedInstance should be the HumanoidRootPart of the character model, regardless of if it's a player or NPC
             local character = taggedInstance.Parent:: Model
-            sendCorpseFilledSlotsData(character)
+            local player: Player? = Players:GetPlayerFromCharacter(character)
+            if player == Players.LocalPlayer then
+                sendCorpseFilledSlotsData(character)
+            end
             initClientLootable(taggedInstance:: Model)
         end, 
         function(taggedInstance: Instance)  

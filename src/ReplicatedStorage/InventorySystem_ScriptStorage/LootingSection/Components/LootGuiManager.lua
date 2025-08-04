@@ -43,7 +43,7 @@ local function initLootingEquipmentSlots(): EquipmentSlotsTbl
     local lootingEquipmentSlots = {}:: EquipmentSlotsTbl
     for key, v in EquipmentInitData do
         local slot: Slot.SlotObject
-        slot = Slot.new("Wearable")
+        slot = Slot.new("Wearable", key:: any)
         slot._itself.AnchorPoint = Vector2.new(0.5, 0.5)
         slot._itself.ZIndex = 2
         slot._itself.LayoutOrder = v.LayoutOrder
@@ -74,19 +74,19 @@ function LootGuiManager.RenderData(lootable: Model | Tool, filledSlotsData: any)
             local equipmentSlotName: string? = Types_LootSystem.getEquipmentSlotName(tonumber(string_equipmentSlotNumber):: number)
             if tonumber(string_equipmentSlotNumber) ~= 0 then
                 local lootingEquipmentSlot: Slot.SlotObject? = if equipmentSlotName then lootingEquipmentSlots[equipmentSlotName] else nil
-
-                if lootingEquipmentSlot then
-                    local equipmentTool: Tool? = equipmentToolAndSlotGroupData.equipmentTool
-                    if equipmentTool then -- If an equipmentTool exists, then the lootingEquipmentSlot is supposed to be filled
-                        Slot.FillSlot(lootingEquipmentSlot, equipmentTool)
-
+                local equipmentTool: Tool? = equipmentToolAndSlotGroupData.equipmentTool
+                
+                if lootingEquipmentSlot and equipmentTool then
+                    Slot.FillSlot(lootingEquipmentSlot, equipmentTool)
+                    if equipmentTool:HasTag("StandardLootable") then 
                         local slotGroupData = equipmentToolAndSlotGroupData.slotGroupData
+                        print(slotGroupData)
                         local slotGroupObject = SlotGroup.new(equipmentTool.Name, equipmentTool:GetAttribute("Space"):: number, slotGroupData, References_Inventory_Client.LootingScrollingFrame)
                         slotGroupObject._itself.LayoutOrder = tonumber(string_equipmentSlotNumber):: number
                         currentlyRendering.slotGroupObjects[tonumber(string_equipmentSlotNumber):: number] = slotGroupObject
                     end
                 else
-                    warn(`{string_equipmentSlotNumber} is not a valid equipment slot number`)
+                    warn(`{string_equipmentSlotNumber}'s slot could not be found or is empty`)
                 end
             else
                 local slotGroupData = equipmentToolAndSlotGroupData.slotGroupData
