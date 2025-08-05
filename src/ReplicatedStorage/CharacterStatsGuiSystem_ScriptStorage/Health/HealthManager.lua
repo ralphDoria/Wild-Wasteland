@@ -118,7 +118,7 @@ function Health.initialize()
 
     -- On change
     References.humanoid.HealthChanged:Connect(function(health: number)
-        math.clamp(health, 0, math.huge)
+        health = math.clamp(health, 0, math.huge)
         if savedHealthValue <= 0 then return end
 
         local healthProportion: number = math.round((health/References.humanoid.MaxHealth) * 100)/100
