@@ -16,20 +16,18 @@ function SoundUtility.tweenSoundSpeed(sound: Sound, value: number, transitionTim
 end
 
 function SoundUtility.tweenSoundVolume(sound: Sound, newVolume: number, transitionTime: number)
-    if newVolume == sound.Volume then  return end
-
-    if not sound.IsPlaying and newVolume ~= 0 then
-        -- print("playing", sound.Name)
+    if not sound.IsPlaying then
+        print("playing", sound.Name)
         sound:Play()
     end
 
     local soundTween = TweenService:Create(sound, TweenInfo.new(transitionTime), {Volume = newVolume})
 
-    if newVolume == 0 then
-        soundTween.Completed:Once(function(a0: Enum.PlaybackState) 
+    soundTween.Completed:Once(function(a0: Enum.PlaybackState) 
+        if newVolume == 0 then
             sound:Stop()
-        end) 
-    end
+        end
+    end) 
 
     soundTween:Play()
 end

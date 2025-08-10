@@ -18,7 +18,7 @@
     "ReplicatedFirst": {
       "$className": "ReplicatedFirst",
 
-      "Rojo Managed_RF": {
+      "RojoManaged_RF": {
         "$className": "Folder",
         "$path": "src/ReplicatedFirst"
       }

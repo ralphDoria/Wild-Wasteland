@@ -1,7 +1,8 @@
 local RS = game:GetService("ReplicatedStorage")
 local CharacterStatsGuiSystem_Storage = RS:FindFirstChild("CharacterStatsGuiSystem_Storage", true)
 local remotes: {[string]: RemoteEvent} = {
-    hungerThirstDamage = CharacterStatsGuiSystem_Storage:FindFirstChild("hungerThirstDamage", true)
+    hungerThirstDamage = CharacterStatsGuiSystem_Storage:FindFirstChild("hungerThirstDamage", true),
+    RespawnPlayerCharacter = CharacterStatsGuiSystem_Storage:FindFirstChild("RespawnPlayerCharacter", true)
 }
 
 local dmgThreads: {[string]: thread} = {}
@@ -33,4 +34,8 @@ remotes.hungerThirstDamage.OnServerEvent:Connect(function(player: Player, addToT
     else
         affectedHumanoids[player.Name] = nil
     end
+end)
+
+remotes.RespawnPlayerCharacter.OnServerEvent:Connect(function(player: Player)  
+    player:LoadCharacter()
 end)

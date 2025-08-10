@@ -1,0 +1,3 @@
+local RightPanelManager = {}
+
+return RightPanelManager

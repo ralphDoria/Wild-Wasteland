@@ -1,6 +1,6 @@
 local References_Inventory_Client = {}
 
--- General Player References
+-- General Player References and Services
 References_Inventory_Client.player = game:GetService("Players").LocalPlayer
 References_Inventory_Client.PlayerGui = References_Inventory_Client.player.PlayerGui
 References_Inventory_Client.ReplicatedStorage = game:GetService("ReplicatedStorage")

@@ -3,7 +3,7 @@ local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventoryS
 
 local ScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
 local Hover = require(ScriptStorage.Components.Slot.Hover)
-local ToggleOVerrideCamModeCursorLock = require(ScriptStorage.Components.Misc.ToggleOverrideCamModeCursorLock)
+local ToggleOVerrideCamModeCursorLock = require(ReplicatedStorage.RojoManaged_RS.Utility.UI.ToggleOverrideCamModeCursorLock)
 
 local touchBackpackSlotConnection: RBXScriptConnection?
 local InventoryToggle = {}

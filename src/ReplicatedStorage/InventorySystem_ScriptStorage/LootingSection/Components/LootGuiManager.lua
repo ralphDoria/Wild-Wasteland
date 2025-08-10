@@ -1,14 +1,14 @@
 --!strict
-local RS = game:GetService("ReplicatedStorage")
-local References_Inventory_Client = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local References_Inventory_Client = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
 local UIS = References_Inventory_Client.UserInputService
 
 local InventoryScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
 local SlotGroup = require(InventoryScriptStorage.Components.Slot.SlotGroup)
 local Slot = require(InventoryScriptStorage.Components.Slot.Slot)
-local Types_LootSystem = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.LootingSection.Components.Types_LootSystem)
+local Types_LootSystem = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.LootingSection.Components.Types_LootSystem)
 local EquipmentInitData = require(InventoryScriptStorage.CharacterSection.Components.EquipmentInitData)
-local ToggleOVerrideCamModeCursorLock = require(InventoryScriptStorage.Components.Misc.ToggleOverrideCamModeCursorLock)
+local ToggleOVerrideCamModeCursorLock = require(ReplicatedStorage.RojoManaged_RS.Utility.UI.ToggleOverrideCamModeCursorLock)
 
 local LootGuiManager = {}
 
