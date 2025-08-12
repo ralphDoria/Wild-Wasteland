@@ -31,7 +31,6 @@ local InventorySystem = {
 local function preInitSetup()
 	References_Inventory.InventoryScreenGui.Enabled = true
 	References_Inventory.Hotbar.Visible = true
-	References_Inventory.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) --disables Roblox's default backpack
 end
 
 function InventorySystem.init()
@@ -58,21 +57,9 @@ function InventorySystem.init()
 		function(tool) --onEquipping
 		end,
 		function(tool) --onUnequipped
-			if not tool:GetAttribute("IsWorn") then
-				-- do what you need to do
-			else
-				-- print("doing nothing because this is a worn slot")
-			end
+			--@Notice: a bit inconsistent how I use the function below for emptying slots but not these two middle functions for anything. Might have to change later
 		end,
 		function(tool) --onDropped
-			--empty slot
-
-			-- if tool:HasTag("AddingToLoot") then
-			-- 	warn("has loot tag, not filling slot here")
-			-- 	LootedTagReplicatedToClient:FireServer(tool)
-			-- 	return
-			-- end
-
 			Slot.EmptySlot(SlotRegistry.toolToObjectMap[tool])
 		end
 	)

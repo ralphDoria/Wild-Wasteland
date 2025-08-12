@@ -4,7 +4,7 @@ local Health = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.H
 local Hunger = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Hunger.HungerManager) 
 local Thrist = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Thirst.ThirstManager) 
 
-local function initialize()
+return function()
 	References.update()
 	Health.initialize()
 	Hunger.initialize()
@@ -44,7 +44,3 @@ local function initialize()
 	References.CharacterStatsGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePositionAndScale)
 	References.InputCategorizer.lastInputCategoryChanged:Connect(updatePositionAndScale)
 end
-
-initialize()
-
-

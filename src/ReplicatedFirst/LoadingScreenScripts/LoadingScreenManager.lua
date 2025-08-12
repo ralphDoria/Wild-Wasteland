@@ -24,12 +24,13 @@ local RadiationSymbol = _folder:WaitForChild("LoadingIcon"):WaitForChild("Radiat
 local Percentage = _folder:WaitForChild("Percentage"):: TextLabel
 local LoadingDisplay = _folder:WaitForChild("LoadingDisplay"):: TextLabel
 local Timer = _folder:WaitForChild("Timer"):: TextLabel
-
-local Components = ReplicatedFirst:WaitForChild("RojoManaged_RF"):WaitForChild("LoadingScreenScripts"):WaitForChild("Components")
 local AssetsToPreload = {
     RadiationSymbol,
     Sound
 }
+
+-- Utility
+local Components = ReplicatedFirst:WaitForChild("RojoManaged_RF"):WaitForChild("LoadingScreenScripts"):WaitForChild("Components")
 local Messages = require("./Components/LoadingScreenMessages")
 local TextManager = require("./Components/TextManager")
 TextManager.init(Percentage, Timer, MessageTxtLbl)
@@ -130,7 +131,6 @@ function LoadingScreen.transitionOut()
     local fadeOutTween = TweenService:Create(_canvasGroup, TweenInfo.new(1), {GroupTransparency = 1})
     fadeOutTween:Play()
     fadeOutTween.Completed:Wait()
-    GuiService.TouchControlsEnabled = true
     StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
     Sound:Stop()
 end

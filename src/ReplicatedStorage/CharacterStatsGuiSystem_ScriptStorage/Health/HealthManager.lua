@@ -140,12 +140,15 @@ end
 
 function Health.initialize()
 
+    local trove = References.Trove.new()
+
     -- Initial
     local savedHealthValue: number = References.humanoid.Health
     References.StatGuiManager.SetStatValue(statGuiObject, References.humanoid.Health/References.humanoid.MaxHealth)
 
     -- On change
-    References.humanoid.HealthChanged:Connect(function(health: number)
+   
+    trove:Connect(References.humanoid.HealthChanged, function(health: number)
         health = math.clamp(health, 0, math.huge)
         if savedHealthValue <= 0 then return end
 
@@ -161,13 +164,13 @@ function Health.initialize()
         References.StatGuiManager.SetStatValue(statGuiObject, healthProportion)
     end)
 
-    table.insert(
-        connections,
-        sounds.heartbeat:GetPropertyChangedSignal("Playing"):Connect(function(...: any)  
-            toggleGuiHeartbeatSoundSync(sounds.heartbeat.IsPlaying)
-        end)
-    )
+    trove:Connect(sounds.heartbeat:GetPropertyChangedSignal("Playing"), function()  
+        toggleGuiHeartbeatSoundSync(sounds.heartbeat.IsPlaying)
+    end)
 
+    References.humanoid.Died:Once(function()  
+        trove:Destroy()
+    end)
 end
 
 return Health

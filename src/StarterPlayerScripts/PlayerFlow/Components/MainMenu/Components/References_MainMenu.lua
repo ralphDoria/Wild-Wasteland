@@ -1,9 +1,9 @@
 local References_MainMenu = {}
 
 -- Services and Player references
-References_MainMenu.ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 References_MainMenu.TweenService = game:GetService("TweenService")
-References_MainMenu.MainMenu = References_MainMenu.ReplicatedStorage.MainMenu:: ScreenGui
+References_MainMenu.MainMenu = ReplicatedStorage.MainMenu:: ScreenGui 
 References_MainMenu.player = game:GetService("Players").LocalPlayer
 References_MainMenu.playerGui = References_MainMenu.player.PlayerGui
 
@@ -58,17 +58,18 @@ References_MainMenu.soundsTbl = {
 }
 
 -- Utility Modules
-References_MainMenu.utility = References_MainMenu.ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility")
-References_MainMenu.SoundUtil = require(References_MainMenu.utility:WaitForChild("SoundUtil"))
-References_MainMenu.playSound = require(References_MainMenu.utility:WaitForChild("PlaySoundUtil"))
-References_MainMenu.CameraCutsceneManager = require(References_MainMenu.ReplicatedStorage.RojoManaged_RS.CameraCutsceneManager)
+local utility = ReplicatedStorage:WaitForChild("RojoManaged_RS"):WaitForChild("Utility")
+References_MainMenu.SoundUtil = require(utility:WaitForChild("SoundUtil"))
+References_MainMenu.playSound = require(utility:WaitForChild("PlaySoundUtil"))
+References_MainMenu.CameraCutsceneManager = require(ReplicatedStorage.RojoManaged_RS.CameraCutsceneManager)
 References_MainMenu.MainMenuCutsceneFolder = workspace.MainMenuCameraPositions
 References_MainMenu.mainMenuCutscenes = {
 	Scene1 = References_MainMenu.MainMenuCutsceneFolder:WaitForChild("Scene1")
 }
 -- References_MainMenu.reference_TopBarPlus = ReplicatedStorage.Packages:FindFirstChild("TopBarPlus")
 -- References_MainMenu.Icon = require(reference_TopBarPlus:FindFirstChild("Icon"):: any)
-References_MainMenu.getHardwareSafeAreaInsets = require(References_MainMenu.ReplicatedStorage.RojoManaged_RS.Utility.UI.getHardwareSafeAreaInsets)
-References_MainMenu.SoundGroupManager = require(References_MainMenu.ReplicatedStorage.RojoManaged_RS.Utility.Sound.SoundGroupManager)
+References_MainMenu.getHardwareSafeAreaInsets = require(ReplicatedStorage.RojoManaged_RS.Utility.UI.getHardwareSafeAreaInsets)
+References_MainMenu.SoundGroupManager = require(ReplicatedStorage.RojoManaged_RS.Utility.Sound.SoundGroupManager)
+References_MainMenu.TopBarPlusIcon = require(ReplicatedStorage.Packages.Icon)
 
 return References_MainMenu

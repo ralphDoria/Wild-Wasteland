@@ -4,7 +4,8 @@ local References_Inventory_Client = {}
 References_Inventory_Client.player = game:GetService("Players").LocalPlayer
 References_Inventory_Client.PlayerGui = References_Inventory_Client.player.PlayerGui
 References_Inventory_Client.ReplicatedStorage = game:GetService("ReplicatedStorage")
-References_Inventory_Client.StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+References_Inventory_Client.StarterGui = ReplicatedStorage
 References_Inventory_Client.ContextActionService = game:getService("ContextActionService")
 References_Inventory_Client.UserInputService = game:GetService("UserInputService")
 References_Inventory_Client.RunService = game:GetService("RunService")
@@ -12,7 +13,8 @@ References_Inventory_Client.TweenService = game:GetService("TweenService")
 References_Inventory_Client.GuiService = game:GetService("GuiService")
 
 -- Utility
-References_Inventory_Client.PlaySound = require(References_Inventory_Client.ReplicatedStorage.RojoManaged_RS.Utility.PlaySoundUtil)
+References_Inventory_Client.PlaySound = require(ReplicatedStorage.RojoManaged_RS.Utility.PlaySoundUtil)
+References_Inventory_Client.Trove = require(ReplicatedStorage.Packages.Trove)
 
 -- Top Level Inventory Refernces
 References_Inventory_Client.Storage = References_Inventory_Client.ReplicatedStorage.InventorySystem_Storage

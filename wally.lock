@@ -113,13 +113,23 @@ version = "1.1.7"
 dependencies = []
 
 [[package]]
+name = "qvgk/zoneplus"
+version = "3.2.1"
+dependencies = []
+
+[[package]]
 name = "ralph-doria/project-rf-demo"
 version = "0.1.0"
-dependencies = [["CameraShaker", "brittonfischer/camerashaker@0.1.0"], ["GoodSignal", "stravant/goodsignal@0.2.1"], ["Promise", "evaera/promise@4.0.0"], ["RaycastHitbox", "ruizukun-dev/raycasthitbox@1.0.2"], ["RobloxStateMachine", "prooheckcp/robloxstatemachine@1.1.7"], ["Spring", "brittonfischer/spring@0.1.0"], ["TopBarPlus", "legitatx/topbarplus@3.0.5"], ["Trove", "sleitnick/trove@1.5.0"], ["react", "jsdotlua/react@17.2.1"], ["react-roblox", "jsdotlua/react-roblox@17.2.1"]]
+dependencies = [["CameraShaker", "brittonfischer/camerashaker@0.1.0"], ["GoodSignal", "stravant/goodsignal@0.2.1"], ["Icon", "legitatx/topbarplus@3.0.5"], ["Observers", "sleitnick/observers@0.3.4"], ["Promise", "evaera/promise@4.0.0"], ["RaycastHitbox", "ruizukun-dev/raycasthitbox@1.0.2"], ["RobloxStateMachine", "prooheckcp/robloxstatemachine@1.1.7"], ["Spring", "brittonfischer/spring@0.1.0"], ["Trove", "sleitnick/trove@1.5.0"], ["ZonePlus", "qvgk/zoneplus@3.2.1"], ["react", "jsdotlua/react@17.2.1"], ["react-roblox", "jsdotlua/react-roblox@17.2.1"]]
 
 [[package]]
 name = "ruizukun-dev/raycasthitbox"
 version = "1.0.2"
+dependencies = []
+
+[[package]]
+name = "sleitnick/observers"
+version = "0.3.4"
 dependencies = []
 
 [[package]]
