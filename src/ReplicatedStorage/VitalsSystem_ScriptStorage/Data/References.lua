@@ -18,7 +18,7 @@ local References = {
 function References.update(character: Model)
     warn("Updating Vitals System references")
     References.character = character
-    References.humanoid = References.character.Humanoid
+    References.humanoid = character:WaitForChild("Humanoid")
     References.VitalsGui = References.playerGui:WaitForChild("VitalsGui")
 end
 

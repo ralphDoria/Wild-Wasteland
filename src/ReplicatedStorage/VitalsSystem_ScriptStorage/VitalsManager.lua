@@ -1,13 +1,16 @@
+--!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VitalsSystem_ScriptStorage = ReplicatedStorage.RojoManaged_RS.VitalsSystem_ScriptStorage
 local References = require(VitalsSystem_ScriptStorage.Data.References)
 local HealthManager = require(VitalsSystem_ScriptStorage.Health.HealthManager)
--- local Hunger = require(VitalsSystem_ScriptStorage.Hunger.HungerManager) 
--- local Thrist = require(VitalsSystem_ScriptStorage.Thirst.ThirstManager) 
+local HungerThirstManager = require(VitalsSystem_ScriptStorage.HungerThirst.HungerThirstManager) 
 local Trove = require(ReplicatedStorage.Packages.Trove)
 
 export type VitalsObj = {
 	healthObject: HealthManager.HealthObject,
+	-- hungerObject: Hunger.hungerObject,
+	thirstObject: HungerThirstManager.hungerThirstObject,
+	hungerObject: HungerThirstManager.hungerThirstObject,
 	trove: any
 }
 
@@ -20,10 +23,10 @@ function VitalsManager.new(character: Model): VitalsObj
 	local trove = Trove.new()
 	local self: VitalsObj = {
 		healthObject = HealthManager.new(),
+		hungerObject = HungerThirstManager.new("Hunger"),
+		thirstObject = HungerThirstManager.new("Thirst"),
 		trove = trove
 	}
-	-- Hunger.initialize()
-	-- Thrist.initialize()
 
 	local function updatePositionAndScale()
 		local touchControlsEnabled = References.playerGui:FindFirstChild("TouchGui") ~= nil
@@ -66,6 +69,8 @@ end
 
 function VitalsManager.Destroy(vitalsObj: VitalsObj)
 	HealthManager.Destroy(vitalsObj.healthObject)	
+	HungerThirstManager.Destroy(vitalsObj.thirstObject)
+	HungerThirstManager.Destroy(vitalsObj.hungerObject)
 	vitalsObj.trove:Destroy()
 end
 

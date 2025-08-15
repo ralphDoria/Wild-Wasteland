@@ -4,7 +4,7 @@ local RunService = game:GetService("RunService")
 
 --important stuff for functionality
 task.wait(1) --TODO find a more proper way of doing this, but for now will yield so that VitalsSystem can initialize first
-local statGui: CanvasGroup = References.VitalsGui.Frame.stamina
+local statGui: CanvasGroup = References.VitalsGui.Frame.Stamina
 local statGuiObject = References.StatGuiManager.new(statGui, "Stamina", Color3.fromRGB(0, 150, 255))
 local ActionManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ActionManagerSystem.ActionManager)
 local MAX_STAMINA = 100

@@ -24,11 +24,6 @@ local proportionMarkers = {
     dead = 0
 }
 
-export type HealthObject = {
-    statGuiObject: any,
-    trove: any
-}
-
 local baseHeartbeatSpeed = 1
 local maxHeartbeatSpeed = 2
 
@@ -95,11 +90,16 @@ local function update_earRinging_and_reverb(healthProportion: number)
     end
 end
 
+export type HealthObject = {
+    statGuiObject: any,
+    trove: any
+}
+
 local Health = {}
 
 function Health.new(): HealthObject
     local trove = References.Trove.new()
-    local statGuiObject = StatGuiManager.new(References.VitalsGui:WaitForChild("Frame"):WaitForChild("health"), "Health", Color3.fromRGB(255, 0, 0))
+    local statGuiObject = StatGuiManager.new(References.VitalsGui:WaitForChild("Frame"):WaitForChild("Health"), "Health", Color3.fromRGB(255, 0, 0))
 
     local self: HealthObject = {
         trove = trove,
