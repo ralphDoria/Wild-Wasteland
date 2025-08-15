@@ -24,6 +24,10 @@ local character = References_Inventory.player.Character or References_Inventory.
 --     error("TODO: Come back to this script to implement death procedures")
 -- end)
 
+export type InventorySystemObject = {
+		
+}
+
 local InventorySystem = {
 	Connections = {}
 }
@@ -109,7 +113,5 @@ function InventorySystem.ResizeGui()
 		References_Inventory.TouchBackpackSlot.Size = UDim2.fromOffset(fifthSection, fifthSection)
 	end
 end
-
-
 
 return InventorySystem

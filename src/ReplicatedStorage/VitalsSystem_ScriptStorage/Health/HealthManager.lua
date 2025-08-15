@@ -139,7 +139,6 @@ local function toggleGuiHeartbeatSoundSync(toggle: boolean)
 end
 
 function Health.initialize()
-
     local trove = References.Trove.new()
 
     -- Initial

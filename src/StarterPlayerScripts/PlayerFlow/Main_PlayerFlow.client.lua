@@ -6,14 +6,6 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player.PlayerGui
 
--- Utility
-local Promise = require(ReplicatedStorage.Packages.Promise)
-
--- Character Dependent Systems
-local InventorySystem = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Main_InventorySystem)
-local initCharacterStatsManager = require(ReplicatedStorage.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.initCharacterStatsManager)
-local SpawnAndDeathManager = require(ReplicatedStorage.RojoManaged_RS.SpawnAndDeathSystem_ScriptStorage.SpawnAndDeathManager)
-
 local LoadingScreenManager = require(ReplicatedFirst.RojoManaged_RF.LoadingScreenScripts.LoadingScreenManager)
 local MainMenuManager = require("./Components/MainMenu/MainMenuManager")
 -- technically, if LocalScripts not parented to ReplicatedFirst always run after the game has loaded, then it should be safe to not use WaitForChild, but just to be doubly safe
@@ -23,41 +15,12 @@ if not LoadingScreen:GetAttribute("PreloadingFinished") then
     LoadingScreen:GetAttributeChangedSignal("PreloadingFinished"):Wait()
 end
 
---*****Initialize character dependent systems
-local function initializeCharacterDependentSystems(char: Model)
-    char:SetAttribute("Initialized", false)
-
-    -- TODO: MAKE SURE ALL THESE SYSTEMS CLEAN UP AFTER THEMSELVES WHEN THE CHARACTER DIES
-    warn("INITIALIZING CHARACTER DEPENDENT SYSTEMS")
-    local humanoid = char:WaitForChild("Humanoid")
-    humanoid.Died:Once(function()
-        --init death screen
-    end)
-    Promise.promisify(InventorySystem.init)()
-        :catch(function(err)
-            warn(tostring(err))
-        end)
-    Promise.promisify(initCharacterStatsManager)()
-        :catch(function(err)
-            warn(tostring(err))
-        end)
-    -- ActionManager
-    -- Character Movement
-
-    char:SetAttribute("Initialized", true)
-end
-local character: Model? = player.Character
-if character then
-    initializeCharacterDependentSystems(character)    
-end
-player.CharacterAdded:Connect(function(thisCharacter: Model)  
-    initializeCharacterDependentSystems(thisCharacter)    
-end)
+-- DURING TITLE SCREEN, CHARACTER AND ALL IT'S DEPENDENT SYSTEMS WILL BE INITIALIZING IN THE BACKGROUND
 
 local openingTitleScreenPromise
 LoadingScreenManager.transitionOut()
 MainMenuManager.init(
-    function()  
+    function() -- onPlayButtonClicked 
         GuiService.TouchControlsEnabled = true
         player.CameraMode = Enum.CameraMode.LockFirstPerson
         task.defer(function()
@@ -70,7 +33,7 @@ MainMenuManager.init(
             warn("openingTitleScreenPromise is nil")
         end
     end,
-    function()  
+    function() -- onTitleScreenFadingOut 
     end
 )
 

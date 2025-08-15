@@ -1,10 +1,19 @@
 local RS = game:GetService("ReplicatedStorage")
-local References = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Data.References)
-local Health = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Health.HealthManager)
-local Hunger = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Hunger.HungerManager) 
-local Thrist = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Thirst.ThirstManager) 
+local VitalsSystem_ScriptStorage = RS.RojoManaged_RS.VitalsSystem_ScriptStorage
+local References = require(VitalsSystem_ScriptStorage.Data.References)
+local Health = require(VitalsSystem_ScriptStorage.Health.HealthManager)
+local Hunger = require(VitalsSystem_ScriptStorage.Hunger.HungerManager) 
+local Thrist = require(VitalsSystem_ScriptStorage.Thirst.ThirstManager) 
 
-return function()
+export type VitalsObj = {
+
+}
+
+local VitalsManager = {}
+
+function VitalsManager.new(character: Model)
+	References.CharacterStatsGui.Enabled = true
+
 	References.update()
 	Health.initialize()
 	Hunger.initialize()
@@ -44,3 +53,9 @@ return function()
 	References.CharacterStatsGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePositionAndScale)
 	References.InputCategorizer.lastInputCategoryChanged:Connect(updatePositionAndScale)
 end
+
+function VitalsManager.Destroy(vitalsObj: VitalsObj)
+
+end
+
+return VitalsManager

@@ -23,8 +23,6 @@ end;
 
 -- Main
 
-local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
-
 local function updateCameraSway(deltaTime)
     local magnitude = 4
 

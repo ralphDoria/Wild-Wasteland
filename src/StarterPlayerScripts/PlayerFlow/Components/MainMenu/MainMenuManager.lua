@@ -1,4 +1,4 @@
-local ButtonsPanelManager = require("./Components/ButtonsPanelManaegr")
+local ButtonsPanelManager = require("./Components/ButtonsPanelManager")
 local RightPanelManager = require("./Components/RightPanelManager")
 local References_MainMenu = require("./Components/References_MainMenu")
 local Promise = require(game:GetService("ReplicatedStorage").Packages.Promise)
