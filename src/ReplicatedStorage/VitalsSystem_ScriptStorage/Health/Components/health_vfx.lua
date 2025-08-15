@@ -3,7 +3,7 @@ local dyingColorCorrection: ColorCorrectionEffect = game:GetService("Lighting"):
 
 local health_vfx = {}
 
-function health_vfx.tweenDyingColorCorrectionTo(value: number, transitionTime: number)
+function health_vfx.tweenSaturation(value: number, transitionTime: number)
     if value == dyingColorCorrection.Saturation then return end
 
     if dyingColorCorrection.Saturation == 0 then

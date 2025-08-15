@@ -1,5 +1,7 @@
-local CircularProgressBarManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.Utility.CircularProgressBarManager)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CircularProgressBarManager = require(ReplicatedStorage.RojoManaged_RS.Utility.CircularProgressBarManager)
 local TweenService = game:GetService("TweenService")
+local Trove = require(ReplicatedStorage.Packages.Trove)
 
 export type StatGui = {
     statName: string,
@@ -8,10 +10,9 @@ export type StatGui = {
     progress: NumberValue,
     textLabel: TextLabel,
     color: Color3,
-    percentageChangeEffect: thread?
+    percentageChangeEffect: thread?,
+    connections: {RBXScriptConnection},
 }
-
-local connections: {RBXScriptConnection} = {}
 
 local StatGuiManager = {}
 
@@ -19,10 +20,6 @@ function StatGuiManager.new(StatGui, statName: string, color: Color3)
     local progressBar = StatGui.ProgressBar
     local progress: NumberValue = progressBar.Progress
     local textLabel: TextLabel = StatGui.TextLabel
-    table.insert(
-        connections,
-        CircularProgressBarManager.InitializeProgressBar(progressBar)
-    )
 
     local self: StatGui = {
         statName = statName,
@@ -31,8 +28,14 @@ function StatGuiManager.new(StatGui, statName: string, color: Color3)
         progress = progress,
         textLabel = textLabel,
         color = color,
-        percentageChangeEffect = nil
+        percentageChangeEffect = nil,
+        connections = {}
     }
+
+    table.insert(
+        self.connections,
+        CircularProgressBarManager.InitializeProgressBar(progressBar)
+    )
 
     return self
 end
@@ -76,6 +79,14 @@ end
 
 function StatGuiManager.getValue(self: StatGui): number
     return self.progress.Value
+end
+
+function StatGuiManager.Destroy(self: StatGui)
+    for _, v in self.connections do
+        v:Disconnect()
+    end
+    table.clear(self)
+    self = nil:: any
 end
 
 return StatGuiManager

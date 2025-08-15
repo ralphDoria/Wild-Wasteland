@@ -1,8 +1,8 @@
+--!strict
 local References = require("../Data/References")
 
 local TweenService = game:GetService("TweenService")
-local statGui: CanvasGroup = References.CharacterStatsGui.Frame.health
-local statGuiObject = References.StatGuiManager.new(statGui, "Health", Color3.fromRGB(255, 0, 0))
+local StatGuiManager = References.StatGuiManager
 local RunService = game:GetService("RunService")
 local SoundUtility = require("../SharedComponents/SoundUtility")
 local health_vfx = require("./Components/health_vfx")
@@ -18,21 +18,22 @@ local effectsOverlay = References.playerGui:WaitForChild("EffectsOverlay")
 effectsOverlay.Enabled = true
 local bloodUi: CanvasGroup = effectsOverlay.Blood
 
-local connections = {}
-
-
 local proportionMarkers = {
     startHeartbeat = 0.5, -- also when color correction starts
     startEarRinging = 0.2, -- also when reverb starts
     dead = 0
 }
 
+export type HealthObject = {
+    statGuiObject: any,
+    trove: any
+}
+
 local baseHeartbeatSpeed = 1
 local maxHeartbeatSpeed = 2
 
-local initialHealthProportion = References.humanoid.Health/References.humanoid.MaxHealth
-local isAboveStartHeartbeat = initialHealthProportion > proportionMarkers.startHeartbeat
-local isAboveStartEarRinging = initialHealthProportion > proportionMarkers.startEarRinging
+local isAboveStartHeartbeat: boolean
+local isAboveStartEarRinging: boolean
 
 local function update_heartbeat_saturation_gameVolume(healthProportion: number)
     if healthProportion > proportionMarkers.startHeartbeat then
@@ -42,7 +43,7 @@ local function update_heartbeat_saturation_gameVolume(healthProportion: number)
             SoundUtility.tweenSoundSpeed(sounds.heartbeat, baseHeartbeatSpeed, 1)
             SoundUtility.tweenSoundVolume(sounds.heartbeat, 0, 0.5)
             local GET_FROM_PLAYERS_CONFIG_SETTINGS_LATER_WHEN_U_CREATE_IT = 1 -- TODO
-            health_vfx.tweenDyingColorCorrectionTo(0, 0.5)
+            health_vfx.tweenSaturation(0, 0.5)
             health_sfx.tweenGameAudioVolumeTo(GET_FROM_PLAYERS_CONFIG_SETTINGS_LATER_WHEN_U_CREATE_IT, 0.5)
         end
     elseif healthProportion > proportionMarkers.dead then
@@ -56,16 +57,18 @@ local function update_heartbeat_saturation_gameVolume(healthProportion: number)
         SoundUtility.tweenSoundVolume(sounds.heartbeat, 1, 0.5)
         local saturationValue = math.clamp(math.map(healthProportion, proportionMarkers.startHeartbeat, proportionMarkers.dead, 0, -1), -1, 0)
         local gameVolumeValue = math.clamp(math.map(healthProportion, proportionMarkers.startHeartbeat, proportionMarkers.dead, 1, 0.2), 0.2, 1) 
-        health_vfx.tweenDyingColorCorrectionTo(saturationValue, 0.5)
+        health_vfx.tweenSaturation(saturationValue, 0.5)
         health_sfx.tweenGameAudioVolumeTo(gameVolumeValue, 0.5)
     elseif healthProportion <= proportionMarkers.dead then
         -- Heartbeat weakens and gradually comes to a stop
         warn(`{healthProportion}: heartbeat slowly slows to a stop`)
         local tween = SoundUtility.tweenSoundSpeed(sounds.heartbeat, 0.3, 3)
-        tween.Completed:Once(function(a0: Enum.PlaybackState)
-            SoundUtility.tweenSoundVolume(sounds.heartbeat, 0, 5)
-        end)
-        health_vfx.tweenDyingColorCorrectionTo(-1, 0.5)
+        if tween then
+            tween.Completed:Once(function(a0: Enum.PlaybackState)
+                SoundUtility.tweenSoundVolume(sounds.heartbeat, 0, 5)
+            end)
+        end
+        health_vfx.tweenSaturation(-1, 0.5)
         health_sfx.tweenGameAudioVolumeTo(0, 5)
     end
 end
@@ -94,7 +97,49 @@ end
 
 local Health = {}
 
-local function toggleGuiHeartbeatSoundSync(toggle: boolean)
+function Health.new(): HealthObject
+    local trove = References.Trove.new()
+    local statGuiObject = StatGuiManager.new(References.VitalsGui:WaitForChild("Frame"):WaitForChild("health"), "Health", Color3.fromRGB(255, 0, 0))
+
+    local self: HealthObject = {
+        trove = trove,
+        statGuiObject = statGuiObject
+    }
+
+    local initialHealthProportion = References.humanoid.Health/References.humanoid.MaxHealth
+    isAboveStartHeartbeat = initialHealthProportion > proportionMarkers.startHeartbeat
+    isAboveStartEarRinging = initialHealthProportion > proportionMarkers.startEarRinging
+
+    -- Initial
+    local savedHealthValue: number = References.humanoid.Health
+    StatGuiManager.SetStatValue(statGuiObject, References.humanoid.Health/References.humanoid.MaxHealth)
+
+    -- On change
+   
+    trove:Connect(References.humanoid.HealthChanged, function(health: number)
+        health = math.clamp(health, 0, math.huge)
+        if savedHealthValue <= 0 then return end
+
+        local healthProportion: number = math.round((health/References.humanoid.MaxHealth) * 100)/100
+
+        --Heartbeat Sound manager
+        update_heartbeat_saturation_gameVolume(healthProportion)
+
+        --Ear ringing sound manager
+        update_earRinging_and_reverb(healthProportion)
+
+        savedHealthValue = health
+        StatGuiManager.SetStatValue(statGuiObject, healthProportion)
+    end)
+
+    trove:Connect(sounds.heartbeat:GetPropertyChangedSignal("Playing"), function()  
+        Health._toggleGuiHeartbeatSoundSync(self, sounds.heartbeat.IsPlaying)
+    end)
+
+    return self
+end
+
+function Health._toggleGuiHeartbeatSoundSync(self: HealthObject, toggle: boolean)
 
     local heartbeatMarkers = {
         0,
@@ -124,7 +169,7 @@ local function toggleGuiHeartbeatSoundSync(toggle: boolean)
                         colorValue = Color3.fromRGB(255, x, x)
                     end
                     bloodUi.GroupTransparency = transparencyValue
-                    References.StatGuiManager.getCanvasGroup(statGuiObject).GroupColor3 = colorValue
+                    StatGuiManager.getCanvasGroup(self.statGuiObject).GroupColor3 = colorValue
                     --warn(i)
                     return
                 end
@@ -134,42 +179,18 @@ local function toggleGuiHeartbeatSoundSync(toggle: boolean)
         RunService:UnbindFromRenderStep("BloodUi")
         local ti = TweenInfo.new(1)
         TweenService:Create(bloodUi, ti, {GroupTransparency = 1}):Play()
-        TweenService:Create(References.StatGuiManager.getCanvasGroup(statGuiObject), ti, {GroupColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        TweenService:Create(StatGuiManager.getCanvasGroup(self.statGuiObject), ti, {GroupColor3 = Color3.fromRGB(255, 255, 255)}):Play()
     end
 end
 
-function Health.initialize()
-    local trove = References.Trove.new()
+function Health.Destroy(self: HealthObject)
+    StatGuiManager.Destroy(self.statGuiObject)
+    self.trove:Destroy()
 
-    -- Initial
-    local savedHealthValue: number = References.humanoid.Health
-    References.StatGuiManager.SetStatValue(statGuiObject, References.humanoid.Health/References.humanoid.MaxHealth)
-
-    -- On change
-   
-    trove:Connect(References.humanoid.HealthChanged, function(health: number)
-        health = math.clamp(health, 0, math.huge)
-        if savedHealthValue <= 0 then return end
-
-        local healthProportion: number = math.round((health/References.humanoid.MaxHealth) * 100)/100
-
-        --Heartbeat Sound manager
-        update_heartbeat_saturation_gameVolume(healthProportion)
-
-        --Ear ringing sound manager
-        update_earRinging_and_reverb(healthProportion)
-
-        savedHealthValue = health
-        References.StatGuiManager.SetStatValue(statGuiObject, healthProportion)
-    end)
-
-    trove:Connect(sounds.heartbeat:GetPropertyChangedSignal("Playing"), function()  
-        toggleGuiHeartbeatSoundSync(sounds.heartbeat.IsPlaying)
-    end)
-
-    References.humanoid.Died:Once(function()  
-        trove:Destroy()
-    end)
+    --clean up visual & auditory effects
+    health_sfx.tweenGameAudioVolumeTo(1, 0)
+    health_vfx.tweenSaturation(0, 0)
+    health_sfx.tweenDyingReverbTo(MIN_REVERB_WET_VALUE, 0)
 end
 
 return Health

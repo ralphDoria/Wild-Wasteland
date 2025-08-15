@@ -1,10 +1,10 @@
 local RS = game:GetService("ReplicatedStorage")
-local CharacterStatsGuiSystem_Storage = RS:FindFirstChild("CharacterStatsGuiSystem_Storage", true)
+local VitalsSystem_Storage = RS:FindFirstChild("VitalsSystem_Storage", true)
 local remotes: {[string]: RemoteEvent} = {
-    hungerThirstDamage = CharacterStatsGuiSystem_Storage:FindFirstChild("hungerThirstDamage", true)
+    hungerThirstDamage = VitalsSystem_Storage:FindFirstChild("hungerThirstDamage", true)
 }
-local References = require(RS.RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Data.References)
-local statGui: CanvasGroup = References.CharacterStatsGui.Frame.hunger
+local References = require(RS.RojoManaged_RS.VitalsSystem_ScriptStorage.Data.References)
+local statGui: CanvasGroup = References.VitalsGui.Frame.hunger
 local statGuiObject = References.StatGuiManager.new(statGui, "Hunger", Color3.fromRGB(255, 123, 0))
 local HungerManager = {}
 

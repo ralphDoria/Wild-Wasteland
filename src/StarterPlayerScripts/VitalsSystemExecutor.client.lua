@@ -1,13 +1,13 @@
-local CharacterVitalsManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterVitalsSystem_ScriptStorage.CharacterVitalsManager)
+local VitalsManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.VitalsManager)
 
 local player = game:GetService("Players").LocalPlayer
 
 local function initCharacterVitals(character: Model)
-    local charVitalsObj = CharacterVitalsManager.new(character)
+    local charVitalsObj = VitalsManager.new(character)
 
     player.CharacterRemoving:Once(function(_)  
-        CharacterVitalsManager.Destroy(charVitalsObj)        
-    end
+        VitalsManager.Destroy(charVitalsObj)        
+    end)
 end
 
 local initialCharacter = player.Character

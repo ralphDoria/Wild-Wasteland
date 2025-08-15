@@ -1,7 +1,7 @@
-[1mdiff --git a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Data/Config.lua b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Data/Config.lua[m
+[1mdiff --git a/src/ReplicatedStorage/VitalsSystem_ScriptStorage/Data/Config.lua b/src/ReplicatedStorage/VitalsSystem_ScriptStorage/Data/Config.lua[m
 [1mindex 0670c6d..112ed07 100644[m
-[1m--- a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Data/Config.lua[m
-[1m+++ b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Data/Config.lua[m
+[1m--- a/src/ReplicatedStorage/VitalsSystem_ScriptStorage/Data/Config.lua[m
+[1m+++ b/src/ReplicatedStorage/VitalsSystem_ScriptStorage/Data/Config.lua[m
 [36m@@ -15,7 +15,7 @@[m [mlocal config: config = {[m
          ["Crouch"] = false [m
      },[m
@@ -11,10 +11,10 @@
      }[m
  }[m
  [m
-[1mdiff --git a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Health/HealthManager.lua b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Health/HealthManager.lua[m
+[1mdiff --git a/src/ReplicatedStorage/VitalsSystem_ScriptStorage/Health/HealthManager.lua b/src/ReplicatedStorage/VitalsSystem_ScriptStorage/Health/HealthManager.lua[m
 [1mindex 3692758..814c12e 100644[m
-[1m--- a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Health/HealthManager.lua[m
-[1m+++ b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Health/HealthManager.lua[m
+[1m--- a/src/ReplicatedStorage/VitalsSystem_ScriptStorage/Health/HealthManager.lua[m
+[1m+++ b/src/ReplicatedStorage/VitalsSystem_ScriptStorage/Health/HealthManager.lua[m
 [36m@@ -71,7 +71,6 @@[m [mlocal function toggleGuiHeartbeatSoundSync(toggle: boolean)[m
  [m
      local heartbeatMarkers = {[m
@@ -23,10 +23,10 @@
          0.36863,[m
          1.05158,[m
          1.37572,[m
-[1mdiff --git a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/SharedComponents/SoundUtility.lua b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/SharedComponents/SoundUtility.lua[m
+[1mdiff --git a/src/ReplicatedStorage/VitalsSystem_ScriptStorage/SharedComponents/SoundUtility.lua b/src/ReplicatedStorage/VitalsSystem_ScriptStorage/SharedComponents/SoundUtility.lua[m
 [1mindex 4fc6e6e..6b78ffe 100644[m
-[1m--- a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/SharedComponents/SoundUtility.lua[m
-[1m+++ b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/SharedComponents/SoundUtility.lua[m
+[1m--- a/src/ReplicatedStorage/VitalsSystem_ScriptStorage/SharedComponents/SoundUtility.lua[m
+[1m+++ b/src/ReplicatedStorage/VitalsSystem_ScriptStorage/SharedComponents/SoundUtility.lua[m
 [36m@@ -18,9 +18,8 @@[m [mend[m
  function SoundUtility.tweenSoundVolume(sound: Sound, newVolume: number, transitionTime: number)[m
      if newVolume == sound.Volume then  return end[m
@@ -38,10 +38,10 @@
          sound:Play()[m
      end[m
  [m
-[1mdiff --git a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Stamina/StaminaManager.lua b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Stamina/StaminaManager.lua[m
+[1mdiff --git a/src/ReplicatedStorage/VitalsSystem_ScriptStorage/Stamina/StaminaManager.lua b/src/ReplicatedStorage/VitalsSystem_ScriptStorage/Stamina/StaminaManager.lua[m
 [1mindex 651ebb1..a3653f4 100644[m
-[1m--- a/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Stamina/StaminaManager.lua[m
-[1m+++ b/src/ReplicatedStorage/CharacterStatsGuiSystem_ScriptStorage/Stamina/StaminaManager.lua[m
+[1m--- a/src/ReplicatedStorage/VitalsSystem_ScriptStorage/Stamina/StaminaManager.lua[m
+[1m+++ b/src/ReplicatedStorage/VitalsSystem_ScriptStorage/Stamina/StaminaManager.lua[m
 [36m@@ -74,7 +74,7 @@[m [mlocal sfx_info: foo = {[m
      }[m
  }[m
@@ -250,7 +250,7 @@
 [36m@@ -4,7 +4,7 @@[m [mlocal humanoid: Humanoid = character.Humanoid[m
  local animator: Animator = humanoid:FindFirstChildOfClass("Animator") :: Animator[m
  local TweenService = game:GetService("TweenService")[m
- local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Data.Config)[m
+ local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.Data.Config)[m
 [31m-local ZMovementDirectionUtility = require("./ZMovementDirectionUtility")[m
 [32m+[m[32mlocal MovementDirectionMonitor = require("./MovementDirectionMonitor")[m
  local ReplicatedStorage = game:GetService("ReplicatedStorage")[m
@@ -281,10 +281,10 @@
 [36m@@ -2,7 +2,7 @@[m [mlocal player = game:GetService("Players").LocalPlayer[m
  local character = player.Character or player.CharacterAdded:Wait()[m
  local humanoid: Humanoid = character:WaitForChild("Humanoid")[m
- local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Data.Config)[m
+ local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.Data.Config)[m
 [31m-local ZMovementDirectionUtility = require("./ZMovementDirectionUtility")[m
 [32m+[m[32mlocal MovementDirectionMonitor = require("./MovementDirectionMonitor")[m
- local StaminaManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.CharacterStatsGuiSystem_ScriptStorage.Stamina.StaminaManager)local Trove = require(game:GetService("ReplicatedStorage").Packages.Trove)[m
+ local StaminaManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.Stamina.StaminaManager)local Trove = require(game:GetService("ReplicatedStorage").Packages.Trove)[m
  local trove = Trove.new()[m
  [m
 [36m@@ -34,30 +34,45 @@[m [mlocal function disconnectAllConnections()[m

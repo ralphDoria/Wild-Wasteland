@@ -40,9 +40,9 @@ local SoundUtil = require(utility:WaitForChild("SoundUtil"))
 local playSound = require(utility:WaitForChild("PlaySoundUtil"))
 local TransitionBlackScreenManager = require(ReplicatedStorage.RojoManaged_RS.Utility.UI.TransitionBlackScreenManager)
 
-local CharacterStatsGuiSystem_Storage = ReplicatedStorage:FindFirstChild("CharacterStatsGuiSystem_Storage", true)
+local VitalsSystem_Storage = ReplicatedStorage:FindFirstChild("VitalsSystem_Storage", true)
 local remotes: {[string]: RemoteEvent} = {
-    RespawnPlayerCharacter = CharacterStatsGuiSystem_Storage:FindFirstChild("RespawnPlayerCharacter", true)
+    RespawnPlayerCharacter = VitalsSystem_Storage:FindFirstChild("RespawnPlayerCharacter", true)
 }
 
 local ButtonsManager = {}

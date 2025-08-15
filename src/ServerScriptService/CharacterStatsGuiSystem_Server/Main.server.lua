@@ -1,8 +1,8 @@
 local RS = game:GetService("ReplicatedStorage")
-local CharacterStatsGuiSystem_Storage = RS:FindFirstChild("CharacterStatsGuiSystem_Storage", true)
+local VitalsSystem_Storage = RS:FindFirstChild("VitalsSystem_Storage", true)
 local remotes: {[string]: RemoteEvent} = {
-    hungerThirstDamage = CharacterStatsGuiSystem_Storage:FindFirstChild("hungerThirstDamage", true),
-    RespawnPlayerCharacter = CharacterStatsGuiSystem_Storage:FindFirstChild("RespawnPlayerCharacter", true)
+    hungerThirstDamage = VitalsSystem_Storage:FindFirstChild("hungerThirstDamage", true),
+    RespawnPlayerCharacter = VitalsSystem_Storage:FindFirstChild("RespawnPlayerCharacter", true)
 }
 
 local dmgThreads: {[string]: thread} = {}

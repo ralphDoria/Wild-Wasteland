@@ -1,30 +1,25 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local References = {
     player = game:GetService("Players").LocalPlayer,
     character = nil:: Model?,
     humanoid = nil:: Humanoid?,
-    StatGuiManager = require("../SharedComponents/StatGuiManager"),
-    SoundManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ToolSystem_ScriptStorage.Components.Shared.SoundManager),
-    InputCategorizer = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ActionManagerSystem.Components.InputCategorizer),
+    StatGuiManager = require(ReplicatedStorage.RojoManaged_RS.VitalsSystem_ScriptStorage.SharedComponents.StatGuiManager),
+    SoundManager = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage.Components.Shared.SoundManager),
+    InputCategorizer = require(ReplicatedStorage.RojoManaged_RS.ActionManagerSystem.Components.InputCategorizer),
     playerGui = game:GetService("Players").LocalPlayer.PlayerGui:: PlayerGui,
     SoundService = game:GetService("SoundService"),
     debuffSounds = game:GetService("SoundService"):FindFirstChild("Debuff", true):: Folder,
-    CharacterStatsGui = nil,
+    VitalsGui = nil:: ScreenGui?,
     TweenService = game:GetService("TweenService"),
-    Trove = require(game:GetService("ReplicatedStorage").Packages.Trove)
+    Trove = require(ReplicatedStorage.Packages.Trove),
 }
 
--- Outside of the table, setting references that depend on other references
-References.character = References.player.Character or References.player.CharacterAdded:Wait()
-References.humanoid = References.character.Humanoid
-References.CharacterStatsGui = References.playerGui:WaitForChild("CharacterStatsGui")
-
---[[
-    This function is to update references dependent on the player's character.
-]]
-function References.update()
-    References.character = References.player.Character or References.player.CharacterAdded:Wait()
+function References.update(character: Model)
+    warn("Updating Vitals System references")
+    References.character = character
     References.humanoid = References.character.Humanoid
-    References.CharacterStatsGui = References.playerGui:WaitForChild("CharacterStatsGui")
+    References.VitalsGui = References.playerGui:WaitForChild("VitalsGui")
 end
 
 return References
