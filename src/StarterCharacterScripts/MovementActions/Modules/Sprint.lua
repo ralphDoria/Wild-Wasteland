@@ -5,6 +5,7 @@ local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.Vital
 local MovementDirectionMonitor = require("./MovementDirectionMonitor")
 local StaminaManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.Stamina.StaminaManager)local Trove = require(game:GetService("ReplicatedStorage").Packages.Trove)
 local trove = Trove.new()
+local currentStaminaObject = StaminaManager.waitForStaminaObject(character)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MovementAndStaminaSystem_Storage = ReplicatedStorage.MovementAndStaminaSystem_Storage
@@ -39,10 +40,10 @@ local function dynamicWalkSpeedBasedOnIsMoving()
     local function changeWalkSpeedIfMoving()
         if MovementDirectionMonitor.isMovingHorizontally() then
             remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Sprint"])
-            StaminaManager.drainStaminaBar()
+            StaminaManager.drainStaminaBar(currentStaminaObject)
         else
             remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
-            StaminaManager.fillStaminaBar()
+            StaminaManager.fillStaminaBar(currentStaminaObject)
         end
     end
 
@@ -81,7 +82,7 @@ end
 function Sprint.deactivate()
     disconnectAllConnections()
     remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
-    StaminaManager.fillStaminaBar()
+    StaminaManager.fillStaminaBar(currentStaminaObject)
     Sprint.active = false
     character:SetAttribute("Sprint", false)
 end

@@ -31,6 +31,7 @@ export type MeleeObject = Item.ItemType & {
     swingSpeed : number,
     HitboxManager : HitboxManager.HitboxManager,
     trail : Trail,
+    staminaObject: StaminaManager.StaminaObject
 }
 
 local Melee =  {}
@@ -42,6 +43,7 @@ function Melee.new(tool : Tool, humanoid : Humanoid) : MeleeObject
     self.swingSpeed = 1
     self.HitboxManager = HitboxManager.new(tool)
     self.trail = tool:FindFirstChildWhichIsA("Trail", true)
+    self.staminaObject = StaminaManager.waitForStaminaObject(humanoid.Parent:: Model)
 
     self.actionNames.swing = "Swing" 
     Melee.toggleSwingTrail(self, false)
@@ -57,10 +59,10 @@ local function toggleSwingBind(self : MeleeObject, toggle : boolean)
             self.actionNames.swing, 
             function(): (() -> (), () -> (), () -> ())  
 
-                StaminaManager.addBoundAction(self.actionNames.swing, self.staminaCost)
+                StaminaManager.addBoundAction(self.staminaObject, self.actionNames.swing, self.staminaCost)
 
                 local function onActivated()
-                    StaminaManager.changeStaminaBarBy(self.staminaCost)
+                    StaminaManager.changeStaminaBarBy(self.staminaObject, self.staminaCost)
                     Melee.swing(self)
                 end
 
@@ -69,7 +71,7 @@ local function toggleSwingBind(self : MeleeObject, toggle : boolean)
                 end
 
                 local function onUnbind()
-                    StaminaManager.removeBoundAction(self.actionNames.swing)
+                    StaminaManager.removeBoundAction(self.staminaObject, self.actionNames.swing)
                 end
 
                 return onActivated, onDeactivated, onUnbind

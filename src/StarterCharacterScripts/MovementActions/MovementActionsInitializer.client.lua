@@ -1,6 +1,7 @@
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player.PlayerGui
-local humanoid : Humanoid = player.Character.Humanoid or player.CharacterAdded:Wait().Humanoid
+local character = player.Character
+local humanoid : Humanoid = character.Humanoid
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -14,8 +15,9 @@ local movementManagers = {
 }
 
 movementManagers.Sprint.initialize()
+local currentStaminaObject: StaminaManager.StaminaObject = StaminaManager.waitForStaminaObject(character)
 
-type stuff = {
+type actionManagerBindInfo = {
     [string]: {
         getCallbacks: ActionManager.GetCallbacks,
         keyboardAndMouseInput: Enum.KeyCode,
@@ -27,13 +29,13 @@ type stuff = {
     }
 }
 
-local stuff: stuff = {
+local actionManagerBindInfo: actionManagerBindInfo = {
     ["Jump"] = {
         getCallbacks = function()
 
             local function onActivated()
                 if humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and humanoid:GetState() ~= Enum.HumanoidStateType.Landed then
-                    StaminaManager.changeStaminaBarBy(StaminaManager.JUMP_STAMINA_COST)
+                    StaminaManager.changeStaminaBarBy(currentStaminaObject, StaminaManager.JUMP_STAMINA_COST)
                     humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
                 end
             end
@@ -42,10 +44,10 @@ local stuff: stuff = {
                 
             end
 
-            StaminaManager.addBoundAction("Jump", StaminaManager.JUMP_STAMINA_COST)
+            StaminaManager.addBoundAction(currentStaminaObject, "Jump", StaminaManager.JUMP_STAMINA_COST)
 
             local function onUnbind()
-                StaminaManager.removeBoundAction("Jump")
+                StaminaManager.removeBoundAction(currentStaminaObject, "Jump")
             end
 
             return onActivated, onDeactivated, onUnbind
@@ -67,10 +69,10 @@ local stuff: stuff = {
                 MovementStateMachine.RemoveFromTower("Sprint")
             end
 
-            StaminaManager.addBoundAction("Sprint", 0)
+            StaminaManager.addBoundAction(currentStaminaObject, "Sprint", 0)
 
             local function onUnbind()
-                StaminaManager.removeBoundAction("Sprint")
+                StaminaManager.removeBoundAction(currentStaminaObject, "Sprint")
             end
 
             return onActivated, onDeactivated, onUnbind
@@ -178,20 +180,24 @@ local function disableDefaultJump()
 end
 disableDefaultJump()
 
--- Binding custom movement
-for actionName, info in stuff do
-    --@warning left off here
-    ActionManager.bindAction(
-        actionName, 
-        info.getCallbacks, 
-        info.keyboardAndMouseInput, 
-        info.gamepadInput, 
-        info.displayOrder, 
-        info.toggle, 
-        info.progressBarCooldown, 
-        info.touchButtonImageId
-    )
-    humanoid.Died:Once(function()  
-        ActionManager.unbindAction(actionName)
-    end)
+local function initMovementActions()
+    -- Binding custom movement
+    for actionName, info in actionManagerBindInfo do
+        --@warning left off here
+        ActionManager.bindAction(
+            actionName, 
+            info.getCallbacks, 
+            info.keyboardAndMouseInput, 
+            info.gamepadInput, 
+            info.displayOrder, 
+            info.toggle, 
+            info.progressBarCooldown, 
+            info.touchButtonImageId
+        )
+        humanoid.Died:Once(function()  
+            ActionManager.unbindAction(actionName)
+        end)
+    end
 end
+
+initMovementActions()

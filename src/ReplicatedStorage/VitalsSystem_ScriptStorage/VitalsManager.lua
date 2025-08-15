@@ -4,6 +4,7 @@ local VitalsSystem_ScriptStorage = ReplicatedStorage.RojoManaged_RS.VitalsSystem
 local References = require(VitalsSystem_ScriptStorage.Data.References)
 local HealthManager = require(VitalsSystem_ScriptStorage.Health.HealthManager)
 local HungerThirstManager = require(VitalsSystem_ScriptStorage.HungerThirst.HungerThirstManager) 
+local StaminaManager = require(VitalsSystem_ScriptStorage.Stamina.StaminaManager)
 local Trove = require(ReplicatedStorage.Packages.Trove)
 
 export type VitalsObj = {
@@ -11,6 +12,7 @@ export type VitalsObj = {
 	-- hungerObject: Hunger.hungerObject,
 	thirstObject: HungerThirstManager.hungerThirstObject,
 	hungerObject: HungerThirstManager.hungerThirstObject,
+	staminaObject: StaminaManager.StaminaObject,
 	trove: any
 }
 
@@ -25,6 +27,7 @@ function VitalsManager.new(character: Model): VitalsObj
 		healthObject = HealthManager.new(),
 		hungerObject = HungerThirstManager.new("Hunger"),
 		thirstObject = HungerThirstManager.new("Thirst"),
+		staminaObject = StaminaManager.new(),
 		trove = trove
 	}
 
@@ -71,6 +74,7 @@ function VitalsManager.Destroy(vitalsObj: VitalsObj)
 	HealthManager.Destroy(vitalsObj.healthObject)	
 	HungerThirstManager.Destroy(vitalsObj.thirstObject)
 	HungerThirstManager.Destroy(vitalsObj.hungerObject)
+	StaminaManager.Destroy(vitalsObj.staminaObject)
 	vitalsObj.trove:Destroy()
 end
 

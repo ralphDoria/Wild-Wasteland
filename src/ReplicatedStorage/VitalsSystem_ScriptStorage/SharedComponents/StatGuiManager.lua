@@ -41,6 +41,7 @@ function StatGuiManager.new(StatGui, statName: string, color: Color3)
 end
 
 function StatGuiManager.getCanvasGroup(self: StatGui): CanvasGroup
+    -- warn(debug.traceback())
     return self.statGui
 end
 
