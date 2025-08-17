@@ -41,7 +41,6 @@ export type ItemType = {
     ViewmodelManager : ViewmodelManager.ViewmodelManager,
     ToolGuiManager : any,
     ToolHighlightAndProxPromptManager : ToolHighlightAndProxPromptManager.ToolHighlightAndProxPromptManager,
-    finiteStateMachine : ModuleScript?,
     crosshairGuiObject: CrosshairGuiManager.CrosshairObject,
     connections : {[string] : RBXScriptConnection},
     actionNames: {[string]: string},
@@ -148,6 +147,9 @@ end
 
 function Item.equip(self: ItemType, equipping: () -> ()?, equipped: () -> ()?, onDropping : () -> ()?, onDropped : () -> ()?)
     Item.ChangeState(self, "Equipping")
+    self.connections.dropEquippedToolOnDeath = self.humanoid.Died:Once(function(...: any)  
+        Item.drop(self)
+    end)
     ToolGuiManager.setTool(self.tool)
     ToolGuiManager.show()
     self.humanoid:EquipTool(self.tool)
@@ -175,6 +177,7 @@ end
 
 function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> ()?)
     Item.ChangeState(self, "Unequipping")
+    self.connections.dropEquippedToolOnDeath:Disconnect()
     Item.toggleDropBind(self, false)
     ToolGuiManager.hide()
     currentAnimationManager.animationTracks[self.tool.Name].idle:Stop()
@@ -272,10 +275,6 @@ function Item.toggleDropBind(self : ItemType, toggle : boolean, onDropping: () -
     else
         ActionManager.unbindAction(self.actionNames.dropItem)
     end
-end
-
-function Item.updateCharacter()
-    
 end
 
 function Item.Destroy(self : ItemType, childObjectCleanupMethod: () -> ())

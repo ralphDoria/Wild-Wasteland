@@ -7,14 +7,21 @@ local LootItemsHolding: Folder = game:GetService("ReplicatedStorage").LootingSys
 
 local cachedItems = {}
 
+local addedToCacheEvent = Instance.new("BindableEvent")
+local removedFromCacheEvent = Instance.new("BindableEvent")
+cachedItems.added = addedToCacheEvent.Event:: RBXScriptSignal
+cachedItems.removed = removedFromCacheEvent.Event:: RBXScriptSignal
+
 local function addToCachedItems(item: Tool)
 	table.insert(cachedItems, item)
+	addedToCacheEvent:Fire(item)
 end
 
 local function removeFromCachedItems(item: Tool)
 	local i = table.find(cachedItems, item)
 	if i then
 		table.remove(cachedItems, i)		
+		removedFromCacheEvent:Fire(item)
 	end
 end
 

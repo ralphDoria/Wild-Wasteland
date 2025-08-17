@@ -1,16 +1,16 @@
 local characterSectionComponents = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage.CharacterSection.Components
-local Vitals = require(characterSectionComponents.Vitals)
+local InventoryVitalsDisplay = require(characterSectionComponents.VitalsDisplay)
 local ViewportController = require(characterSectionComponents.ViewportController)
 local EquipmentSlots = require(characterSectionComponents.EquipmentSlots)
 
 local CharacterSection = {}
 
 function CharacterSection.ResizeGui()
-    Vitals.ResizeGui()
+    InventoryVitalsDisplay.ResizeGui()
 end
 
 function CharacterSection.init()
-    Vitals.init()
+    InventoryVitalsDisplay.init()
     ViewportController.init()
     EquipmentSlots.init()
 end

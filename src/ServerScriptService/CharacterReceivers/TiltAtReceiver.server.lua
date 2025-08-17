@@ -12,6 +12,7 @@ local remoteEventFireRate = 0.1
 local ti = TweenInfo.new(remoteEventFireRate, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
 
 tiltAt.OnServerEvent:Connect(function(player, newCalculatedCFrames : table, toolEquipped :  boolean)
+	-- print("receiving")
 	local torso = player.Character.Torso
 
 	--[[

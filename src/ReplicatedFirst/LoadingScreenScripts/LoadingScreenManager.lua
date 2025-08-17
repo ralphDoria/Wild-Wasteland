@@ -71,14 +71,16 @@ local function disableSelectCoreUisAndTouchControls()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) 
     -- Disables the Reset Button
     ----[ Creates a Loop to make sure that the ResetButtonCallBack works.
-    local disableResetButton = task.spawn(function()
-        repeat 
-            local success = pcall(function() 
-                StarterGui:SetCore("ResetButtonCallback", false) 
-            end)
-            task.wait(1)
-        until success
-    end)
+    
+    --TODO: disable reset button outside of testing
+    -- local disableResetButton = task.spawn(function()
+    --     repeat 
+    --         local success = pcall(function() 
+    --             StarterGui:SetCore("ResetButtonCallback", false) 
+    --         end)
+    --         task.wait(1)
+    --     until success
+    -- end)
 end
 
 local function StartPreload()

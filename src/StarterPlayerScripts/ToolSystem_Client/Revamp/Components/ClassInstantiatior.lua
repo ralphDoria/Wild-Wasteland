@@ -19,6 +19,9 @@ return function()
         -- warn("creating new Instance of", instance.Name, "in", instance.Parent)
         Promise.new(function(resolve, reject)
             class.new(instance, humanoid)
+            
+            -- only instantiate when item is in player's inventory (check w/ backpack.ChildAdded) and destroy when player drops item. This prevents client for being burdened w/ item data that it doesn't need at the moment (e.g. a gun that is dropped on the opposite side of the map
+            -- but still rendered)
         end)
             :andThen(function()
                 -- warn("Successfully created a new Instance of", instance.Name, "in", instance.Parent)
