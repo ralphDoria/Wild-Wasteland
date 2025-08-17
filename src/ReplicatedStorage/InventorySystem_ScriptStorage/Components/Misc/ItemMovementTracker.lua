@@ -1,50 +1,71 @@
 --!strict
 
-local player = game:GetService("Players").LocalPlayer
-local character : Model = player.Character or player.CharacterAdded:Wait() :: Model
-local backpack : Backpack = player:FindFirstChild("Backpack") :: Backpack
-local LootItemsHolding: Folder = game:GetService("ReplicatedStorage").LootingSystem_Storage.LootItemsHolding
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Trove = require(ReplicatedStorage.Packages.Trove)
+local LootItemsHolding: Folder = ReplicatedStorage.LootingSystem_Storage.LootItemsHolding
 
-local cachedItems = {}
+export type ItemMovementTracker = {
+	cachedTools: {Tool},
+	trove: any
+}
+
+local ItemMovementTracker = {}
 
 local addedToCacheEvent = Instance.new("BindableEvent")
 local removedFromCacheEvent = Instance.new("BindableEvent")
-cachedItems.added = addedToCacheEvent.Event:: RBXScriptSignal
-cachedItems.removed = removedFromCacheEvent.Event:: RBXScriptSignal
+ItemMovementTracker.added = addedToCacheEvent.Event:: RBXScriptSignal
+ItemMovementTracker.removed = removedFromCacheEvent.Event:: RBXScriptSignal
 
-local function addToCachedItems(item: Tool)
-	table.insert(cachedItems, item)
-	addedToCacheEvent:Fire(item)
+
+function ItemMovementTracker.new(
+	character: Model, 
+	backpack: Backpack,
+	onAdded : (tool : Tool) -> (),
+	onEquipping : (tool : Tool) -> (), 
+	onUnequipped : (tool : Tool) -> (), 
+	onDropped : (tool : Tool) -> ()
+): ItemMovementTracker
+
+	local self: ItemMovementTracker = {
+		cachedTools = {},
+		trove = Trove.new(),
+	}
+
+	ItemMovementTracker._init(
+		self,
+		character, 
+		backpack,
+		onAdded,
+		onEquipping, 
+		onUnequipped, 
+		onDropped
+	)
+
+	return self
 end
 
-local function removeFromCachedItems(item: Tool)
-	local i = table.find(cachedItems, item)
-	if i then
-		table.remove(cachedItems, i)		
-		removedFromCacheEvent:Fire(item)
-	end
-end
-
-return function
-    (
-        onAdded : (tool : Tool) -> (),
-        onEquipping : (tool : Tool) -> (), 
-        onUnequipped : (tool : Tool) -> (), 
-        onDropped : (tool : Tool) -> ()
-    )
-    backpack.ChildAdded:Connect(function(child)
+function ItemMovementTracker._init(
+	self: ItemMovementTracker,
+	character: Model, 
+	backpack: Backpack,
+	onAdded : (tool : Tool) -> (),
+	onEquipping : (tool : Tool) -> (), 
+	onUnequipped : (tool : Tool) -> (), 
+	onDropped : (tool : Tool) -> ()
+)
+    self.trove:Connect(backpack.ChildAdded, function(child: Instance)
 		if not child:IsA("Tool") then return end
-		if table.find(cachedItems, child) then
+		if table.find(self.cachedTools, child) then
 			--print(child.Name .. " unequipped")
             onUnequipped(child)
 		else
 			-- print(child.Name .. " was added to inventory")
-            addToCachedItems(child)
+            ItemMovementTracker._addToCachedTools(self, child)
             onAdded(child)
 		end
 	end)
 	
-	backpack.ChildRemoved:Connect(function(child)
+	self.trove:Connect(backpack.ChildRemoved, function(child: Instance)
 		if not child:IsA("Tool") then return end
 	
 		if child.Parent == character then
@@ -52,17 +73,17 @@ return function
             onEquipping(child)
 		elseif child.Parent == workspace or child:FindFirstAncestor(LootItemsHolding.Name) then
 			--print(child.Name .. " dropped from gui")
-            removeFromCachedItems(child)
+            ItemMovementTracker._removeFromCachedTools(self, child)
             onDropped(child)
 		end
 	end)
 	
-	character.ChildRemoved:Connect(function(child)
+	self.trove:Connect(character.ChildRemoved, function(child: Instance)
 		if not child:IsA("Tool") then return end
 	
 		if child.Parent == workspace or child:FindFirstAncestor(LootItemsHolding.Name) then
 			--print(child.Name .. " dropped from equip")
-            removeFromCachedItems(child)
+            ItemMovementTracker._removeFromCachedTools(self, child)
             onDropped(child)
 		end
 	end)
@@ -71,13 +92,37 @@ return function
 	-- then tools are added to backpack, then events are connecting, causing this file to miss tools)
 	for _, v in backpack:GetChildren() do
 		if v:IsA("Tool") then
-			addToCachedItems(v)	
+            ItemMovementTracker._addToCachedTools(self, v)
 			onAdded(v)
 		end
 	end
 	local equippedTool = character:FindFirstChildOfClass("Tool")
 	if equippedTool then
-		addToCachedItems(equippedTool)
+		ItemMovementTracker._addToCachedTools(self, equippedTool)
 		onAdded(equippedTool)
 	end
 end
+
+function ItemMovementTracker._addToCachedTools(self: ItemMovementTracker, tool: Tool)
+	table.insert(self.cachedTools, tool)
+	addedToCacheEvent:Fire(tool)
+end
+
+function ItemMovementTracker._removeFromCachedTools(self: ItemMovementTracker, tool: Tool)
+	local i = table.find(self.cachedTools, tool)
+	if i then
+		table.remove(self.cachedTools, i)		
+		removedFromCacheEvent:Fire(tool)
+	end
+end
+
+function ItemMovementTracker.Destroy(self: ItemMovementTracker)
+	for i, v in self.cachedTools do
+		ItemMovementTracker._removeFromCachedTools(self, v)
+	end
+	table.clear(self.cachedTools)
+	self.trove:Destroy()
+	table.clear(self)
+end
+
+return ItemMovementTracker

@@ -28,7 +28,7 @@ export type InventorySystemObject = {
 		
 }
 
-local InventorySystem = {
+local InventoryManager = {
 	Connections = {}
 }
 
@@ -37,7 +37,7 @@ local function preInitSetup()
 	References_Inventory.Hotbar.Visible = true
 end
 
-function InventorySystem.init()
+function InventoryManager.init()
 	preInitSetup()
 
 	CharacterSection.init()
@@ -69,8 +69,8 @@ function InventorySystem.init()
 	)
 
 	table.insert(
-		InventorySystem.Connections,
-		References_Inventory.InventoryScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(InventorySystem.ResizeGui)
+		InventoryManager.Connections,
+		References_Inventory.InventoryScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(InventoryManager.ResizeGui)
 	)
 
 	InventoryToggle.Bind()
@@ -80,7 +80,7 @@ local cachedScreenSize = {
 	width = nil,
 	height = nil
 }
-function InventorySystem.ResizeGui()
+function InventoryManager.ResizeGui()
 	local screenWidth = References_Inventory.InventoryScreenGui.AbsoluteSize.X
 
 	local screenHeight = References_Inventory.InventoryScreenGui.AbsoluteSize.Y
@@ -114,4 +114,4 @@ function InventorySystem.ResizeGui()
 	end
 end
 
-return InventorySystem
+return InventoryManager
