@@ -1,7 +1,13 @@
 --!strict
-
+-----
+-- General storage
+-----
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = game:GetService("Players").LocalPlayer
+-- Item System References
+local ItemSystem_ScriptStorage = ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage
+local References_ItemSystem = require(ItemSystem_ScriptStorage.References_ItemSystem)
+
 --EXTERNAL CONTROLLERS
 local AnimationManager = require("../Components/Shared/AnimationManager")
 local SoundManager = require("../Components/Shared/SoundManager")
@@ -80,6 +86,7 @@ function Item.new(tool : Tool, humanoid : Humanoid) : ItemType
     AnimationManager.LoadAnimations(currentAnimationManager, tool.Name, toolAnims)
     ViewmodelManager.AddTool(currentViewmodelManager, tool, toolAnims)
 
+    -- warn(`SUCCESSFULLY INSTANTIATED {tool}`)
     return self
 end
 
@@ -245,6 +252,7 @@ function Item.drop(self : ItemType, onDropping: () -> ()?, onDropped : () -> ()?
             onDropped()
         end
         ToolGuiManager.hide()
+        warn(`DROPPED ITEM`)
     end
 end
 
@@ -287,6 +295,7 @@ function Item.Destroy(self : ItemType, childObjectCleanupMethod: () -> ())
     end
     childObjectCleanupMethod()
     table.clear(self)
+    warn(`DESTROYED ITEM`)
 end
 
 return Item

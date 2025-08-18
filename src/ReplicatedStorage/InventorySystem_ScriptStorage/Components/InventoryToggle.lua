@@ -128,10 +128,6 @@ function InventoryToggle.Unbind()
         touchBackpackSlotConnection:Disconnect()
         touchBackpackSlotConnection = nil
     end
-    if outsideClickCheck then
-        outsideClickCheck:Disconnect()
-        outsideClickCheck = nil
-    end
 end
 
 return InventoryToggle

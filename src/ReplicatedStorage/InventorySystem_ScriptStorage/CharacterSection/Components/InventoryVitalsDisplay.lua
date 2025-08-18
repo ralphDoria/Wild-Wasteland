@@ -21,13 +21,17 @@ local VitalsData = {
     }
 }
 
-local currentVitalGuis: {Frame} = {}
+export type InventoryVitals = {
+    vitalsFrames: {Frame}
+}
 
-local Vitals = {}
+local InventoryVitals = {}
 
-Vitals.initialized = false
+function InventoryVitals.new(): InventoryVitals
+    local self: InventoryVitals = {
+        vitalsFrames = {}    
+    }
 
-function Vitals.init()
     for vitalName, v in VitalsData do
         local vital = References_Inventory.TemplateVital:Clone()
         vital.TextDisplay.Text = vitalName
@@ -35,20 +39,17 @@ function Vitals.init()
         local Icon = vital:FindFirstChild("Icon", true):: ImageLabel
         Icon.Image = v.ImageId
         vital.Parent = References_Inventory.Vitals
-        currentVitalGuis[vitalName] = vital
+        self.vitalsFrames[vitalName] = vital
     end
-    Vitals.initialized = true
-    Vitals.ResizeGui()
+    InventoryVitals.initialized = true
+    InventoryVitals.ResizeGui(self)
+
+    return self
 end
 
 
-function Vitals.ResizeGui()
-    if not Vitals.initialized then 
-        warn("Vitals must be initialized before being resized")
-        return
-    end
-    
-    for key, v in currentVitalGuis do
+function InventoryVitals.ResizeGui(self: InventoryVitals)
+    for key, v in self.vitalsFrames do
         local viewportWidth = References_Inventory.Viewport.AbsoluteSize.X
         local equipmentSlotsWidth = References_Inventory.CharacterEquipmentSlots.AbsoluteSize.X
         local width = viewportWidth - equipmentSlotsWidth
@@ -84,4 +85,9 @@ function Vitals.ResizeGui()
     end
 end
 
-return Vitals
+function InventoryVitals.Destroy(self: InventoryVitals)
+    -- all frames in self.vitalsFrames should automatically be destroyed when the InventoryGui is destroyed
+    table.clear(self)
+end
+
+return InventoryVitals

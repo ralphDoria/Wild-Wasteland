@@ -13,9 +13,9 @@ export type HighlightAndProximityPromptManagerObject = {
     connections : {[string]: RBXScriptConnection?}
 }
 
-local StandardLootHPPManager = {}
+local LootPromptManager = {}
 
-function StandardLootHPPManager.new(instance: Instance, proximityPromptParent, onTriggered: (pp: ProximityPrompt) -> ()): HighlightAndProximityPromptManagerObject
+function LootPromptManager.new(instance: Instance, proximityPromptParent, onTriggered: (pp: ProximityPrompt) -> ()): HighlightAndProximityPromptManagerObject
     local self : HighlightAndProximityPromptManagerObject = {
         instance = instance,
         highlight = highlight:Clone(),
@@ -37,12 +37,12 @@ function StandardLootHPPManager.new(instance: Instance, proximityPromptParent, o
     self.pp.Enabled = true
     self.pp.Parent = proximityPromptParent
 
-    StandardLootHPPManager._initialize(self)
+    LootPromptManager._initialize(self)
 
     return self
 end
 
-function StandardLootHPPManager._initialize(self : HighlightAndProximityPromptManagerObject)
+function LootPromptManager._initialize(self : HighlightAndProximityPromptManagerObject)
     self.pp.Triggered:Connect(function()  
         self.pp.Enabled = false
         self.onTriggered(self.pp)
@@ -69,7 +69,7 @@ function StandardLootHPPManager._initialize(self : HighlightAndProximityPromptMa
     end)
 end
 
-function StandardLootHPPManager.Destroy(self: HighlightAndProximityPromptManagerObject)
+function LootPromptManager.Destroy(self: HighlightAndProximityPromptManagerObject)
     for _, v in self.connections do
         if typeof(v) == "RBXScriptConnection" then
             v:Disconnect()    
@@ -82,4 +82,4 @@ function StandardLootHPPManager.Destroy(self: HighlightAndProximityPromptManager
 end
 
 
-return StandardLootHPPManager
+return LootPromptManager

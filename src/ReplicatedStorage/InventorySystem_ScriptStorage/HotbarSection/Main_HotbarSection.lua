@@ -1,11 +1,10 @@
 --!strict
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ToolStateMachine = require("./../Components/ToolStateMachine/Main_ToolStateMachine")
-
 local Slot = require("./../Components/Slot/Slot")
 local UserInputService = game:GetService("UserInputService")
-local HotbarSlotsRegistry = require(game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage.HotbarSection.Components.HotbarSlotsRegistry)
-
-local Hotbar : CanvasGroup
+local HotbarSlotsRegistry = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.HotbarSection.Components.HotbarSlotsRegistry)
+local Trove = require(ReplicatedStorage.Packages.Trove)
 
 local hotbarNumberToKeybind = {
 	[1] = Enum.KeyCode.One,
@@ -16,52 +15,61 @@ local hotbarNumberToKeybind = {
 }
 local hotbarSlotToSlotData : {[Frame]: Slot.SlotObject} = HotbarSlotsRegistry.instanceToObjectMap
 
+export type HotbarObject = {
+    hotbar: CanvasGroup,
+    keybindConnection: RBXScriptConnection?,
+    trove: any
+}
+
 local HotbarManager = {}
 HotbarManager.Connections = {}
 
-function HotbarManager.init(SlotTemplate : Frame, hotbar : CanvasGroup)
-    Hotbar = hotbar
+function HotbarManager.new(hotbar : CanvasGroup): HotbarObject
+    local self: HotbarObject = {
+        hotbar = hotbar,
+        keybindConnection = nil,
+        trove = Trove.new()
+    }
+    
+
     for i, _ in hotbarNumberToKeybind do
         local slot = Slot.new("Hotbar")
         slot._itself.Parent = hotbar
 		hotbarSlotToSlotData[slot._itself] = slot
 		hotbarSlotToSlotData[slot._itself].HotbarNumber.Text = tostring(i)
         hotbarSlotToSlotData[slot._itself]._itself.LayoutOrder = i
+        -- Don't have to worry about removing this element from the table when Inventory Gui is destroyed because it'll automatically be removed when slot._itself is destroyed
 	end
     
-    table.insert(
-        HotbarManager.Connections,
-        Hotbar.ChildAdded:Connect(function(child: Instance)  
-            if child:IsA("Frame") then
-                local slotData = Slot.instanceToObjectMap[child]
-                if slotData then
-                    hotbarSlotToSlotData[child] = slotData 
-                else
-                    error("Couldn't find slot data of given slot instance")
-                end
+    self.trove:Connect(self.hotbar.ChildAdded, function(child: Instance)  
+        if child:IsA("Frame") then
+            local slotData = Slot.instanceToObjectMap[child]
+            if slotData then
+                hotbarSlotToSlotData[child] = slotData 
+            else
+                error("Couldn't find slot data of given slot instance")
             end
-        end)
-    )
+        end
+    end)
+    
 
-    table.insert(
-        HotbarManager.Connections,
-        Hotbar.ChildRemoved:Connect(function(child: Instance)  
-            if child:IsA("Frame") then
-                hotbarSlotToSlotData[child] = nil
-            end
-        end)
-    )
+    self.trove:Connect(self.hotbar.ChildRemoved, function(child: Instance)  
+        if child:IsA("Frame") then
+            hotbarSlotToSlotData[child] = nil
+        end
+    end)
 
-    HotbarManager.toggleKeybindToHotbarSlot(true)
+    HotbarManager.toggleKeybindToHotbarSlot(self, true)
+
+    return self
 end
 
-local keybindConnection : RBXScriptConnection?
-function HotbarManager.toggleKeybindToHotbarSlot(toggle : boolean)
+function HotbarManager.toggleKeybindToHotbarSlot(self: HotbarObject, toggle : boolean)
     if toggle then
         --warn("enbaling keybindToHotbarSlot")
-        keybindConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if Hotbar then
-                for _, v in Hotbar:GetChildren() do
+        self.keybindConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if self.hotbar then
+                for _, v in self.hotbar:GetChildren() do
                     if v:IsA("Frame") then
                         if v.LayoutOrder == table.find(hotbarNumberToKeybind, input.KeyCode) then
                             local correspondingHotbarSlot = hotbarSlotToSlotData[v]
@@ -79,8 +87,8 @@ function HotbarManager.toggleKeybindToHotbarSlot(toggle : boolean)
                 end
             end
         end)
-        if Hotbar then
-            if Hotbar.GroupTransparency > 0 then
+        if self.hotbar then
+            if self.hotbar.GroupTransparency > 0 then
                 HotbarManager.GroupTransparency = 0
             end
         else
@@ -88,16 +96,20 @@ function HotbarManager.toggleKeybindToHotbarSlot(toggle : boolean)
         end
     else
         --warn("disabling keybindToHotbarSlot")
-		if keybindConnection ~= nil then
-			keybindConnection:Disconnect()
+		if self.keybindConnection ~= nil then
+			self.keybindConnection:Disconnect()
 		end
-        keybindConnection = nil
+        self.keybindConnection = nil
         HotbarManager.GroupTransparency = 0.5
     end
 end
 
--- InventoryState.Changed:Connect(function(state: InventoryState.InventoryState)  
---     HotbarManager.toggleKeybindToHotbarSlot(state == "Idle")
--- end)
+function HotbarManager.Destroy(self: HotbarObject)
+    if self.keybindConnection then
+        self.keybindConnection:Disconnect()
+    end
+    self.trove:Destroy()
+    table.clear(self)
+end
 
 return HotbarManager

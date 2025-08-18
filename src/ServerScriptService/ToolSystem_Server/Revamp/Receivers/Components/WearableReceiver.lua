@@ -1,9 +1,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local Type_Equipment = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.CharacterSection.Components.Type_Equipment)
+
 local remotes: {[string] : RemoteEvent} = {
     ToggleWear = ToolSystem_Storage.Wearable.Remotes.ToggleWear,
     OnWorn = ToolSystem_Storage.Wearable.Remotes.OnWorn,
-    CreateWornItemStorage = ToolSystem_Storage.Wearable.Remotes.CreateWornItemStorage
 }
 
 
@@ -52,15 +54,17 @@ return function()
         end
     end)
 
-    remotes.CreateWornItemStorage.OnServerEvent:Connect(function(player: Player, validWearableCategories)  
-        local WornItems: Folder = Instance.new("Folder")
-        WornItems.Name = "WornItems"
-        for _, v in validWearableCategories do
-            local folder = Instance.new("Folder")
-            folder.Name = v
-            folder.Parent = WornItems
-        end
-        WornItems.Parent = player.Backpack
+    Players.PlayerAdded:Connect(function(player: Player)  
+        player.CharacterAdded:Connect(function(character: Model)  
+            local WornItems: Folder = Instance.new("Folder")
+            WornItems.Name = "WornItems"
+            for _, v in Type_Equipment.validWearableCategories do
+                local folder = Instance.new("Folder")
+                folder.Name = v
+                folder.Parent = WornItems
+            end
+            WornItems.Parent = player.Backpack
+        end)
     end)
 
     remotes.OnWorn.OnServerEvent:Connect(function(player: Player, tool: Tool, wearableCategory)

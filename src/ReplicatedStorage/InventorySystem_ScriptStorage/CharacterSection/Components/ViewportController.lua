@@ -1,35 +1,45 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
+local Trove = require(ReplicatedStorage.Packages.Trove)
+local player = game:GetService("Players").LocalPlayer
 
 local ScriptStorage = ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage
 local ViewportCharacter = require(ScriptStorage.CharacterSection.Components.ViewportCharacter)
 
+export type ViewportController = {
+    vpCharObj: ViewportCharacter.vpCharObj,
+    trove: any
+}
+
 local ViewportController = {}
 
-function ViewportController.init()
+function ViewportController.new(viewportFrame: ViewportFrame): ViewportController
     -- make sure character is in viewport frame first
     task.wait(0.5)
-    local character = References_Inventory.player.Character or References_Inventory.player.CharacterAdded:Wait()
+    local character = player.Character or player.CharacterAdded:Wait()
 
-    local vpCharObj = ViewportCharacter.handleCharacter(References_Inventory.Viewport, character)
-    local trove_dragToRotate = ViewportController._connectDragToRotate(vpCharObj)
+    local self: ViewportController = {
+        vpCharObj = ViewportCharacter.handleCharacter(viewportFrame, character),
+        trove = nil
+    }
+    self.trove = ViewportController._connectDragToRotate(self)
 
-    local humanoid = character:WaitForChild("Humanoid"):: Humanoid
-    humanoid.Died:Once(function()  
-        trove_dragToRotate:Destroy()
-        ViewportCharacter.stopHandling(vpCharObj)
-    end)
+    return self
 end
 
-function ViewportController._connectDragToRotate(vpCharObj: ViewportCharacter.vpCharObj)
+function ViewportController.Destroy(self: ViewportController)
+   self.trove:Destroy() 
+   ViewportCharacter.stopHandling(self.vpCharObj)
+end
+
+function ViewportController._connectDragToRotate(self: ViewportController)
     local UIS = game:GetService("UserInputService")
     local RunService = game:GetService("RunService")
-    local mouse = References_Inventory.player:GetMouse()
+    local mouse = player:GetMouse()
     local lastX: number? = nil
     local deltaX: number = 0
     local connections = {}
     local BindName = "RestoreEquilibrium"
-    local trove = References_Inventory.Trove.new()
+    local trove = Trove.new()
     
     local function cleanUpConnections()
         for _, v in connections do
@@ -44,8 +54,9 @@ function ViewportController._connectDragToRotate(vpCharObj: ViewportCharacter.vp
         RunService:UnbindFromRenderStep(BindName)
     end)
 
+    local vpCharObj = self.vpCharObj
     trove:Add(
-        References_Inventory.Viewport.InputBegan:Connect(function(io: InputObject)
+        vpCharObj.Viewport.InputBegan:Connect(function(io: InputObject)
             if io.UserInputType == Enum.UserInputType.MouseButton1 then
                 
                 RunService:UnbindFromRenderStep(BindName)

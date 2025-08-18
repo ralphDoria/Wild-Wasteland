@@ -171,4 +171,6 @@ function Melee.toggleSwingTrail(self : MeleeObject, toggle : boolean)
     end
 end
 
+-- function Melee.Destroy
+
 return Melee

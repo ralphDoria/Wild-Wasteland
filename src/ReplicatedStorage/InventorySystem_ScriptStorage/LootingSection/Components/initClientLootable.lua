@@ -2,7 +2,7 @@ local RS = game:GetService("ReplicatedStorage")
 local References_Inventory_Client = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
 
 local InventoryScriptStorage = RS.RojoManaged_RS.InventorySystem_ScriptStorage
-local StandardLootHPPManager = require(InventoryScriptStorage.LootingSection.Components.StandardLootHPPManager)
+local LootPromptManager = require(InventoryScriptStorage.LootingSection.Components.LootPromptManager)
 local LootGuiManager = require(InventoryScriptStorage.LootingSection.Components.LootGuiManager)
 local InventoryToggle = require(InventoryScriptStorage.Components.InventoryToggle)
 local LootActions = require(InventoryScriptStorage.LootingSection.Components.LootActions)
@@ -33,7 +33,7 @@ local function initClientLootable(lootable: Tool | Model): (ProximityPrompt, Hig
 
     local ppContainer = if lootable.Name == "HumanoidRootPart" then lootable else getPrimaryPart(lootable) 
 
-    local hppManagerObject = StandardLootHPPManager.new(lootable, ppContainer, 
+    local hppManagerObject = LootPromptManager.new(lootable, ppContainer, 
         function(pp: ProximityPrompt)  
             InventoryToggle.ChangeForm("LootingForm")
 

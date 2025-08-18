@@ -2,10 +2,11 @@
 
 local RS = game:GetService("ReplicatedStorage")
 local References_Inventory = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
+local player = game:GetService("Players").LocalPlayer
 
 -- Sections
 local ScriptStorage = RS.RojoManaged_RS.InventorySystem_ScriptStorage
-local CharacterSection = require(ScriptStorage.CharacterSection.Main_CharacterSection)
+local CharacterSection = require(ScriptStorage.CharacterSection.CharacterSectionManager)
 local HotbarSection = require(ScriptStorage.HotbarSection.Main_HotbarSection)
 local LootingSection = require(ScriptStorage.LootingSection.Main_LootingSection)
 local SlotRegistry = require(ScriptStorage.Components.Slot.SlotRegistry)
@@ -20,74 +21,86 @@ local ItemMovementTracker = require("./Components/Misc/ItemMovementTracker")
 local InventoryToggle = require(ScriptStorage.Components.InventoryToggle)
 local LootedTagReplicatedToClient: RemoteEvent = RS.LootingSystem_Storage.Remotes.LootedTagReplicatedToClient
 local character = References_Inventory.player.Character or References_Inventory.player.CharacterAdded:Wait()
--- character:WaitForChild("Humanoid").Died:Connect(function()
---     error("TODO: Come back to this script to implement death procedures")
--- end)
 
-export type InventorySystemObject = {
-		
+export type InventoryManager = {
+	itemMovementTrackerObject: ItemMovementTracker.ItemMovementTracker,
+	characterSectionObject: CharacterSection.CharacterSectionObject,
+	hotbarSectionObject: HotbarSection.HotbarObject,
+	resizeInventoryConnection: RBXScriptConnection?
 }
 
-local InventoryManager = {
-	Connections = {}
-}
+local InventoryManager = {}
 
-local function preInitSetup()
+function InventoryManager.new(onToolAdded: (tool: Tool) -> (), onToolRemoved: (tool: Tool) -> ()): InventoryManager
+	References_Inventory.update()
+
 	References_Inventory.InventoryScreenGui.Enabled = true
 	References_Inventory.Hotbar.Visible = true
-end
 
-function InventoryManager.init()
-	preInitSetup()
+	local self: InventoryManager = {
+		characterSectionObject = CharacterSection.new(),
+		hotbarSectionObject = HotbarSection.new(References_Inventory.Hotbar),
+		itemMovementTrackerObject = ItemMovementTracker.new(
+			character,
+			References_Inventory.backpack,	
+			function(tool) --onAdded
+				onToolAdded(tool)
 
-	CharacterSection.init()
-	HotbarSection.init(References_Inventory.TemplateSlot, References_Inventory.Hotbar)
+				if tool:HasTag("Looted") then
+					warn("has loot tag, not filling slot here")
+					LootedTagReplicatedToClient:FireServer(tool)
+					return
+				end
+
+				local emptySlot : Slot.SlotObject? =  EmptySlotFinder.any()
+				if emptySlot then
+					Slot.FillSlot(emptySlot, tool)
+				end
+			end,
+			function(tool) --onEquipping
+			end,
+			function(tool) --onUnequipped
+				--@Notice: a bit inconsistent how I use the function below for emptying slots but not these two middle functions for anything. Might have to change later
+			end,
+			function(tool) --onDropped/onRemovedFromInventory
+				onToolRemoved(tool)
+				Slot.EmptySlot(SlotRegistry.toolToObjectMap[tool])
+			end
+		),
+		resizeInventoryConnection = nil
+	}
+
 	InventoryToggle.ChangeForm("Closed")
 	LootingSection.init() -- responsible for cleaning up inventory. May want to change organization of that so that main functionality is more obvious here since this file is supposed to be the "main hub"
 	
-	ItemMovementTracker(
-		function(tool) --onAdded
-			if tool:HasTag("Looted") then
-				warn("has loot tag, not filling slot here")
-				LootedTagReplicatedToClient:FireServer(tool)
-				return
-			end
-
-			local emptySlot : Slot.SlotObject? =  EmptySlotFinder.any()
-			if emptySlot then
-				Slot.FillSlot(emptySlot, tool)
-			end
-		end,
-		function(tool) --onEquipping
-		end,
-		function(tool) --onUnequipped
-			--@Notice: a bit inconsistent how I use the function below for emptying slots but not these two middle functions for anything. Might have to change later
-		end,
-		function(tool) --onDropped
-			Slot.EmptySlot(SlotRegistry.toolToObjectMap[tool])
-		end
-	)
-
-	table.insert(
-		InventoryManager.Connections,
-		References_Inventory.InventoryScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(InventoryManager.ResizeGui)
-	)
+	self.resizeInventoryConnection = References_Inventory.InventoryScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()  
+		InventoryManager.ResizeGui(self)
+	end)
 
 	InventoryToggle.Bind()
+ 
+	warn("INITIALIZED INVENTORY SYSTEM")
+	return self
+end
+
+function InventoryManager.Destroy(self: InventoryManager)
+	CharacterSection.Destroy(self.characterSectionObject)
+	ItemMovementTracker.Destroy(self.itemMovementTrackerObject)
+	HotbarSection.Destroy(self.hotbarSectionObject)
 end
 
 local cachedScreenSize = {
 	width = nil,
 	height = nil
 }
-function InventoryManager.ResizeGui()
+function InventoryManager.ResizeGui(self: InventoryManager)
 	local screenWidth = References_Inventory.InventoryScreenGui.AbsoluteSize.X
 
 	local screenHeight = References_Inventory.InventoryScreenGui.AbsoluteSize.Y
 	local HotbarHeight = References_Inventory.Hotbar.AbsoluteSize.Y
 	References_Inventory.MainInventory.Size = UDim2.new(1, 0, 0, screenHeight - HotbarHeight)
 
-	CharacterSection.ResizeGui()
+	CharacterSection.ResizeGui(self.characterSectionObject)
 
 	if screenWidth ~= cachedScreenSize.width then
 		cachedScreenSize.width = screenWidth

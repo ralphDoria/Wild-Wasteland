@@ -6,13 +6,12 @@ local Type_Item = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_Scrip
 local ActionManager = require("../../ActionManagerSystem/ActionManager")
 local Type_Equipment = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.CharacterSection.Components.Type_Equipment)
 local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
-local remotes: {[string] : RemoteEvent} = {
-    ToggleWear = ToolSystem_Storage.Wearable.Remotes.ToggleWear,
-    OnWorn = ToolSystem_Storage.Wearable.Remotes.OnWorn,
-    CreateWornItemStorage = ToolSystem_Storage.Wearable.Remotes.CreateWornItemStorage
+local remotes = {
+    ToggleWear = ToolSystem_Storage.Wearable.Remotes.ToggleWear:: RemoteEvent,
+    OnWorn = ToolSystem_Storage.Wearable.Remotes.OnWorn:: RemoteEvent,
 }
-local bindables: {[string] : BindableEvent} = {
-    ToggleWear = ToolSystem_Storage.Wearable.Bindables.ToggleWear
+local bindables = {
+    ToggleWear = ToolSystem_Storage.Wearable.Bindables.ToggleWear:: BindableEvent
 }
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ToolCatalog: Folder = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
@@ -29,12 +28,12 @@ export type WearableType = Item.ItemType & {
 local Slot = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.Slot)
 local player = game:GetService("Players").LocalPlayer
 
-remotes.CreateWornItemStorage:FireServer(Type_Equipment.validWearableCategories)
-local WornItems: Folder = player.Backpack:WaitForChild("WornItems")
+local WornItems: Folder
 
 local Wearable = {}
 
 function Wearable.new(tool: Tool, humanoid: Humanoid)
+    WornItems = player.Backpack:WaitForChild("WornItems")
     local self = Item.new(tool, humanoid):: WearableType
     
     local thisWearableCategory = tool:GetAttribute("WearableCategory")

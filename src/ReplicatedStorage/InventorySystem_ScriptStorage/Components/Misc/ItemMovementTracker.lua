@@ -61,7 +61,6 @@ function ItemMovementTracker._init(
 		else
 			-- print(child.Name .. " was added to inventory")
             ItemMovementTracker._addToCachedTools(self, child)
-            onAdded(child)
 		end
 	end)
 	
@@ -74,7 +73,6 @@ function ItemMovementTracker._init(
 		elseif child.Parent == workspace or child:FindFirstAncestor(LootItemsHolding.Name) then
 			--print(child.Name .. " dropped from gui")
             ItemMovementTracker._removeFromCachedTools(self, child)
-            onDropped(child)
 		end
 	end)
 	
@@ -84,8 +82,15 @@ function ItemMovementTracker._init(
 		if child.Parent == workspace or child:FindFirstAncestor(LootItemsHolding.Name) then
 			--print(child.Name .. " dropped from equip")
             ItemMovementTracker._removeFromCachedTools(self, child)
-            onDropped(child)
 		end
+	end)
+
+	self.trove:Connect(ItemMovementTracker.added, function(tool: Tool)
+		onAdded(tool)
+	end)
+
+	self.trove:Connect(ItemMovementTracker.removed, function(tool: Tool)
+		onDropped(tool)	
 	end)
 
 	-- Initial Check (Placed after all events are connected to prevent any race conditions where initial check happens,
@@ -93,17 +98,16 @@ function ItemMovementTracker._init(
 	for _, v in backpack:GetChildren() do
 		if v:IsA("Tool") then
             ItemMovementTracker._addToCachedTools(self, v)
-			onAdded(v)
 		end
 	end
 	local equippedTool = character:FindFirstChildOfClass("Tool")
 	if equippedTool then
 		ItemMovementTracker._addToCachedTools(self, equippedTool)
-		onAdded(equippedTool)
 	end
 end
 
 function ItemMovementTracker._addToCachedTools(self: ItemMovementTracker, tool: Tool)
+	if table.find(self.cachedTools, tool) then return end
 	table.insert(self.cachedTools, tool)
 	addedToCacheEvent:Fire(tool)
 end
@@ -111,18 +115,25 @@ end
 function ItemMovementTracker._removeFromCachedTools(self: ItemMovementTracker, tool: Tool)
 	local i = table.find(self.cachedTools, tool)
 	if i then
-		table.remove(self.cachedTools, i)		
+		task.defer(function() -- task.defer is to prevent index shifts from affecting the for loop in the ItemMovementTracker.Destroy()
+			table.remove(self.cachedTools, i)		
+		end)
 		removedFromCacheEvent:Fire(tool)
+	else
+		warn(`{tool} not found in cachedTools`)
 	end
 end
 
 function ItemMovementTracker.Destroy(self: ItemMovementTracker)
+	warn(self.cachedTools)
 	for i, v in self.cachedTools do
 		ItemMovementTracker._removeFromCachedTools(self, v)
 	end
-	table.clear(self.cachedTools)
-	self.trove:Destroy()
-	table.clear(self)
+	task.defer(function()
+		table.clear(self.cachedTools)
+		self.trove:Destroy()
+		table.clear(self)
+	end)
 end
 
 return ItemMovementTracker
