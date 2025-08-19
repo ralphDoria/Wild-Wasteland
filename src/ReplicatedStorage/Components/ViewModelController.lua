@@ -23,7 +23,7 @@ local OriginC0 : CFrame = {
 local ViewModelController = {}
 ViewModelController.__index = ViewModelController
 
-function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hrp)
+function ViewModelController.new(viewmodel : Model, tool : Tool, animObjects, hrp)
     --warn("creating new vmTool for " .. tool.Name)
     local vmTool = tool:Clone()
     vmTool:AddTag("vmTool") --This tag negates the vmTool's CCTC (Centralized Client Tool Code) tag, which is handled in SCS.
@@ -59,12 +59,12 @@ function ViewModelController.new(viewModel : Model, tool : Tool, animObjects, hr
 
     local self = {
         _enabled = false,
-        viewModel = viewModel,
+        viewmodel = viewmodel,
         vmTool = vmTool,
         toolEquipped = false,
         toolInstances = toolInstances,
         animObjects = animObjects,
-        animationController = AnimationController.new(viewModel.Humanoid.Animator, animObjects),
+        animationController = AnimationController.new(viewmodel.Humanoid.Animator, animObjects),
         stride = 0,
 		bobbing = 0,
         aiming = false,
@@ -139,17 +139,17 @@ function ViewModelController:enable()
         end
         --
 
-        local viewModelInitialOffset : CFrame = CFrame.new(0, -1, 0)
-        local viewModelOffset
+        local viewmodelInitialOffset : CFrame = CFrame.new(0, -1, 0)
+        local viewmodelOffset
         if not self.toolEquipped and equipTimeAccumulated <= self.animationController.animationTracks.equip.Length then
             equipTimeAccumulated += deltaTime
             local lerpAlpha = equipTimeAccumulated/self.animationController.animationTracks.equip.Length
-            viewModelOffset = viewModelInitialOffset:Lerp(Constants.VIEW_MODEL_OFFSET, lerpAlpha)
+            viewmodelOffset = viewmodelInitialOffset:Lerp(Constants.VIEW_MODEL_OFFSET, lerpAlpha)
         else
-            viewModelOffset = Constants.VIEW_MODEL_OFFSET
+            viewmodelOffset = Constants.VIEW_MODEL_OFFSET
         end
 
-        self.viewModel.Head.CFrame = workspace.CurrentCamera.CFrame * viewModelOffset * bobbingCFrame * swayCFrame--this mainly makes the magic happen
+        self.viewmodel.Head.CFrame = workspace.CurrentCamera.CFrame * viewmodelOffset * bobbingCFrame * swayCFrame--this mainly makes the magic happen
 
         ------
         if self.vmTool:HasTag("Gun") then
@@ -157,27 +157,27 @@ function ViewModelController:enable()
                 aimTransitionTimeAccumulated = math.clamp(aimTransitionTimeAccumulated + deltaTime, 0, self.adsSpeed)
                 local lerpAlpha = math.clamp(aimTransitionTimeAccumulated/self.adsSpeed, 0, 1)
                 local actual_ads_CFrame = CFrame.new():Lerp(ads_CFrame, lerpAlpha)
-                self.viewModel.Head.CFrame *= actual_ads_CFrame
+                self.viewmodel.Head.CFrame *= actual_ads_CFrame
             elseif self.aiming == false then
                 aimTransitionTimeAccumulated = math.clamp(aimTransitionTimeAccumulated - deltaTime, 0, self.adsSpeed)
                 local lerpAlpha = math.clamp(aimTransitionTimeAccumulated/self.adsSpeed, 0, 1)
                 local actual_ads_CFrame = CFrame.new():Lerp(ads_CFrame, lerpAlpha) --so then I think the bug might be due to some side effect overriding this line of code right here
-                self.viewModel.Head.CFrame *= actual_ads_CFrame
+                self.viewmodel.Head.CFrame *= actual_ads_CFrame
             end
 
             --[[
             camera recoil
             ]]
-            --print(self.animationController.animationTracks.viewModelFire.TimePosition) | animation seems to be playing al the way here, but not when checking the animation.IsPlaying
-            if self.animationController.animationTracks.viewModelFire.IsPlaying then
+            --print(self.animationController.animationTracks.viewmodelFire.TimePosition) | animation seems to be playing al the way here, but not when checking the animation.IsPlaying
+            if self.animationController.animationTracks.viewmodelFire.IsPlaying then
                 --recoil from cframe, not traditional animation
-                --if the animation viewModelFire is playing, then it is implied that the player is aiming down sight
-                --print(tostring(self.animationController.animationTracks.viewModelFire.TimePosition) .. "/" .. tostring(self.animationController.animationTracks.viewModelFire.Length))
+                --if the animation viewmodelFire is playing, then it is implied that the player is aiming down sight
+                --print(tostring(self.animationController.animationTracks.viewmodelFire.TimePosition) .. "/" .. tostring(self.animationController.animationTracks.viewmodelFire.Length))
                 local ads_recoil_offset = CFrame.new(0, 0, 0.3) * CFrame.Angles(math.rad(5), 0, 0)
-                local alpha = self.animationController.animationTracks.viewModelFire.TimePosition/self.animationController.animationTracks.viewModelFire.Length
+                local alpha = self.animationController.animationTracks.viewmodelFire.TimePosition/self.animationController.animationTracks.viewmodelFire.Length
                 --print(alpha) | isn't reaching 1, but it doesn't matter because it's just the recoil animation and the last frame isn't really needed to be shown
                 local transition_ads_recoil_offset = CFrame.new():Lerp(ads_recoil_offset, alpha)
-                self.viewModel.Head.CFrame *= transition_ads_recoil_offset
+                self.viewmodel.Head.CFrame *= transition_ads_recoil_offset
                 workspace.CurrentCamera.FieldOfView = 72
                 workspace.CurrentCamera.CFrame *= CFrame.Angles(math.rad(0.5), 0, 0)
             elseif self.animationController.animationTracks.hipfire.IsPlaying then
@@ -227,21 +227,21 @@ function ViewModelController:hideViewModelTool()
 end
 
 function ViewModelController:equipTool()
-   self.vmTool.Parent = self.viewModel
+   self.vmTool.Parent = self.viewmodel
    --warn("setting vm BodyAttachJoint to " .. self.vmTool.Name)
-   self.viewModel:WaitForChild("Torso").BodyAttachJoint.Part1 = self.vmTool.BodyAttach 
+   self.viewmodel:WaitForChild("Torso").BodyAttachJoint.Part1 = self.vmTool.BodyAttach 
 end
 
 function ViewModelController:unequipTool()
     self.vmTool.Parent = nil
-    if not self.viewModel:FindFirstChildOfClass("Tool") then
+    if not self.viewmodel:FindFirstChildOfClass("Tool") then
         --warn("setting vm BodyAttachJoint to nil by " .. self.vmTool.Name .. "'s code.")
-        self.viewModel:WaitForChild("Torso").BodyAttachJoint.Part1 = nil
+        self.viewmodel:WaitForChild("Torso").BodyAttachJoint.Part1 = nil
     end
 end
 
 function ViewModelController:stopAllViewModelAnimations()
-    for _, animTrack : AnimationTrack in self.viewModel.Humanoid.Animator:GetPlayingAnimationTracks() do
+    for _, animTrack : AnimationTrack in self.viewmodel.Humanoid.Animator:GetPlayingAnimationTracks() do
 		for _, anim : Animation in self.animObjects do
             if animTrack.Animation == anim then
                 animTrack:Stop()

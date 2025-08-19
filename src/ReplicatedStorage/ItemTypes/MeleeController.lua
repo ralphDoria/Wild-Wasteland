@@ -53,7 +53,7 @@ function MeleeController.new(melee : Tool)
 	        activate = melee:WaitForChild("SFX_part"):WaitForChild("Sword Swing Metal Heavy"),
             impactSounds = melee:WaitForChild("SFX_part").impactSounds
         },
-        viewModelController = ViewModelController.new(workspace.CurrentCamera:WaitForChild("viewModel"), melee, animObjects, hrp),
+        viewmodelController = ViewModelController.new(workspace.CurrentCamera:WaitForChild("viewmodel"), melee, animObjects, hrp),
         canActivate = false,
         equipped = false,
         damage = melee:GetAttribute("Damage"),
@@ -88,11 +88,11 @@ function MeleeController:initialize()
         Players.LocalPlayer.Character.Torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
             if isFirstPerson() then
                 if self.equipped then
-                    self.viewModelController:enable()
+                    self.viewmodelController:enable()
                 end
             else
                 if self.equipped then
-                    self.viewModelController:disable()
+                    self.viewmodelController:disable()
                 end
             end
         end)
@@ -134,11 +134,11 @@ end
 
 function MeleeController:equip()
     if isFirstPerson() then
-        self.viewModelController:enable()
+        self.viewmodelController:enable()
     else
-        self.viewModelController:disable()
+        self.viewmodelController:disable()
     end
-    self.viewModelController:equipTool()
+    self.viewmodelController:equipTool()
 
     rev_playSound:FireServer(self.soundObjects.equip, self.SFX_part, 0)
     self.equipped = true
@@ -162,11 +162,11 @@ function MeleeController:equip()
     self.currentPlayer:GetMouse().Icon = self.tool:GetAttribute("Cursor")
 
     self.currentCharacterAnimationController.animationTracks.equip:Play()
-    self.viewModelController.animationController.animationTracks.equip:Play()
+    self.viewmodelController.animationController.animationTracks.equip:Play()
     self.currentCharacterAnimationController.animationTracks.equip.Stopped:Wait()
     if self.equipped then --checking this because during the equip animation, players can unequip the tool, causing a bug
         self.equipped = true
-        self.viewModelController.toolEquipped = true
+        self.viewmodelController.toolEquipped = true
         ContextActionService:BindAction(Constants.ACTION_DROP_TOOL, function(actionName, inputState, _inputObject)
             if actionName == Constants.ACTION_DROP_TOOL and inputState == Enum.UserInputState.Begin then
                 self:unequip()
@@ -174,7 +174,7 @@ function MeleeController:equip()
             end
         end, true, Enum.KeyCode.X)
         self.currentCharacterAnimationController.animationTracks.idle:Play()
-        self.viewModelController.animationController.animationTracks.idle:Play()
+        self.viewmodelController.animationController.animationTracks.idle:Play()
         self.canActivate = true
     end
 end
@@ -183,7 +183,7 @@ function MeleeController:activate()
     if self.canActivate then
 		self.canActivate = false
 		self.currentCharacterAnimationController.animationTracks.activate:Play()
-        self.viewModelController.animationController.animationTracks.activate:Play()
+        self.viewmodelController.animationController.animationTracks.activate:Play()
 		self.currentCharacterAnimationController.animationTracks.activate:GetMarkerReachedSignal("ForwardSwing"):Once(function()
 			self.hitboxController:HitStart()
             rev_activate:FireServer(self.tool, true, self.soundObjects.activate, 0, self.SFX_part)
@@ -201,10 +201,10 @@ end
 
 function MeleeController:unequip()
     self.equipped = false
-    self.viewModelController.toolEquipped = false
+    self.viewmodelController.toolEquipped = false
     rev_activate:FireServer(self.tool, false) --for safety
-    self.viewModelController:disable()
-    self.viewModelController:unequipTool()
+    self.viewmodelController:disable()
+    self.viewmodelController:unequipTool()
 
     self.equipped = false
     ContextActionService:UnbindAction(Constants.ACTION_DROP_TOOL)
@@ -218,7 +218,7 @@ function MeleeController:unequip()
             end
         end
 	end
-    self.viewModelController:stopAllViewModelAnimations()
+    self.viewmodelController:stopAllViewModelAnimations()
 	self.currentCharacterAnimationController:destroy()
 	self.currentCharacter:SetAttribute(string.gsub(self.tool.Name, " ", "") .. "AnimsLoaded", nil)
 end

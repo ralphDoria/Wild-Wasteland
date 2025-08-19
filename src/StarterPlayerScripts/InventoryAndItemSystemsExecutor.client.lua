@@ -1,35 +1,29 @@
 local player = game:GetService("Players").LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local InventoryManager = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.InventoryManager)
-local instantiateTool: (Tool) -> () = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage.PlayerScripts.instantiateTool)
-
-type itemsToDestroy = {
-    [Tool]: {
-        itemInstance: any,
-        destroyFunction: (any) -> ()
-    }
-}
-local itemstoDestroy: itemsToDestroy = {}
+local ItemInstantiator = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.PlayerScripts.ItemInstantiator)
+local References_ItemSystem = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.References_ItemSystem)
 
 local function initInventorySystem(character: Model)
     local InventoryObj = InventoryManager.new(
         function(tool: Tool) -- onToolAdded
-            local itemInstance, destroyFunction = instantiateTool(tool) 
+            local itemInstance, destroyFunction = ItemInstantiator.instantiateTool(tool) 
             if itemInstance == nil then
+                warn("Item Instance returned nil")
                 return
             else
-                itemstoDestroy[itemInstance.tool] = {
+                ItemInstantiator.toolToDestroyInfoMap[itemInstance.tool] = {
                     itemInstance = itemInstance,
                     destroyFunction = destroyFunction
                 } 
             end
         end,
         function(tool: Tool) -- onToolRemoved
-            local destroyInfo = itemstoDestroy[tool]
+            local destroyInfo = ItemInstantiator.toolToDestroyInfoMap[tool]
             if destroyInfo then
                 task.defer(function()
                     destroyInfo.destroyFunction(destroyInfo.itemInstance)
-                    itemstoDestroy[tool] = nil
+                    ItemInstantiator.toolToDestroyInfoMap[tool] = nil
                 end)
             else
                 warn("Destroy info not found")
@@ -43,11 +37,15 @@ local function initInventorySystem(character: Model)
     end)
 end
 
+ItemInstantiator.initToolPrompts()
+
 local initialCharacter = player.Character
 if initialCharacter then
+    References_ItemSystem.update(initialCharacter)
     initInventorySystem(initialCharacter)
 end
 
 player.CharacterAdded:Connect(function(character: Model)  
+    References_ItemSystem.update(character)
     initInventorySystem(character)
 end)

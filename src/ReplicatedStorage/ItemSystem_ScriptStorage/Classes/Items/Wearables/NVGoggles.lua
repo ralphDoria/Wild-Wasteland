@@ -6,7 +6,7 @@ local RunService = game:GetService("RunService")
 
 -- for NV effects
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Instances = ReplicatedStorage.ToolSystem_Storage.ToolCatalog["NV Goggles"].Instances:: Folder
+local Instances = ReplicatedStorage.ItemSystem_Storage.ToolCatalog["NV Goggles"].Instances:: Folder
 local NV_Gui = Instances.NV_Gui:: ScreenGui
 local vhsGrain = NV_Gui.vhsGrain:: ImageLabel
 NV_Gui.Enabled = false

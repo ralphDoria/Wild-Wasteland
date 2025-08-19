@@ -1,14 +1,14 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local PlaySoundUtil = require(ReplicatedStorage:FindFirstChild("Utility", true).PlaySoundUtil)
 local remotes: {[string] : RemoteEvent} = {
-    PlaySound = ToolSystem_Storage.Shared.Remotes.PlaySound,
-    ToggleToolCanCollide = ToolSystem_Storage.Shared.Remotes.ToggleToolCanCollide,
-    DropTool = ToolSystem_Storage.Shared.Remotes.DropTool,
-    PickUpTool = ToolSystem_Storage.Shared.Remotes.PickUpTool
+    PlaySound = ItemSystem_Storage.Shared.Remotes.PlaySound,
+    ToggleToolCanCollide = ItemSystem_Storage.Shared.Remotes.ToggleToolCanCollide,
+    DropTool = ItemSystem_Storage.Shared.Remotes.DropTool,
+    PickUpTool = ItemSystem_Storage.Shared.Remotes.PickUpTool
 }
-local pickUp : Sound = ToolSystem_Storage.Shared.Sounds.pickUp
+local pickUp : Sound = ItemSystem_Storage.Shared.Sounds.pickUp
 local OnHitFloor = require("./OnHitFloor")
 
 return function()

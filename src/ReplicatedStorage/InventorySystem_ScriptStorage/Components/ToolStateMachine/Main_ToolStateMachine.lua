@@ -2,10 +2,10 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local Bindables : {[string] : BindableEvent} = {
-    ToggleEquip = ReplicatedStorage.ToolSystem_Storage.Shared:FindFirstChild("ToggleEquip", true),
-    ToggleWear = ToolSystem_Storage.Wearable.Bindables.ToggleWear
+    ToggleEquip = ReplicatedStorage.ItemSystem_Storage.Shared:FindFirstChild("ToggleEquip", true),
+    ToggleWear = ItemSystem_Storage.Wearable.Bindables.ToggleWear
 }
 local Type_Equipment = require("./../../CharacterSection/Components/Type_Equipment")
 local Select = require("./../Slot/Select")

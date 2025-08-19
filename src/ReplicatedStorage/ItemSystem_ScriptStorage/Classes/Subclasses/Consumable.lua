@@ -1,14 +1,15 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
-local remotes: {[string] : RemoteEvent} = {
-    dispose = ToolSystem_Storage.Consumable.Remotes.Dispose,
+local References_ItemSystem = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.References_ItemSystem)
+
+local consumableRemotes = {
+    dispose = References_ItemSystem.ItemSystem_Storage.Consumable.Remotes.Dispose,
 }
+
 local particles : {[string] : ParticleEmitter} = {
-    -- blood = ToolSystem_Storage.Melee.Instances.Blood
+    -- blood = ItemSystem_Storage.Melee.Instances.Blood
 }
-local ActionManager = require("../../ActionManagerSystem/ActionManager")
+-- parent class
 local Item = require("../Superclasses/Item")
-local ToolHighlightAndProxPromptManager = require("../Components/Shared/ToolHighlightAndProxPromptManager")
 
 export type ConsumableObject = Item.ItemType & {
     consumeSpeed: number?,
@@ -18,8 +19,8 @@ export type ConsumableObject = Item.ItemType & {
 
 local Consumable = {}
 
-function Consumable.new(tool : Tool, humanoid : Humanoid): ConsumableObject
-    local self = Item.new(tool, humanoid)
+function Consumable.new(tool : Tool): ConsumableObject
+    local self = Item.new(tool)
     self.consumeSpeed = 1
     -- The two attributes below will be assigned when the initialize function is called (which is called by the child)
     self.childClassCleanupFunction = nil
@@ -30,7 +31,7 @@ end
 
 local function toggleInjectBind(self : ConsumableObject, toggle : boolean)
     if toggle then
-        ActionManager.bindAction(
+        References_ItemSystem.ActionManager.bindAction(
             self.actionNames.activate, 
             function(): (() -> (), () -> (), () -> ())  
 
@@ -54,7 +55,7 @@ local function toggleInjectBind(self : ConsumableObject, toggle : boolean)
             nil, 
             "rbxassetid://115384682565092")
     else
-        ActionManager.unbindAction(self.actionNames.activate)
+        References_ItemSystem.ActionManager.unbindAction(self.actionNames.activate)
     end
 end
 
@@ -82,8 +83,7 @@ function Consumable.initialize(self: ConsumableObject, activatedEffects: () -> (
         end
     )
 
-    self.connections.dispose = remotes.dispose.OnClientEvent:Connect(function(tool: Tool)
-
+    self.trove:Connect(consumableRemotes.dispose.OnClientEvent, function(tool: Tool)
         if tool ~= self.tool then return end
 
         if self.childClassCleanupFunction then
@@ -97,10 +97,10 @@ end
 function Consumable.activate(self: ConsumableObject)
     if self.State == "Idle" then
         Item.ChangeState(self, "Activated")
-        local activateTrack = self.animManager.animationTracks[self.tool.Name].activate
-        local vmActivateTrack = self.ViewmodelManager.animManager.animationTracks[self.tool.Name].activate
-        local idleTrack = self.animManager.animationTracks[self.tool.Name].idle
-        local vmIdleTrack = self.ViewmodelManager.animManager.animationTracks[self.tool.Name].idle
+        local activateTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].activate
+        local vmActivateTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].activate
+        local idleTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].idle
+        local vmIdleTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].idle
         activateTrack:Play(0.1, 1, self.consumeSpeed)
         vmActivateTrack:Play(0.1, 1, self.consumeSpeed)
         idleTrack:Stop()
@@ -113,7 +113,7 @@ function Consumable.activate(self: ConsumableObject)
         Item.drop(self, function()  
             toggleInjectBind(self, false)
         end)
-        remotes.dispose:FireServer(self.tool)
+        consumableRemotes.dispose:FireServer(self.tool)
     end
 end
 

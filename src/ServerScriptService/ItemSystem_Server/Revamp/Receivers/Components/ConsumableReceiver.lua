@@ -1,8 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local remotes: {[string] : RemoteEvent} = {
-    dispose = ToolSystem_Storage.Consumable.Remotes.Dispose,
-    heal = ToolSystem_Storage.Consumable.Remotes.Heal
+    dispose = ItemSystem_Storage.Consumable.Remotes.Dispose,
+    heal = ItemSystem_Storage.Consumable.Remotes.Heal
 }
 local Debris = game:GetService("Debris")
 

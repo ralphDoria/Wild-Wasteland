@@ -68,7 +68,7 @@ function ItemTemplate:initialize(subclassObject)
 
     --Since the :initialize() method is called from the final child class, these animation controllers are created using that final child class's properties
     self.charAnimController = AnimationController.new(character:FindFirstChild("Animator", true), self.animObjects)
-    self.vmController = ViewmodelController.new(workspace.CurrentCamera:WaitForChild("viewModel"), self.tool, self.animObjects, hrp)
+    self.vmController = ViewmodelController.new(workspace.CurrentCamera:WaitForChild("viewmodel"), self.tool, self.animObjects, hrp)
 
 
     --Event Connetions

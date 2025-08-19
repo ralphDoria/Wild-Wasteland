@@ -52,7 +52,7 @@ function GunController.new(gun : Tool)
         idle = gun:WaitForChild("Anims"):WaitForChild("idle"),
         hipfire = gun:WaitForChild("Anims"):WaitForChild("hipfire"),
         adsFire = gun:WaitForChild("Anims"):WaitForChild("adsFire"),
-        viewModelFire = gun:WaitForChild("Anims"):WaitForChild("viewModelFire"),
+        viewmodelFire = gun:WaitForChild("Anims"):WaitForChild("viewmodelFire"),
         reload = gun:WaitForChild("Anims"):WaitForChild("reload"),
         adsIdle = gun:WaitForChild("Anims"):WaitForChild("adsIdle"),
         sprint = gun:WaitForChild("Anims"):WaitForChild("sprint")
@@ -87,7 +87,7 @@ function GunController.new(gun : Tool)
             ["fleshImpact"] = gun:WaitForChild("SFX_part"):WaitForChild("bulletImpact"):WaitForChild("flesh"),
             ["hardImpact"] = gun:WaitForChild("SFX_part"):WaitForChild("bulletImpact"):WaitForChild("hardSurface")
         },
-        viewModelController = ViewModelController.new(workspace.CurrentCamera:WaitForChild("viewModel"), gun, animObjects, hrp),
+        viewmodelController = ViewModelController.new(workspace.CurrentCamera:WaitForChild("viewmodel"), gun, animObjects, hrp),
         canActivate = false,
         canReload = false,
         canAimDownSight = false,
@@ -105,7 +105,7 @@ function GunController.new(gun : Tool)
         sprintConnection = {},
         connections = {}
     }
-    self.viewModelController.adsSpeed = self.adsSpeed
+    self.viewmodelController.adsSpeed = self.adsSpeed
     assert(self.tool.RequiresHandle == false, "Need to turn of RequiresHandle in the given tool")
     setmetatable(self, GunController)
     self:initialize()
@@ -136,11 +136,11 @@ function GunController:initialize()
         Players.LocalPlayer.Character.Torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
             if isFirstPerson() then
                 if self.equipped then
-                    self.viewModelController:enable()
+                    self.viewmodelController:enable()
                 end
             else
                 if self.equipped then
-                    self.viewModelController:disable()
+                    self.viewmodelController:disable()
                 end
             end
         end)
@@ -155,17 +155,17 @@ function GunController:_aimDownSight(shouldAim : boolean)
     if shouldAim then
         UserInputService.MouseIconEnabled = false
         self.aiming = true
-        self.viewModelController:SetAiming(true)
+        self.viewmodelController:SetAiming(true)
         self.soundObjects.adsIn:Play()
         self.currentCharacterAnimationController.animationTracks.adsIdle:play(self.adsSpeed)
-        --viewModel animations will be animated w/ CFrame
+        --viewmodel animations will be animated w/ CFrame
     else
         UserInputService.MouseIconEnabled = true
         self.aiming = false
-        self.viewModelController:SetAiming(false)
+        self.viewmodelController:SetAiming(false)
         self.soundObjects.adsOut:Play()
         self.currentCharacterAnimationController.animationTracks.adsIdle:Stop(self.adsSpeed)
-        --viewModel animations will be animated w/ CFrame
+        --viewmodel animations will be animated w/ CFrame
     end
 end
 
@@ -182,11 +182,11 @@ function GunController:equip()
     player.CameraMode = Enum.CameraMode.LockFirstPerson
     rev_playSound:FireServer(self.soundObjects.equip, 0, self.SFX_part)
     if isFirstPerson() then
-        self.viewModelController:enable()
+        self.viewmodelController:enable()
     else
-        self.viewModelController:disable()
+        self.viewmodelController:disable()
     end
-    self.viewModelController:equipTool()
+    self.viewmodelController:equipTool()
     self.equipped = true
     self.currentPlayer = Players.LocalPlayer
     self.currentCharacter = self.currentPlayer.Character
@@ -205,20 +205,20 @@ function GunController:equip()
                 self:_aimDownSight(false)
                 self.cancelReload = true
                 self.currentCharacterAnimationController.animationTracks.reload:Stop()
-                self.viewModelController.animationController.animationTracks.reload:Stop()
+                self.viewmodelController.animationController.animationTracks.reload:Stop()
                 self.currentCharacterAnimationController.animationTracks.idle:Stop()
-                self.viewModelController.animationController.animationTracks.idle:Stop()
+                self.viewmodelController.animationController.animationTracks.idle:Stop()
                 self.currentCharacterAnimationController.animationTracks.sprint:Play()
-                self.viewModelController.animationController.animationTracks.sprint:Play()
+                self.viewmodelController.animationController.animationTracks.sprint:Play()
             else
                 self.canActivate = true
                 self.canReload = true
                 self.canAimDownSight = true
                 self.cancelReload = false
                 self.currentCharacterAnimationController.animationTracks.idle:Play()
-                self.viewModelController.animationController.animationTracks.idle:Play()
+                self.viewmodelController.animationController.animationTracks.idle:Play()
                 self.currentCharacterAnimationController.animationTracks.sprint:Stop()
-                self.viewModelController.animationController.animationTracks.sprint:Stop()
+                self.viewmodelController.animationController.animationTracks.sprint:Stop()
             end
         end
     end)
@@ -235,7 +235,7 @@ function GunController:equip()
     self.currentPlayer:GetMouse().Icon = self.tool:GetAttribute("Cursor")
 
     self.currentCharacterAnimationController.animationTracks.equip:Play()
-    self.viewModelController.animationController.animationTracks.equip:Play()
+    self.viewmodelController.animationController.animationTracks.equip:Play()
     self.currentCharacterAnimationController.animationTracks.equip.Stopped:Wait()
     if self.equipped then --checking this because during the equip animation, players can unequip the tool, causing a bug
         toolGuiController.setNameLabel(self.name)
@@ -244,7 +244,7 @@ function GunController:equip()
         toolGuiController.setAmmoIcon(findIconBasedOnAmmoType(self.ammoType))
         toolGuiController.setGuiEnabled(true)
         self.equipped = true
-        self.viewModelController.toolEquipped = true
+        self.viewmodelController.toolEquipped = true
         ContextActionService:BindAction(Constants.ACTION_DROP_TOOL, function(actionName, inputState, _inputObject)
             if actionName == Constants.ACTION_DROP_TOOL and inputState == Enum.UserInputState.Begin then
                 self:unequip()
@@ -270,7 +270,7 @@ function GunController:equip()
                         end
                     end)
                     self.currentCharacterAnimationController.animationTracks.reload:Play()
-                    self.viewModelController.animationController.animationTracks.reload:Play()
+                    self.viewmodelController.animationController.animationTracks.reload:Play()
                     self.currentCharacterAnimationController.animationTracks.reload.Stopped:Wait()
                     connection:Disconnect()
                     if self.equipped and not self.cancelReload then
@@ -310,10 +310,10 @@ function GunController:equip()
             self.canAimDownSight = true
             self.canReload = true
             self.currentCharacterAnimationController.animationTracks.idle:Play()
-            self.viewModelController.animationController.animationTracks.idle:Play()
+            self.viewmodelController.animationController.animationTracks.idle:Play()
         else
             self.currentCharacterAnimationController.animationTracks.sprint:Play()
-            self.viewModelController.animationController.animationTracks.sprint:Play()
+            self.viewmodelController.animationController.animationTracks.sprint:Play()
         end
     end
 end
@@ -347,7 +347,7 @@ function GunController:castRay()
             table.insert(self.blacklistedParts, v)
         end
     end
-    for _, v in self.viewModelController.viewModel:GetDescendants() do
+    for _, v in self.viewmodelController.viewmodel:GetDescendants() do
         if v:IsA("BasePart") then
             table.insert(self.blacklistedParts, v)
         end
@@ -361,7 +361,7 @@ function GunController:castRay()
     raycastParams.FilterType = Enum.RaycastFilterType.Exclude
     raycastParams.IgnoreWater = true
 
-    local vmMuzzle = self.viewModelController:getMuzzle()
+    local vmMuzzle = self.viewmodelController:getMuzzle()
 
     local rayMaxDistance = 500
     local originPosition = vmMuzzle.Position
@@ -403,11 +403,11 @@ function GunController:activate()
             if self.aiming then
                 --play ADS fire animation
                 self.currentCharacterAnimationController.animationTracks.adsFire:Play()
-                self.viewModelController.animationController.animationTracks.viewModelFire:Play()
+                self.viewmodelController.animationController.animationTracks.viewmodelFire:Play()
             else
                 --play hipfire animation
                 self.currentCharacterAnimationController.animationTracks.hipfire:Play()
-                self.viewModelController.animationController.animationTracks.hipfire:Play()
+                self.viewmodelController.animationController.animationTracks.hipfire:Play()
             end
     
             rev_playSound:FireServer(self.soundObjects.fire, 0, self.SFX_part)
@@ -415,7 +415,7 @@ function GunController:activate()
             --shell ejection (all client side)
             local shell = pistolShell:Clone()
             shell.Anchored = false --temporary to check if the shell is being positioned properly
-            shell.CFrame = self.viewModelController:getShellSpawnPart().CFrame * CFrame.Angles(math.rad(90), 0, 0)
+            shell.CFrame = self.viewmodelController:getShellSpawnPart().CFrame * CFrame.Angles(math.rad(90), 0, 0)
             shell.Parent = workspace
             --later, incorporate character velocity to adjust force
             local finalPosition = (shell.CFrame * CFrame.new(Vector3.new(-10, 0, 10))).Position --seems to behave like this: Vector3.new(x, z, y)
@@ -465,9 +465,9 @@ function GunController:unequip()
     player.CameraMode = Enum.CameraMode.Classic
     self:_aimDownSight(false)
     self.equipped = false
-    self.viewModelController.toolEquipped = false
-    self.viewModelController:disable()
-    self.viewModelController:unequipTool()
+    self.viewmodelController.toolEquipped = false
+    self.viewmodelController:disable()
+    self.viewmodelController:unequipTool()
 
     self.equipped = false
     ContextActionService:UnbindAction(Constants.ACTION_DROP_TOOL)
@@ -484,7 +484,7 @@ function GunController:unequip()
             end
         end
 	end
-    self.viewModelController:stopAllViewModelAnimations()
+    self.viewmodelController:stopAllViewModelAnimations()
 	self.currentCharacterAnimationController:destroy()
 	self.currentCharacter:SetAttribute(string.gsub(self.tool.Name, " ", "") .. "AnimsLoaded", nil)
 end

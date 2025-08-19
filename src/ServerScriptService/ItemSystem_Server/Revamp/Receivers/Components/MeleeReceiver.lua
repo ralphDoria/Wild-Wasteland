@@ -1,9 +1,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local remotes: {[string] : RemoteEvent} = {
-    Hit = ToolSystem_Storage.Melee.Remotes.Hit,
-    ImpactEffects = ToolSystem_Storage.Melee.Remotes.ImpactEffects,
-    ToggleSwingTrail = ToolSystem_Storage.Melee.Remotes.ToggleSwingTrail
+    Hit = ItemSystem_Storage.Melee.Remotes.Hit,
+    ImpactEffects = ItemSystem_Storage.Melee.Remotes.ImpactEffects,
+    ToggleSwingTrail = ItemSystem_Storage.Melee.Remotes.ToggleSwingTrail
 }
 
 return function()

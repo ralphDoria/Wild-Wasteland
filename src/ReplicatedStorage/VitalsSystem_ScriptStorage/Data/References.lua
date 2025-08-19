@@ -5,7 +5,6 @@ local References = {
     character = nil:: Model?,
     humanoid = nil:: Humanoid?,
     StatGuiManager = require(ReplicatedStorage.RojoManaged_RS.VitalsSystem_ScriptStorage.SharedComponents.StatGuiManager),
-    SoundManager = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage.Components.Shared.SoundManager),
     InputCategorizer = require(ReplicatedStorage.RojoManaged_RS.ActionManagerSystem.Components.InputCategorizer),
     playerGui = game:GetService("Players").LocalPlayer.PlayerGui:: PlayerGui,
     SoundService = game:GetService("SoundService"),

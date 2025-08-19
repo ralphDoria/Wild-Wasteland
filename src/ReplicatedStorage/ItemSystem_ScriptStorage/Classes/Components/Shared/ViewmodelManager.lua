@@ -7,7 +7,7 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
-local AnimationManager = require("./AnimationManager")
+local ToolAnimationManager = require("./ToolAnimationManager")
 local Spring = require(ReplicatedStorage.Packages.Spring)
 local stride = 0
 local bobbing = 0
@@ -15,7 +15,7 @@ local bobbing = 0
 export type ViewmodelManager = {
     viewmodel : Model,
     ToolToVMToolMapping : { [Tool] : Tool },
-    animManager : AnimationManager.AnimationManager,
+    toolAnimationManagerObject : ToolAnimationManager.AnimationManager,
     connections : {[Tool | string]: {[string]: RBXScriptConnection}},
     mouseSway : any
 }
@@ -26,7 +26,7 @@ function ViewmodelManager.new(viewmodel: Model) : ViewmodelManager
     local self : ViewmodelManager = {
         viewmodel = viewmodel,
         ToolToVMToolMapping = {},
-        animManager = AnimationManager.new(viewmodel),
+        toolAnimationManagerObject = ToolAnimationManager.new(viewmodel),
         connections = {},
         mouseSway = Spring.new(Vector3.new())
     }
@@ -53,7 +53,7 @@ function ViewmodelManager.AddTool(self: ViewmodelManager, tool: Tool, animations
     end
     vmTool.Parent = nil
     self.ToolToVMToolMapping[tool] = vmTool
-    AnimationManager.LoadAnimations(self.animManager, tool.Name, animations)
+    ToolAnimationManager.LoadAnimations(self.toolAnimationManagerObject, tool, animations)
     self.connections[tool] = {}
     self.connections[tool].equipped = tool.Equipped:Connect(function()
         ViewmodelManager.toggleViewmodelToolVisibility(self, tool)
@@ -85,6 +85,7 @@ function ViewmodelManager.AddTool(self: ViewmodelManager, tool: Tool, animations
 end
 
 function ViewmodelManager.removeTool(self: ViewmodelManager, tool: Tool)
+    ToolAnimationManager.RemoveTool(self.toolAnimationManagerObject, tool)
     self.ToolToVMToolMapping[tool]:Destroy()
     self.ToolToVMToolMapping[tool] = nil
     for _, connection in self.connections[tool] do
@@ -190,6 +191,18 @@ function ViewmodelManager.toggleViewmodelToolVisibility(self : ViewmodelManager,
             end
         end
     end
+end
+
+function ViewmodelManager.Destroy(self: ViewmodelManager)
+    for _, toolConnections in self.connections do
+        for _, v in toolConnections do
+            v:Disconnect()
+        end
+    end
+    ToolAnimationManager.Destroy(self.toolAnimationManagerObject)
+    -- Destruction of viewmmodel will happen at call site where viewmmodel was created
+    -- according to ChatGPT, spring modules don't have destroy functions because you're expected to just drop its reference & have the luau GC handle it
+    table.clear(self)
 end
 
 return ViewmodelManager

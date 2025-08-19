@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local remotes: {[string] : RemoteEvent} = {
-    ImpactEffects = ToolSystem_Storage.Melee.Remotes.ImpactEffects
+    ImpactEffects = ItemSystem_Storage.Melee.Remotes.ImpactEffects
 }
 local CreateImpactEffects = require("./CreateImpactEffects")
 

@@ -1,17 +1,17 @@
 local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local remotes: {[string] : RemoteEvent} = {
-    Hit = ToolSystem_Storage.Melee.Remotes.Hit,
-    ToggleSwingTrail = ToolSystem_Storage.Melee.Remotes.ToggleSwingTrail
+    Hit = ItemSystem_Storage.Melee.Remotes.Hit,
+    ToggleSwingTrail = ItemSystem_Storage.Melee.Remotes.ToggleSwingTrail
 }
 local particles : {[string] : ParticleEmitter} = {
-    blood = ToolSystem_Storage.Melee.Instances.Blood
+    blood = ItemSystem_Storage.Melee.Instances.Blood
 }
 
 local Item = require("../Superclasses/Item")
-local ToolGuiManager = require("../Components/Shared/ToolGuiManager")
+local ItemHUD = require("../Components/Shared/ItemHUD")
 local ActionManager = require("../../ActionManagerSystem/ActionManager")
 local CrosshairGuiManager = require("../Components/Shared/CrosshairManager")
 

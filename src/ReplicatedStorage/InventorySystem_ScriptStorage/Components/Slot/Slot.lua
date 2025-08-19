@@ -4,9 +4,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
 local PlaySound = require(ReplicatedStorage.RojoManaged_RS.Utility.PlaySoundUtil)
 
-local ToolSystem_Storage = References_Inventory.ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local ItemSystem_Storage = References_Inventory.ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local bindables = {
-    DropToolBindable = ToolSystem_Storage.Shared.Bindables.DropToolBindable,
+    DropToolBindable = ItemSystem_Storage.Shared.Bindables.DropToolBindable,
 }
 local SFX = {
     hover = References_Inventory.Storage.SFX.hover

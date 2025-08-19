@@ -17,7 +17,7 @@ function HitboxManager.new(tool: Tool) : HitboxManager
     }
 
     local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {character, workspace.CurrentCamera:WaitForChild("viewModel")}
+    params.FilterDescendantsInstances = {character, workspace.CurrentCamera:WaitForChild("viewmodel")}
     params.FilterType = Enum.RaycastFilterType.Exclude
     self.RaycastHitbox.RaycastParams = params
 

@@ -55,4 +55,4 @@ Players.PlayerAdded:Connect(function(plr: Player)
 end)
 
 game:GetService("ReplicatedStorage"):WaitForChild("originC0Holder"):WaitForChild("Torso"):WaitForChild("BodyAttachJoint").C0 = CFrame.new(0, 0.5, 0)
-game:GetService("ReplicatedStorage"):WaitForChild("viewModel"):WaitForChild("Torso"):WaitForChild("BodyAttachJoint").C0 = CFrame.new(0, 0.5, 0)
+game:GetService("ReplicatedStorage"):WaitForChild("Viewmodel"):WaitForChild("Torso"):WaitForChild("BodyAttachJoint").C0 = CFrame.new(0, 0.5, 0)

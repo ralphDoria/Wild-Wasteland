@@ -2,8 +2,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Trove = require(ReplicatedStorage.Packages.Trove)
 local player = game:GetService("Players").LocalPlayer
-local ToolSystem_Storage = ReplicatedStorage.ToolSystem_Storage
-local highlight: Highlight = ToolSystem_Storage.Shared.Instances.Highlight
+local ItemSystem_Storage = ReplicatedStorage.ItemSystem_Storage
+local highlight: Highlight = ItemSystem_Storage.Shared.Instances.Highlight
 
 
 local EmptySlotFinder = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.EmptySlotFinder)
@@ -12,24 +12,24 @@ local ToolStateMachine = require(ReplicatedStorage.RojoManaged_RS.InventorySyste
 local Slot = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.Slot)
 
 local bindables  = {
-    OnPickUp = ToolSystem_Storage.Shared.Bindables.OnPickUp,
-    DropToolBindable = ToolSystem_Storage.Shared.Bindables.DropToolBindable,
+    OnPickUp = ItemSystem_Storage.Shared.Bindables.OnPickUp,
+    DropToolBindable = ItemSystem_Storage.Shared.Bindables.DropToolBindable,
 }
 local remotes = {
-    PickUpTool = ToolSystem_Storage.Shared.Remotes.PickUpTool
+    PickUpTool = ItemSystem_Storage.Shared.Remotes.PickUpTool
 }
 
-export type ToolHighlightAndProxPromptManager = {
+export type ToolPromptManager = {
     tool : Tool,
     highlight : Highlight,
     pp : ProximityPrompt,
     connections : {RBXScriptConnection?}
 }
 
-local ToolHighlightAndProxPromptManager = {}
+local ToolPromptManager = {}
 
-function ToolHighlightAndProxPromptManager.new(tool: Tool) : ToolHighlightAndProxPromptManager
-    local self : ToolHighlightAndProxPromptManager = {
+function ToolPromptManager.new(tool: Tool) : ToolPromptManager
+    local self : ToolPromptManager = {
         tool = tool,
         highlight = highlight:Clone(),
         pp = Instance.new("ProximityPrompt"),
@@ -47,12 +47,12 @@ function ToolHighlightAndProxPromptManager.new(tool: Tool) : ToolHighlightAndPro
     pp.RequiresLineOfSight = false
     pp.HoldDuration = 0.5
     pp.Parent = tool:FindFirstChild("BodyAttach", true)
-    ToolHighlightAndProxPromptManager._initialize(self)
+    ToolPromptManager._initialize(self)
 
     return self
 end
 
-function ToolHighlightAndProxPromptManager._initialize(self : ToolHighlightAndProxPromptManager)
+function ToolPromptManager._initialize(self : ToolPromptManager)
     
     --Initial check (maybe use observer pattern in the future)
     if self.tool.Parent == workspace then
@@ -172,7 +172,7 @@ function ToolHighlightAndProxPromptManager._initialize(self : ToolHighlightAndPr
     )
 end
 
-function ToolHighlightAndProxPromptManager.Destroy(self: ToolHighlightAndProxPromptManager)
+function ToolPromptManager.Destroy(self: ToolPromptManager)
     for _, v in self.connections do
         if typeof(v) == "RBXScriptConnection" then
             v:Disconnect()    
@@ -185,4 +185,4 @@ function ToolHighlightAndProxPromptManager.Destroy(self: ToolHighlightAndProxPro
 end
 
 
-return ToolHighlightAndProxPromptManager
+return ToolPromptManager

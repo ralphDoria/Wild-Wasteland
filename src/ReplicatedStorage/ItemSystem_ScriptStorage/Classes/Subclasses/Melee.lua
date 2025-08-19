@@ -1,19 +1,19 @@
 local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
-local hitmarkerSound : Sound = ToolSystem_Storage.Melee.Instances.hitmarker
+local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
+local hitmarkerSound : Sound = ItemSystem_Storage.Melee.Instances.hitmarker
 local remotes: {[string] : RemoteEvent} = {
-    Hit = ToolSystem_Storage.Melee.Remotes.Hit,
-    ToggleSwingTrail = ToolSystem_Storage.Melee.Remotes.ToggleSwingTrail
+    Hit = ItemSystem_Storage.Melee.Remotes.Hit,
+    ToggleSwingTrail = ItemSystem_Storage.Melee.Remotes.ToggleSwingTrail
 }
 local particles : {[string] : ParticleEmitter} = {
-    blood = ToolSystem_Storage.Melee.Instances.Blood
+    blood = ItemSystem_Storage.Melee.Instances.Blood
 }
 
 local Item = require("../Superclasses/Item")
 local HitboxManager = require("../Components/Shared/HitboxManager")
-local ToolGuiManager = require("../Components/Shared/ToolGuiManager")
+local ItemHUD = require("../Components/Shared/ItemHUD")
 local ActionManager = require("../../ActionManagerSystem/ActionManager")
 local StaminaManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.Stamina.StaminaManager)
 local MeleeVMM = require("../Components/Melee/MeleeVMM")

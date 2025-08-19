@@ -5,13 +5,13 @@ local Item = require("./../Superclasses/Item")
 local Type_Item = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.ToolStateMachine.Type_Item)
 local ActionManager = require("../../ActionManagerSystem/ActionManager")
 local Type_Equipment = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.CharacterSection.Components.Type_Equipment)
-local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local remotes = {
-    ToggleWear = ToolSystem_Storage.Wearable.Remotes.ToggleWear:: RemoteEvent,
-    OnWorn = ToolSystem_Storage.Wearable.Remotes.OnWorn:: RemoteEvent,
+    ToggleWear = ItemSystem_Storage.Wearable.Remotes.ToggleWear:: RemoteEvent,
+    OnWorn = ItemSystem_Storage.Wearable.Remotes.OnWorn:: RemoteEvent,
 }
 local bindables = {
-    ToggleWear = ToolSystem_Storage.Wearable.Bindables.ToggleWear:: BindableEvent
+    ToggleWear = ItemSystem_Storage.Wearable.Bindables.ToggleWear:: BindableEvent
 }
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ToolCatalog: Folder = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
@@ -154,7 +154,7 @@ end
 
 function Wearable.onWorn(self: WearableType)
     if self.State == "Worn" then
-        self.ToolGuiManager.hide()
+        self.ItemHUD.hide()
         -- remotes.OnWorn:FireServer(self.tool, self.WearableCategory)
         for _, v in self.actionNames do
             if ActionManager.isBinded(v) then

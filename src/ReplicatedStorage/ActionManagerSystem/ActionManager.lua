@@ -407,7 +407,7 @@ function ActionManager._updatePositionAndScale()
 	local touchControlsEnabled = playerGui:FindFirstChild("TouchGui") ~= nil
 	-- This is the same calculation used by the TouchGui for sizing the jump button
 	local minScreenSize = math.min(actionGui.AbsoluteSize.X, actionGui.AbsoluteSize.Y)
-	local isSmallScreen = minScreenSize < 500 -- This may be implemented if ToolGuiManager with the ToolSystem implements it.
+	local isSmallScreen = minScreenSize < 500 -- This may be implemented if ItemHUD with the ToolSystem implements it.
 
 	local verticalPadding = VERTICAL_PADDING
 	if touchControlsEnabled and InputCategorizer.getLastInputCategory() == InputCategorizer.InputCategory.Touch then

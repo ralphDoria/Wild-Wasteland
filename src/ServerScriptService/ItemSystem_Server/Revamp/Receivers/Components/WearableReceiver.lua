@@ -1,11 +1,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local Type_Equipment = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.CharacterSection.Components.Type_Equipment)
 
 local remotes: {[string] : RemoteEvent} = {
-    ToggleWear = ToolSystem_Storage.Wearable.Remotes.ToggleWear,
-    OnWorn = ToolSystem_Storage.Wearable.Remotes.OnWorn,
+    ToggleWear = ItemSystem_Storage.Wearable.Remotes.ToggleWear,
+    OnWorn = ItemSystem_Storage.Wearable.Remotes.OnWorn,
 }
 
 

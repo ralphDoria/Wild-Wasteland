@@ -1,14 +1,18 @@
+--!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
-local remotes: {[string] : RemoteEvent} = {
-    heal = ToolSystem_Storage.Consumable.Remotes.Heal
+local References_ItemSystem = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.References_ItemSystem)
+
+local remotes = {
+    heal = References_ItemSystem.ItemSystem_Storage.Consumable.Remotes.Heal
 }
-local Consumable = require(ReplicatedStorage.RojoManaged_RS.ToolSystem_ScriptStorage.Subclasses.Consumable)
+
+-- parent class
+local Consumable = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Subclasses.Consumable)
 
 local HealingInjection = {}
 
-function HealingInjection.new(tool, humanoid): Consumable.ConsumableObject
-    local self = Consumable.new(tool, humanoid)
+function HealingInjection.new(tool): Consumable.ConsumableObject
+    local self = Consumable.new(tool)
 
     HealingInjection._initialize(self)
 
@@ -19,22 +23,23 @@ function HealingInjection._initialize(self: Consumable.ConsumableObject)
     Consumable.initialize(
         self, 
         function() -- activatedEffects()  
-            remotes.heal:FireServer(self.humanoid, 25)
+            remotes.heal:FireServer(References_ItemSystem.humanoid, 25)
         end,
         function() -- childClassCleanupFunction()
             HealingInjection.Destroy(self)
         end
     )
 
-    local activateTrack = self.animManager.animationTracks[self.tool.Name].activate
-    self.connections.activateAnimEvents = activateTrack:GetMarkerReachedSignal("needle"):Connect(function(status: "insert" | "inject" | "remove")
+    local activateTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].activate
+    local needleSounds = self.soundObjects.needle
+    self.trove:Connect(activateTrack:GetMarkerReachedSignal("needle"), function(status: "insert" | "inject" | "remove")
         if self.State ~= "Unequipped" then
             if status == "insert" then
-                self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].needle.insert, self.tool:FindFirstChild("BodyAttach", true), 0)
+                References_ItemSystem.remotes.PlaySound:FireServer(needleSounds.insert, self.bodyAttach, 0)
             elseif status == "inject" then
-                self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].needle.inject, self.tool:FindFirstChild("BodyAttach", true), 0)
+                References_ItemSystem.remotes.PlaySound:FireServer(needleSounds.inject, self.bodyAttach, 0)
             elseif status == "remove" then
-                self.soundManager.playSound("Server", self.soundManager.Sounds[self.tool.Name].needle.remove, self.tool:FindFirstChild("BodyAttach", true), 0)
+                References_ItemSystem.remotes.PlaySound:FireServer(needleSounds.remove, self.bodyAttach, 0)
             end
         end
     end)
@@ -42,9 +47,6 @@ end
 
 function HealingInjection.Destroy(self)
     Consumable.Destroy(self, function()  
-        for _, connection in self.connections do
-            connection:Disconnect()
-        end
     end)
 end
 

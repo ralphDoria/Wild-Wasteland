@@ -1,10 +1,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local types_and_enums = require("./types_and_enums")
 local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
-local ToolSystem_Storage = References_Inventory.ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local ItemSystem_Storage = References_Inventory.ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local bindables = {
-    DropToolBindable = ToolSystem_Storage.Shared.Bindables.DropToolBindable,
-    ImmediateUnequip = ToolSystem_Storage.Shared.Bindables.ImmediateUnequip,
+    DropToolBindable = ItemSystem_Storage.Shared.Bindables.DropToolBindable,
+    ImmediateUnequip = ItemSystem_Storage.Shared.Bindables.ImmediateUnequip,
 }
 
 local InventoryScriptStorage = ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage

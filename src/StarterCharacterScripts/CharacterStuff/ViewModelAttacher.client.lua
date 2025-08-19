@@ -13,7 +13,7 @@ repeat
     task.wait()
 until player:HasAppearanceLoaded()
 
-local viewModel = ReplicatedStorage:WaitForChild("viewModel"):Clone()
+local viewmodel = ReplicatedStorage:WaitForChild("Viewmodel"):Clone()
 local IdValid, IdNotValid = pcall(function()
     game.Players:GetNameFromUserIdAsync(player.UserId)
 end)
@@ -25,13 +25,13 @@ if IdValid then
     bodyColors.HeadColor3 =  humanoidDescription.HeadColor
     bodyColors.RightArmColor3 = humanoidDescription.RightArmColor
     bodyColors.LeftArmColor3 = humanoidDescription.LeftArmColor
-    bodyColors.Parent = viewModel
+    bodyColors.Parent = viewmodel
     local playerIsWearingAShirt = humanoidDescription.Shirt ~= 0
     if playerIsWearingAShirt then
         local shirt : Shirt = Instance.new("Shirt")
         local shirtTemplateId = rfn_getShirtTemplateId:InvokeServer(humanoidDescription.Shirt)
         shirt.ShirtTemplate = shirtTemplateId
-        shirt.Parent = viewModel
+        shirt.Parent = viewmodel
     end
 else
     --While playtesting in studio with multiple players using the "TEST" tab, I was getting invalid UserId's because these are test players
@@ -39,7 +39,7 @@ else
     print(IdNotValid)
 end
 
-local head = viewModel:WaitForChild("Head")
+local head = viewmodel:WaitForChild("Head")
 
 --[[
     One of the parts of the viewmodel has to be anchored in order to keep the muzzle position accurate & consistent for raycasting. Otherwise,
@@ -50,7 +50,7 @@ if head.Anchored == false then
     head.Anchored = true
 end
 
-viewModel.Parent = camera
+viewmodel.Parent = camera
 
 local hrp = character.HumanoidRootPart
 
@@ -67,7 +67,7 @@ local function isFirstPerson()
     return character.Head.LocalTransparencyModifier == 1
 end
 local function changeViewModelTransparency(newTransparency : number)
-    for _, v in viewModel:GetDescendants() do
+    for _, v in viewmodel:GetDescendants() do
         if v:IsA("BasePart") then
             v.LocalTransparencyModifier = newTransparency
         end
@@ -82,7 +82,7 @@ local function reactToCameraViewChange()
         changeViewModelTransparency(1)
     end
 end
---initially hide the viewModel if player is in first person
+--initially hide the viewmodel if player is in first person
 reactToCameraViewChange()
 
 RunService:BindToRenderStep("ViewModel", 200, function(dt)
@@ -91,7 +91,7 @@ RunService:BindToRenderStep("ViewModel", 200, function(dt)
 end)
 
 --[[for debugging
-local BodyAttachJoint = viewModel:FindFirstChild("BodyAttachJoint", true)
+local BodyAttachJoint = viewmodel:FindFirstChild("BodyAttachJoint", true)
 BodyAttachJoint:GetPropertyChangedSignal("Part1"):Connect(function()
     local bodyAttach = BodyAttachJoint.Part1
     print(if bodyAttach then bodyAttach.Parent else "nil")
@@ -101,5 +101,5 @@ end)
 character:WaitForChild("Humanoid").Died:Connect(function()
     RunService:UnbindFromRenderStep("ViewModel")
     repeat task.wait() until character:FindFirstChildOfClass("Tool") == nil
-    viewModel:Destroy()
+    viewmodel:Destroy()
 end)

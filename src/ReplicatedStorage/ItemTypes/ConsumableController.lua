@@ -45,7 +45,7 @@ function ConsumableController.new(consumable : Tool)
             medicalInjection = consumable:WaitForChild("SFX_part"):WaitForChild("medicalInjection"),
             heartbeat = consumable:WaitForChild("SFX_part"):WaitForChild("heartbeat")
         },
-        viewModelController = ViewModelController.new(workspace.CurrentCamera:WaitForChild("viewModel"), consumable, animObjects, hrp),
+        viewmodelController = ViewModelController.new(workspace.CurrentCamera:WaitForChild("viewmodel"), consumable, animObjects, hrp),
         canActivate = false,
         equipped = false,
         connections = {}
@@ -79,11 +79,11 @@ function ConsumableController:initialize()
         Players.LocalPlayer.Character.Torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
             if isFirstPerson() then
                 if self.equipped then
-                    self.viewModelController:enable()
+                    self.viewmodelController:enable()
                 end
             else
                 if self.equipped then
-                    self.viewModelController:disable()
+                    self.viewmodelController:disable()
                 end
             end
         end)
@@ -92,11 +92,11 @@ end
 
 function ConsumableController:equip()
     if isFirstPerson() then
-        self.viewModelController:enable()
+        self.viewmodelController:enable()
     else
-        self.viewModelController:disable()
+        self.viewmodelController:disable()
     end
-    self.viewModelController:equipTool()
+    self.viewmodelController:equipTool()
 
     rev_playSound:FireServer(self.soundObjects.equip, 0, self.SFX_part)
     self.equipped = true
@@ -120,11 +120,11 @@ function ConsumableController:equip()
     --self.currentPlayer:GetMouse().Icon = self.tool:GetAttribute("Cursor")
 
     self.currentCharacterAnimationController.animationTracks.equip:Play()
-    self.viewModelController.animationController.animationTracks.equip:Play()
+    self.viewmodelController.animationController.animationTracks.equip:Play()
     self.currentCharacterAnimationController.animationTracks.equip.Stopped:Wait()
     if self.equipped then --checking this because during the equip animation, players can unequip the tool, causing a bug
         self.equipped = true
-        self.viewModelController.toolEquipped = true
+        self.viewmodelController.toolEquipped = true
         ContextActionService:BindAction(Constants.ACTION_DROP_TOOL, function(actionName, inputState, _inputObject)
             if actionName == Constants.ACTION_DROP_TOOL and inputState == Enum.UserInputState.Begin then
                 self:unequip()
@@ -132,7 +132,7 @@ function ConsumableController:equip()
             end
         end, true, Enum.KeyCode.X)
         self.currentCharacterAnimationController.animationTracks.idle:Play()
-        self.viewModelController.animationController.animationTracks.idle:Play()
+        self.viewmodelController.animationController.animationTracks.idle:Play()
         self.canActivate = true
     end
 end
@@ -141,7 +141,7 @@ function ConsumableController:activate()
     if self.canActivate then
 		self.canActivate = false
 		self.currentCharacterAnimationController.animationTracks.activate:Play()
-        self.viewModelController.animationController.animationTracks.activate:Play()
+        self.viewmodelController.animationController.animationTracks.activate:Play()
 		self.currentCharacterAnimationController.animationTracks.activate:GetMarkerReachedSignal("needleInsert"):Once(function()
             rev_playSound:FireServer(self.soundObjects.needleInsert, 0, self.SFX_part)
 		end)
@@ -170,9 +170,9 @@ end
 
 function ConsumableController:unequip()
     self.equipped = false
-    self.viewModelController.toolEquipped = false
-    self.viewModelController:disable()
-    self.viewModelController:unequipTool()
+    self.viewmodelController.toolEquipped = false
+    self.viewmodelController:disable()
+    self.viewmodelController:unequipTool()
 
     self.equipped = false
     ContextActionService:UnbindAction(Constants.ACTION_DROP_TOOL)
@@ -185,7 +185,7 @@ function ConsumableController:unequip()
             end
         end
 	end
-    self.viewModelController:stopAllViewModelAnimations()
+    self.viewmodelController:stopAllViewModelAnimations()
 	self.currentCharacterAnimationController:destroy()
 	self.currentCharacter:SetAttribute(string.gsub(self.tool.Name, " ", "") .. "AnimsLoaded", nil)
 end

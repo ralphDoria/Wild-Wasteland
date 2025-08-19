@@ -2,9 +2,9 @@ local Wearable = require("./Wearable")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SlotGroup = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.SlotGroup)
 local player = game:GetService("Players").LocalPlayer
-local ToolSystem_Storage = ReplicatedStorage:FindFirstChild("ToolSystem_Storage", true)
+local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local bindables = {
-    DropToolBindable = ToolSystem_Storage.Shared.Bindables.DropToolBindable,
+    DropToolBindable = ItemSystem_Storage.Shared.Bindables.DropToolBindable,
 }
 type StorageWearableObject = Wearable.WearableType & {
     Space: number, -- number of storage slots it'll the wearer
@@ -75,7 +75,7 @@ function StorageWearable._initialize(self: StorageWearableObject)
         end
     )
 
-    local pickUpPrompt = self.ToolHighlightAndProxPromptManager.pp
+    local pickUpPrompt = self.ToolPromptManager.pp
     local lootPrompt: ProximityPrompt, lootHighlight: Highlight = initClientLootable(self.tool)
     lootHighlight:Destroy()
 
