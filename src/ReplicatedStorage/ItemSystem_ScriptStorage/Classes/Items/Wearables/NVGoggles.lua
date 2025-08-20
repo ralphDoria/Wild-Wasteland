@@ -1,3 +1,6 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local References_ItemSystem = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ItemSystem_ScriptStorage.References_ItemSystem)
+
 local Wearable = require("./../../Subclasses/Wearable")
 
 local TweenService = game:GetService("TweenService")
@@ -5,7 +8,6 @@ local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 
 -- for NV effects
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Instances = ReplicatedStorage.ItemSystem_Storage.ToolCatalog["NV Goggles"].Instances:: Folder
 local NV_Gui = Instances.NV_Gui:: ScreenGui
 local vhsGrain = NV_Gui.vhsGrain:: ImageLabel
@@ -30,11 +32,11 @@ type NVGogglesObject = Wearable.WearableType & {
 
 local NVGoggles = {}
 
-function NVGoggles.new(tool: Tool, humanoid: Humanoid): NVGogglesObject
-    local self = Wearable.new(tool, humanoid)
+function NVGoggles.new(tool: Tool): NVGogglesObject
+    local self = Wearable.new(tool)
 
     if nightVisionSFX_time == nil then
-        nightVisionSFX_time = self.soundManager.Sounds[self.tool.Name].nightVision.TimeLength
+        nightVisionSFX_time = self.soundObjects.nightVision.TimeLength
     end
     NVGoggles._initialize(self)
 
@@ -98,20 +100,35 @@ local function toggleNVEffect(self: NVGogglesObject, toggle: boolean)
     end
 end
 
+function NVGoggles.resetLightingEffects()
+    local fadeToNormal = TweenService:Create(NV_CC, TweenInfo.new(0), {TintColor = Color3.new(1, 1, 1)})
+    NV_Gui.Enabled = false
+    RunService:UnbindFromRenderStep(vhsEffectBindName)
+    -- modified properties of color correction: Tint Color, Saturation, Contrast, Brightness
+    TweenService:Create(NV_CC, TweenInfo.new(0), {Saturation = 0}):Play() --this cancels any currently playing tweens just in case turnOnNVEffect is still in progress
+    TweenService:Create(NV_CC, TweenInfo.new(0), {Contrast = 0}):Play()
+    TweenService:Create(NV_CC, TweenInfo.new(0), {Brightness = 0}):Play()
+    Lighting.OutdoorAmbient = Color3.new(0, 0, 0)
+    Lighting.ExposureCompensation = 0
+    fadeToNormal:Play()
+    fadeToNormal.Completed:Wait()
+    NV_CC.Parent = Instances
+end
+
 function NVGoggles._initialize(self: NVGogglesObject)
     Wearable.initialize(
         self, 
         function() -- onWearing
-            self.soundManager.playSound("Client", self.soundManager.Sounds[self.tool.Name].onSwitch :: Sound, self.tool:FindFirstChild("BodyAttach", true), 0)
+            References_ItemSystem.remotes.PlaySound:FireServer(self.soundObjects.onSwitch, self.bodyAttach, 0)
         end,
         function() -- onUnwearing
-            self.soundManager.playSound("Client", self.soundManager.Sounds[self.tool.Name].offSwitch :: Sound, self.tool:FindFirstChild("BodyAttach", true), 0.1)
+            References_ItemSystem.remotes.PlaySound:FireServer(self.soundObjects.offSwitch, self.bodyAttach, 0.1)
             task.spawn(function()
                 toggleNVEffect(self, false)
             end)
         end,
         function() -- appyWornEffects 
-            self.soundManager.playSound("Client", self.soundManager.Sounds[self.tool.Name].nightVision :: Sound, self.tool:FindFirstChild("BodyAttach", true), 0.1)
+            References_ItemSystem.remotes.PlaySound:FireServer(self.soundObjects.nightVision, self.bodyAttach, 0.1)
             task.spawn(function()
                 toggleNVEffect(self, true)
             end)
@@ -121,10 +138,23 @@ function NVGoggles._initialize(self: NVGogglesObject)
         end
     )
 
-    local wearTrack = self.animManager.animationTracks[self.tool.Name].wear
-    self.connections.wearTrackStartBlur = wearTrack:GetMarkerReachedSignal("startBlur"):Connect(function()
+    local wearTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].wear
+    self.trove:Connect(wearTrack:GetMarkerReachedSignal("startBlur"), function()
         if self.State == "Equipping" then
             putOnBlur() 
+        end
+    end)
+end
+
+function NVGoggles.Destroy(self: NVGogglesObject)
+    Wearable.Destroy(self, function()  
+        local humanoid = References_ItemSystem.humanoid:: Humanoid
+        if humanoid:GetState() == Enum.HumanoidStateType.Dead then
+            References_ItemSystem.player.CharacterRemoving:Once(function()
+                -- cleanup nv effects
+                warn("cleaning up nv lighting effects")
+                NVGoggles.resetLightingEffects()
+            end)
         end
     end)
 end

@@ -5,7 +5,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
 
 local ToolAnimationManager = require("./ToolAnimationManager")
 local Spring = require(ReplicatedStorage.Packages.Spring)
@@ -117,7 +116,7 @@ function ViewmodelManager._initialize(self : ViewmodelManager)
 end
 
 function ViewmodelManager._viewmodelBobAndSwayCalculation(self: ViewmodelManager, deltaTime: number)
-    local hrp = character:FindFirstChild("HumanoidRootPart") :: BasePart
+    local hrp = player.Character:FindFirstChild("HumanoidRootPart") :: BasePart
     local Constants = {
         VIEW_MODEL_OFFSET = CFrame.new(0, 0, 0),
         VIEW_MODEL_BOBBING_SPEED = 0.4,
@@ -194,9 +193,14 @@ function ViewmodelManager.toggleViewmodelToolVisibility(self : ViewmodelManager,
 end
 
 function ViewmodelManager.Destroy(self: ViewmodelManager)
-    for _, toolConnections in self.connections do
-        for _, v in toolConnections do
+    ViewmodelManager._toggleBobAndSway(self, false)
+    for _, v in self.connections do
+        if typeof(v) == "RBXScriptConnection" then
             v:Disconnect()
+        else
+            for _, connection in v do
+                connection:Disconnect()
+            end
         end
     end
     ToolAnimationManager.Destroy(self.toolAnimationManagerObject)

@@ -2,7 +2,6 @@
 
 local RS = game:GetService("ReplicatedStorage")
 local References_Inventory = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
-local player = game:GetService("Players").LocalPlayer
 
 -- Sections
 local ScriptStorage = RS.RojoManaged_RS.InventorySystem_ScriptStorage
@@ -20,7 +19,6 @@ local Slot = require("./Components/Slot/Slot")
 local ItemMovementTracker = require("./Components/Misc/ItemMovementTracker")
 local InventoryToggle = require(ScriptStorage.Components.InventoryToggle)
 local LootedTagReplicatedToClient: RemoteEvent = RS.LootingSystem_Storage.Remotes.LootedTagReplicatedToClient
-local character = References_Inventory.player.Character or References_Inventory.player.CharacterAdded:Wait()
 
 export type InventoryManager = {
 	itemMovementTrackerObject: ItemMovementTracker.ItemMovementTracker,
@@ -41,7 +39,7 @@ function InventoryManager.new(onToolAdded: (tool: Tool) -> (), onToolRemoved: (t
 		characterSectionObject = CharacterSection.new(),
 		hotbarSectionObject = HotbarSection.new(References_Inventory.Hotbar),
 		itemMovementTrackerObject = ItemMovementTracker.new(
-			character,
+			References_Inventory.character,
 			References_Inventory.backpack,	
 			function(tool) --onAdded
 				onToolAdded(tool)
@@ -71,7 +69,8 @@ function InventoryManager.new(onToolAdded: (tool: Tool) -> (), onToolRemoved: (t
 	}
 
 	InventoryToggle.ChangeForm("Closed")
-	LootingSection.init() -- responsible for cleaning up inventory. May want to change organization of that so that main functionality is more obvious here since this file is supposed to be the "main hub"
+	warn("LOOTING SECTION IS CURRENTLY DISABLED")
+	-- LootingSection.init() -- responsible for cleaning up inventory. May want to change organization of that so that main functionality is more obvious here since this file is supposed to be the "main hub"
 	
 	self.resizeInventoryConnection = References_Inventory.InventoryScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()  
 		InventoryManager.ResizeGui(self)

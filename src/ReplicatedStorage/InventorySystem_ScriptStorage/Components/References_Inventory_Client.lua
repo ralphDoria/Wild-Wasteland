@@ -2,6 +2,7 @@ local References_Inventory_Client = {}
 
 -- General Player References and Services
 References_Inventory_Client.player = game:GetService("Players").LocalPlayer
+References_Inventory_Client.character = nil
 References_Inventory_Client.PlayerGui = References_Inventory_Client.player.PlayerGui
 References_Inventory_Client.ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -62,6 +63,7 @@ References_Inventory_Client.TemplateItemInfoDisplay = References_Inventory_Clien
     This function should be called after a new character spawns in, since the Inventory Gui has resetOnSpawn enabled
 ]]
 function References_Inventory_Client.update()
+    References_Inventory_Client.character = References_Inventory_Client.player.Character or References_Inventory_Client.player.CharacterAdded:Wait()
     -- Top Level Inventory Refernces
     References_Inventory_Client.backpack = References_Inventory_Client.player.Backpack:: Backpack
     References_Inventory_Client.InventoryScreenGui = References_Inventory_Client.PlayerGui:WaitForChild("Inventory"):: ScreenGui

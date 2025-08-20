@@ -161,7 +161,7 @@ local function init()
                 local fadeOutTime = 3
                 toggleTextAndButtons(false, fadeOutTime, true)
                 TransitionBlackScreenManager.fadeIn(0)
-
+				-- DeathScreen.Enabled = false
                 remotes.RespawnPlayerCharacter:FireServer() -- remember that this gui will be destroyed when player respawns
             end,
             titleScreen = function(toggle: boolean)

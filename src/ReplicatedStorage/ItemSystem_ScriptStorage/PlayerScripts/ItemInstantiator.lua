@@ -2,9 +2,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local References_ItemSystem = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.References_ItemSystem)
 
 local toolTags = {
-    --  ["Melee"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Subclasses.Melee),--the tool tag is just going to be the name of the tool
+     ["Melee"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Subclasses.Melee),--the tool tag is just going to be the name of the tool
      ["HealingInjection"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Items.Consumables.HealingInjection),
-    --  ["NV Goggles"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Items.Wearables.NVGoggles),
+     ["NV Goggles"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Items.Wearables.NVGoggles),
     --  ["StorageWearable"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Subclasses.StorageWearable)
 }
 local Promise = require(ReplicatedStorage.Packages.Promise)

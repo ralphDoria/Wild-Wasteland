@@ -111,7 +111,8 @@ end
 function Item.equip(self: ItemType, equipping: () -> ()?, equipped: () -> ()?, onDropping : () -> ()?, onDropped : () -> ()?)
     Item.ChangeState(self, "Equipping")
     self.dropEquippedToolOnDeath = References_ItemSystem.humanoid.Died:Once(function(...: any)  
-        Item.drop(self)
+        warn("NOT DROPPING EQUIPPED TOOL BECAUSE THIS IS BUGGED: TOOL WOULD FALL THROUGH FLOOR")
+        -- Item.drop(self)
     end)
     References_ItemSystem.ItemHUD.setTool(self.tool)
     References_ItemSystem.ItemHUD.show()
@@ -247,11 +248,18 @@ function Item.Destroy(self : ItemType, childObjectCleanupMethod: () -> ())
     Item.ChangeState(self, "Destroying")
     childObjectCleanupMethod()
     --animManager internal data
-    References_ItemSystem.ToolAnimationManager.RemoveTool(References_ItemSystem.animationManagerObject, self.tool)
-    References_ItemSystem.ViewmodelManager.removeTool(References_ItemSystem.viewmodelManagerObject, self.tool)
-    self.trove:Destroy()
-    table.clear(self)
-    warn(`DESTROYED ITEM`)
+    local humanoid: Humanoid = References_ItemSystem.humanoid
+    if not (humanoid:GetState() == Enum.HumanoidStateType.Dead) then
+        References_ItemSystem.ToolAnimationManager.RemoveTool(References_ItemSystem.animationManagerObject, self.tool)
+        References_ItemSystem.ViewmodelManager.removeTool(References_ItemSystem.viewmodelManagerObject, self.tool)
+    else
+        -- warn("At humanoid death, ToolAnimationManager and ViewmodelManager is handled by References module")
+    end
+    task.defer(function()
+        self.trove:Destroy()
+        table.clear(self)
+        warn(`DESTROYED ITEM`)
+    end)
 end
 
 return Item

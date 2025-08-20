@@ -6,7 +6,7 @@ local ToolScripts = ServerScriptService:FindFirstChild("ToolScripts", true)
 
 local ToolCatalog = {}
 
-local function addTool(toolName : String, toolType : String, description : String, price : number)
+local function addTool(toolName : string, toolType : string, description : string, price : number)
     if ToolModels:FindFirstChild(toolName) then
         ToolCatalog[toolName] = {
             ToolObject = ToolModels[toolName],

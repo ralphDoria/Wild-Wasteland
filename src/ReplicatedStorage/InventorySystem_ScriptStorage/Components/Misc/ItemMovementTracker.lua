@@ -125,7 +125,6 @@ function ItemMovementTracker._removeFromCachedTools(self: ItemMovementTracker, t
 end
 
 function ItemMovementTracker.Destroy(self: ItemMovementTracker)
-	warn(self.cachedTools)
 	for i, v in self.cachedTools do
 		ItemMovementTracker._removeFromCachedTools(self, v)
 	end

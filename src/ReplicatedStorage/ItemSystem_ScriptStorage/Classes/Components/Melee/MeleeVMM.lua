@@ -22,14 +22,11 @@ local function foo(self : ViewmodelManager.ViewmodelManager, tool : Tool)
     end
 end
 
-function MeleeVMM.ConnectTrailsTransparencyUpdater(self : ViewmodelManager.ViewmodelManager, tool : Tool)
+function MeleeVMM.ConnectTrailsTransparencyUpdater(self : ViewmodelManager.ViewmodelManager, tool : Tool): RBXScriptConnection
     foo(self, tool) --initial check
-    table.insert(
-        self.connections,
-        Players.LocalPlayer.Character.Torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
-            foo(self, tool)
-        end)
-    )
+    return Players.LocalPlayer.Character.Torso:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
+        foo(self, tool)
+    end)
 end
 
 return MeleeVMM

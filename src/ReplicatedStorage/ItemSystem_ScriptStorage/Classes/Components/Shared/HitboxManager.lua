@@ -1,6 +1,4 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = game:GetService("Players").LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
 local RaycastHitbox = require(ReplicatedStorage.Packages.RaycastHitbox)
 
 export type HitboxManager = {
@@ -10,14 +8,14 @@ export type HitboxManager = {
 
 local HitboxManager = {}
 
-function HitboxManager.new(tool: Tool) : HitboxManager
+function HitboxManager.new(tool: Tool, descendantsToIgnore: {Instance}) : HitboxManager
     local self : HitboxManager = {
         RaycastHitbox = RaycastHitbox.new(tool:FindFirstChild("BodyAttach", true)),
         connections = {}
     }
 
     local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {character, workspace.CurrentCamera:WaitForChild("viewmodel")}
+    params.FilterDescendantsInstances = descendantsToIgnore
     params.FilterType = Enum.RaycastFilterType.Exclude
     self.RaycastHitbox.RaycastParams = params
 
@@ -31,8 +29,12 @@ function HitboxManager.ConnectOnHit(self, OnHit: (hit: BasePart, humanoid: Human
     )
 end
 
-function HitboxManager.Destroy()
-    
+function HitboxManager.Destroy(self: HitboxManager)
+    self.RaycastHitbox:Destroy()
+    for _, v in self.connections do
+        v:Disconnect()
+    end
+    table.clear(self)
 end
 
 return HitboxManager

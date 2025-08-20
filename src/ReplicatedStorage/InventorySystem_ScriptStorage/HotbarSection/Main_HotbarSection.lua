@@ -38,7 +38,9 @@ function HotbarManager.new(hotbar : CanvasGroup): HotbarObject
 		hotbarSlotToSlotData[slot._itself] = slot
 		hotbarSlotToSlotData[slot._itself].HotbarNumber.Text = tostring(i)
         hotbarSlotToSlotData[slot._itself]._itself.LayoutOrder = i
-        -- Don't have to worry about removing this element from the table when Inventory Gui is destroyed because it'll automatically be removed when slot._itself is destroyed
+        slot._itself.Destroying:Once(function(...: any)  
+            hotbarSlotToSlotData[slot._itself] = nil
+        end)
 	end
     
     self.trove:Connect(self.hotbar.ChildAdded, function(child: Instance)  

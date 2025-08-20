@@ -2,10 +2,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local References_ItemSystem = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.References_ItemSystem)
 
 local consumableRemotes = {
-    dispose = References_ItemSystem.ItemSystem_Storage.Consumable.Remotes.Dispose,
+    dispose = References_ItemSystem.ItemSystem_Storage.Consumable.Remotes.Dispose:: RemoteEvent,
 }
 
-local particles : {[string] : ParticleEmitter} = {
+local consumableParticles : {[string] : ParticleEmitter} = {
     -- blood = ItemSystem_Storage.Melee.Instances.Blood
 }
 -- parent class

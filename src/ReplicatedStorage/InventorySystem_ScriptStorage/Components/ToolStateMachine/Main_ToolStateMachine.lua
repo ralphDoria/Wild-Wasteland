@@ -1,7 +1,5 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
 local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local Bindables : {[string] : BindableEvent} = {
     ToggleEquip = ReplicatedStorage.ItemSystem_Storage.Shared:FindFirstChild("ToggleEquip", true),
@@ -173,14 +171,14 @@ local function GetToolToThisState(tool: Tool, statePath: {Type_Item.ItemState}) 
 end
 
 local function GetCurrentWornItemOfCategory(category: Type_Equipment.EquipmentCategory): Tool?
-    local WornItems: Folder = player.Backpack:FindFirstChild("WornItems")
+    local WornItems: Folder = References_Inventory.player.Backpack:FindFirstChild("WornItems")
     local wearableCategoryFolder: Folder = WornItems:FindFirstChild(category):: Folder
     local currentlyWornTool: Tool? = wearableCategoryFolder:FindFirstChildOfClass("Tool"):: Tool?
     return currentlyWornTool
 end
 
 local function GetCurrentNonUnequippedToolAndItsState(): (Tool?, Type_Item.ItemState?)
-    local currentNonUnequippedTool = character:FindFirstChildOfClass("Tool")
+    local currentNonUnequippedTool = References_Inventory.character:FindFirstChildOfClass("Tool")
     local state: Type_Item.ItemState?
     if currentNonUnequippedTool then
         state = currentNonUnequippedTool:GetAttribute("State")
