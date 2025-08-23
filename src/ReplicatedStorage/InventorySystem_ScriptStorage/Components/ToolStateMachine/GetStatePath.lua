@@ -39,11 +39,11 @@ local function GetStatePath(start: Type_Item.ItemState, target: Type_Item.ItemSt
         if inverseStartState then
             startIndex = table.find(STATE_ORDER, inverseStartState)
             if startIndex == nil then
-                warn("target state not found in state order: " .. start)
+                warn("start state not found in state order: " .. start)
                 return {}
             end
         else
-            warn("target state not found in state order: " .. target)
+            warn("start state not found in state order: " .. start)
             return {}
         end
     end

@@ -1,11 +1,18 @@
-local Wearable = require("./Wearable")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local SlotGroup = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.SlotGroup)
-local player = game:GetService("Players").LocalPlayer
-local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
+local References_ItemSystem = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ItemSystem_ScriptStorage.References_ItemSystem)
+
 local bindables = {
-    DropToolBindable = ItemSystem_Storage.Shared.Bindables.DropToolBindable,
+    DropToolBindable = References_ItemSystem.ItemSystem_Storage.Shared.Bindables.DropToolBindable:: BindableEvent,
 }
+
+local InventoryScriptStorage = ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage
+local SlotGroup = require(InventoryScriptStorage.Components.Slot.SlotGroup)
+local LootActions = require(InventoryScriptStorage.LootingSection.Components.LootActions)
+local Types_LootSystem = require(InventoryScriptStorage.LootingSection.Components.Types_LootSystem)
+
+-- Parent Class
+local Wearable = require("./Wearable")
+
 type StorageWearableObject = Wearable.WearableType & {
     Space: number, -- number of storage slots it'll the wearer
     slotGroup: SlotGroup.object?,
@@ -14,16 +21,10 @@ type StorageWearableObject = Wearable.WearableType & {
     isUpdating: boolean
 }
 
-local InventoryScriptStorage = ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage
-local initClientLootable = require(InventoryScriptStorage.LootingSection.Components.initClientLootable)
-local LootActions = require(InventoryScriptStorage.LootingSection.Components.LootActions)
-local Types_LootSystem = require(InventoryScriptStorage.LootingSection.Components.Types_LootSystem)
-local LootGuiManager = require(InventoryScriptStorage.LootingSection.Components.LootGuiManager)
-
 local StorageWearable = {}
 
-function StorageWearable.new(tool: Tool, humanoid: Humanoid): StorageWearableObject
-    local self = Wearable.new(tool, humanoid)
+function StorageWearable.new(tool: Tool): StorageWearableObject
+    local self = Wearable.new(tool)
     self.Space = tool:GetAttribute("Space")
 
     local associatedSlotGroup = Instance.new("ObjectValue")
@@ -41,10 +42,10 @@ function StorageWearable._initialize(self: StorageWearableObject)
     Wearable.initialize(
         self, 
         function() -- onWearing
-            self.soundManager.playSound("Client", self.soundManager.Sounds[self.tool.Name].wear :: Sound, self.tool:FindFirstChild("BodyAttach", true), 0)
+            References_ItemSystem.remotes.PlaySound:FireServer(self.soundObjects.wear, self.bodyAttach, 0)
         end,
         function() -- onUnwearing
-            self.soundManager.playSound("Client", self.soundManager.Sounds[self.tool.Name].unwear :: Sound, self.tool:FindFirstChild("BodyAttach", true), 0.1)
+            References_ItemSystem.remotes.PlaySound:FireServer(self.soundObjects.unwear, self.bodyAttach, 0.1)
         end,
         function() -- appyWornEffects 
             LootActions.GetData(self.tool)
@@ -75,89 +76,13 @@ function StorageWearable._initialize(self: StorageWearableObject)
         end
     )
 
-    local pickUpPrompt = self.ToolPromptManager.pp
-    local lootPrompt: ProximityPrompt, lootHighlight: Highlight = initClientLootable(self.tool)
-    lootHighlight:Destroy()
 
-    pickUpPrompt.UIOffset = Vector2.new(0, 15)
-    lootPrompt.UIOffset = Vector2.new(0, -15)
-    lootPrompt.ObjectText = ""
-    lootPrompt.Enabled = false
-    lootPrompt.MaxActivationDistance = pickUpPrompt.MaxActivationDistance
-    self.connections.showLootPrompt = pickUpPrompt.PromptShown:Connect(function()  
-        lootPrompt.Enabled = true
-    end)
-    self.connections.hideLootPrompt = pickUpPrompt.PromptShown:Connect(function()  
-        lootPrompt.Enabled = false
-    end)
-    local zipperOpen: Sound = self.soundManager.Sounds[self.tool.Name].zipperOpen
-    local zipperClose: Sound = self.soundManager.Sounds[self.tool.Name].zipperClose
-    self.connections.hidePickupPrompt = pickUpPrompt.PromptButtonHoldBegan:Connect(function()
-        lootPrompt.Enabled = false
-    end)
-    self.connections.oogabooga = pickUpPrompt.PromptButtonHoldEnded:Connect(function(a0: Player)  
-        lootPrompt.Enabled = true
-    end)
-    self.connections.zipperOpen = lootPrompt.PromptButtonHoldBegan:Connect(function()
-        zipperOpen:Play()
-        zipperClose:Stop()
-    end)
-    self.connections.zipperClose = lootPrompt.PromptButtonHoldEnded:Connect(function()
-        zipperOpen:Stop()
-    end)
-
-    local WornItems = player.Backpack:WaitForChild("WornItems"):: Folder
-    local wearableCategoryFolder = WornItems[self.WearableCategory]:: Folder
-    local isWearingBackpackAlready: boolean
-    local isEmpty_server: boolean = self.tool:GetAttribute("isEmpty_server"):: boolean
-
-    local function updatePromptText()
-        if not isEmpty_server and isWearingBackpackAlready then
-            pickUpPrompt.ActionText = "Swap"
-        elseif not isEmpty_server and not isWearingBackpackAlready then
-            pickUpPrompt.ActionText = "Put On"
-        elseif isEmpty_server then
-            pickUpPrompt.ActionText = "Pick Up"
-        end
-    end
-
-    self.connections.onItemWorn = wearableCategoryFolder.ChildAdded:Connect(function(tool: Tool)  
-        assert(tool:IsA("Tool"), "Only tools are supposed to be inserted here")
-        isWearingBackpackAlready = true
-
-        updatePromptText()
-    end)
-
-    self.connections.onItemUnworn = wearableCategoryFolder.ChildRemoved:Connect(function(tool: Tool)  
-        assert(tool:IsA("Tool"), "Only tools are supposed to be inserted here")
-        isWearingBackpackAlready = false
-
-        updatePromptText()
-    end)
-
-    self.connections.onIsEmptyChanged = self.tool:GetAttributeChangedSignal("isEmpty_server"):Connect(function()  
-        isEmpty_server = self.tool:GetAttribute("isEmpty_server"):: boolean
-        updatePromptText()
-    end)
-
-    self.connections.onPickUpPromptEnabledChanged = pickUpPrompt:GetPropertyChangedSignal("Enabled"):Connect(function(...: any) 
-        lootPrompt.Enabled = pickUpPrompt.Enabled
-    end)
-
-    LootGuiManager.renderChanged:Connect(function(lootableInstance: (Tool)?)
-        -- print(self.State)
-        warn("Check if this event connection here is dead code")
-        if self.tool.Parent == workspace then
-            -- print(`render changed to {lootableInstance}`)
-            pickUpPrompt.Enabled =  lootableInstance ~= self.tool
-        end
-
-        updatePromptText()
-    end)
-    self.lootPrompt = lootPrompt
 end
 
-function StorageWearable.Destroy()
+function StorageWearable.Destroy(self: StorageWearableObject)
+    Wearable.Destroy(self, function()  
+        self.associatedSlotGroup:Destroy()
+    end)
 end
 
 return StorageWearable

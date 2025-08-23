@@ -153,9 +153,9 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
 
         local associatedSlotGroup: ObjectValue? = tool:FindFirstChildOfClass("ObjectValue")
         if associatedSlotGroup then
-
+            warn("slot group found")
             local  connection
-            associatedSlotGroup:GetPropertyChangedSignal("Value"):Connect(function()  
+            self.connections.onNewSlotGroupInstanceAdded = associatedSlotGroup:GetPropertyChangedSignal("Value"):Connect(function()  
                 if connection then
                     connection:Disconnect()
                 end
@@ -168,6 +168,8 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
                     connection = slotGroupInstance:GetAttributeChangedSignal("FilledSlotCounter_Client"):Connect(function()
                         updateFilledSlotsAndIsEmptyStatus(slotGroupInstance)
                     end)
+
+                    
                 else
                     if connection then
                         connection:Disconnect()

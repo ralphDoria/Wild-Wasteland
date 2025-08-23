@@ -39,6 +39,7 @@ function ToolPromptManager.new(tool: Tool) : ToolPromptManager
     self.highlight.Enabled = false
     self.highlight.Parent = tool
     local pp = self.pp
+    pp.Archivable = false
     pp.ObjectText = tool.Name
     pp.ActionText = "Pick Up"
     pp.MaxActivationDistance = 5
@@ -91,8 +92,8 @@ function ToolPromptManager._initialize(self : ToolPromptManager)
                     bindables.OnPickUp:Fire(self.tool) --for putting tool into the unequipped state
                     warn("Waiting for tool to be picked up")
                     self.tool:GetPropertyChangedSignal("Parent"):Wait() --make sure there are no race conditions involved with this method
-                    warn("Tool picked up, starting procedure")
-
+                    warn("Tool picked up, delaying, then starting procedure")
+                    task.wait()
                     local wearableSlot: Slot.SlotObject = Slot.wearableCategoryToObjectMap[self.tool:GetAttribute("WearableCategory")]
                     local temporarySlotObject = Slot.new("Inventory")
                     Slot.FillSlot(temporarySlotObject, self.tool)

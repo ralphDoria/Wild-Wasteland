@@ -69,8 +69,8 @@ function InventoryManager.new(onToolAdded: (tool: Tool) -> (), onToolRemoved: (t
 	}
 
 	InventoryToggle.ChangeForm("Closed")
-	warn("LOOTING SECTION IS CURRENTLY DISABLED")
-	-- LootingSection.init() -- responsible for cleaning up inventory. May want to change organization of that so that main functionality is more obvious here since this file is supposed to be the "main hub"
+	-- warn("LOOTING SECTION IS CURRENTLY DISABLED")
+	LootingSection.init() -- responsible for cleaning up inventory. May want to change organization of that so that main functionality is more obvious here since this file is supposed to be the "main hub"
 	
 	self.resizeInventoryConnection = References_Inventory.InventoryScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()  
 		InventoryManager.ResizeGui(self)
@@ -86,6 +86,8 @@ function InventoryManager.Destroy(self: InventoryManager)
 	CharacterSection.Destroy(self.characterSectionObject)
 	ItemMovementTracker.Destroy(self.itemMovementTrackerObject)
 	HotbarSection.Destroy(self.hotbarSectionObject)
+
+	-- LootingSection.Destroy(self.lootin) Looting section does not need to be destroyed because it only connects a signel connection w/ once, which is the humanoid.died connection
 end
 
 local cachedScreenSize = {

@@ -36,6 +36,7 @@ function LootPromptManager.new(instance: Instance, proximityPromptParent, onTrig
     self.pp.KeyboardKeyCode = Enum.KeyCode.F
     self.pp.Enabled = true
     self.pp.Parent = proximityPromptParent
+    self.pp.Archivable = false
 
     LootPromptManager._initialize(self)
 

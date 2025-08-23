@@ -38,21 +38,6 @@ local function getCorpseLootable(lootableInstance)
     return corpseLootableObjects[lootableInstance]
 end
 
-local function track_player_and_tag_them_with_corpse_tag_when_they_die(char: Model)
-    if not char then
-        return --end function here because CharacterAdded connection will handle it from here 
-    end
-    local humanoid: Humanoid = char:WaitForChild("Humanoid"):: Humanoid
-    local hrp = char:WaitForChild("HumanoidRootPart")
-    humanoid.Died:Once(function()  
-        -- wait for corpseFilledSlotsData to be sent over from the client
-        remotes.SendClientCorpseFilledSlotsData.OnServerEvent:Once(function(player: Player, corpseFilledSlotsData: Types_LootSystem.CorpseFilledSlotsData)
-            CorpseLootable.new(hrp:: any, corpseFilledSlotsData)
-        end)
-        hrp:AddTag(TAGS_LOOT.CORPSE_LOOTABLE)
-    end)        
-end
-
 function LootDataService.init()
     local connections = handleTaggedInstances(
         TAGS_LOOT.STANDARD_LOOTABLE, 
@@ -73,13 +58,11 @@ function LootDataService.init()
         end
     )
 
-    for _, player in Players:GetPlayers() do
-        track_player_and_tag_them_with_corpse_tag_when_they_die(player.Character)
-    end
-    Players.PlayerAdded:Connect(function(player: Player)  
-        player.CharacterAdded:Connect(function(char: Model) 
-            track_player_and_tag_them_with_corpse_tag_when_they_die(char)
-        end)
+    -- when a player dies, they will send over their corpse data
+    remotes.SendClientCorpseFilledSlotsData.OnServerEvent:Connect(function(player: Player, corpseFilledSlotsData: Types_LootSystem.CorpseFilledSlotsData, hrp: BasePart)
+        warn(`Creating server CorpseLootable for {player.Name}`)
+        CorpseLootable.new(hrp:: any, corpseFilledSlotsData)
+        hrp:AddTag(TAGS_LOOT.CORPSE_LOOTABLE)
     end)
 
     rfn.GetLootData.OnServerInvoke = function(player, lootableInstance: Model | Tool): Types_LootSystem.StandardFilledSlotsData

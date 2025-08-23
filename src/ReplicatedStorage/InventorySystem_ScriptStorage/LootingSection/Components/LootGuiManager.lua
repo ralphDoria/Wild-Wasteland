@@ -86,7 +86,7 @@ function LootGuiManager.RenderData(lootable: Model | Tool, filledSlotsData: any)
                         currentlyRendering.slotGroupObjects[tonumber(string_equipmentSlotNumber):: number] = slotGroupObject
                     end
                 else
-                    warn(`{string_equipmentSlotNumber}'s slot could not be found or is empty`)
+                    -- warn(`{string_equipmentSlotNumber}'s slot could not be found or is empty`)
                 end
             else
                 local slotGroupData = equipmentToolAndSlotGroupData.slotGroupData
@@ -111,13 +111,15 @@ end
 local function overrideSlotInSlotGroup(slotGroupObject: SlotGroup.object, layoutOrder: number, substituteTool: Tool?)
     for _, v in slotGroupObject.SlotsFrame:GetChildren() do
         if v:IsA("Frame") and v.LayoutOrder == layoutOrder then
-            local lootSlot = Slot.new("Inventory") 
-            lootSlot._itself.LayoutOrder = v.LayoutOrder
-            if substituteTool then
-                Slot.FillSlot(lootSlot, substituteTool)
-            end
-            lootSlot._itself.Parent = v.Parent
-            v:Destroy()
+            task.defer(function()
+                local lootSlot = Slot.new("Inventory") 
+                lootSlot._itself.LayoutOrder = v.LayoutOrder
+                if substituteTool then
+                    Slot.FillSlot(lootSlot, substituteTool)
+                end
+                lootSlot._itself.Parent = v.Parent
+                v:Destroy()
+            end)
             break
         end
     end

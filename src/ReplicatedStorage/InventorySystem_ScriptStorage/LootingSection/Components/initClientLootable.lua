@@ -27,13 +27,12 @@ local function getPrimaryPart(lootable: Tool | Model)
 end
 
 local function initClientLootable(lootable: Tool | Model): (ProximityPrompt, Highlight)
-    warn(`Running initClientLootable for {lootable}`)
     local changeReplicator: RemoteEvent? = rfn.GetChangeReplicatorRemote:InvokeServer(lootable)
     local onLootDataChanged: RBXScriptConnection?
 
-    local ppContainer = if lootable.Name == "HumanoidRootPart" then lootable else getPrimaryPart(lootable) 
+    local promptContainer = if lootable.Name == "HumanoidRootPart" then lootable else getPrimaryPart(lootable) 
 
-    local hppManagerObject = LootPromptManager.new(lootable, ppContainer, 
+    local lootPromptObject = LootPromptManager.new(lootable, promptContainer, 
         function(pp: ProximityPrompt)  
             InventoryToggle.ChangeForm("LootingForm")
 
@@ -92,8 +91,8 @@ local function initClientLootable(lootable: Tool | Model): (ProximityPrompt, Hig
                 local hrp = char:WaitForChild("HumanoidRootPart")
 
                 References_Inventory_Client.RunService:BindToRenderStep("DistanceCheckFromLootable", 2000, function(delta: number)  
-                    if ppContainer and hrp then
-                        local distance = getDistanceBetween2Points(ppContainer.Position, hrp.Position)
+                    if promptContainer and hrp then
+                        local distance = getDistanceBetween2Points(promptContainer.Position, hrp.Position)
                         if distance > 5 then
                             References_Inventory_Client.RunService:UnbindFromRenderStep("DistanceCheckFromLootable")
                             InventoryToggle.ChangeForm("Closed")
@@ -103,7 +102,7 @@ local function initClientLootable(lootable: Tool | Model): (ProximityPrompt, Hig
                             resolve(promisesToCancel)
                         end
                     else
-                        warn(`PrimaryPart ({ppContainer}) or HumanoidRootPart ({hrp}) is nil, so distance check cannot be done.`)
+                        warn(`PrimaryPart ({promptContainer}) or HumanoidRootPart ({hrp}) is nil, so distance check cannot be done.`)
                     end
                 end)
 
@@ -154,7 +153,7 @@ local function initClientLootable(lootable: Tool | Model): (ProximityPrompt, Hig
         end
     )
 
-    return hppManagerObject.pp, hppManagerObject.highlight
+    return lootPromptObject.pp, lootPromptObject.highlight
 end
 
 return initClientLootable

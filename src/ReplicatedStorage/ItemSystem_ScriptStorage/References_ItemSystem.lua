@@ -52,6 +52,9 @@ References_ItemSystem.animationManagerObject = nil:: ToolAnimationManager.Animat
 References_ItemSystem.viewmodelManagerObject = nil:: ViewmodelManaer.ViewmodelManager
 
 
+local updatedEvent = Instance.new("BindableEvent")
+References_ItemSystem.updated = updatedEvent.Event:: RBXScriptSignal
+
 function References_ItemSystem.update(character: Model)
     References_ItemSystem.character = character
     References_ItemSystem.humanoid = character:WaitForChild("Humanoid")
@@ -64,6 +67,8 @@ function References_ItemSystem.update(character: Model)
         References_ItemSystem.ToolAnimationManager.Destroy(References_ItemSystem.animationManagerObject)
         References_ItemSystem.ViewmodelManager.Destroy(References_ItemSystem.viewmodelManagerObject)
     end)
+
+    updatedEvent:Fire()
 end
 
 return References_ItemSystem

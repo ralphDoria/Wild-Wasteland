@@ -39,7 +39,9 @@ function HotbarManager.new(hotbar : CanvasGroup): HotbarObject
 		hotbarSlotToSlotData[slot._itself].HotbarNumber.Text = tostring(i)
         hotbarSlotToSlotData[slot._itself]._itself.LayoutOrder = i
         slot._itself.Destroying:Once(function(...: any)  
-            hotbarSlotToSlotData[slot._itself] = nil
+            if hotbarSlotToSlotData[slot._itself] then
+                hotbarSlotToSlotData[slot._itself] = nil
+            end
         end)
 	end
     

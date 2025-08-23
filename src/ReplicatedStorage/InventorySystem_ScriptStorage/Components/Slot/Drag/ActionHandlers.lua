@@ -260,6 +260,7 @@ local function L_INVENTORY__DROP(lootScrollingSlotData: types_and_enums.SlotData
         lootTool = lootTool,
         substituteTool = nil
     }):andThen(function()
+        task.wait() -- give time for item to instantiate
         bindables.DropToolBindable:Fire(lootTool)
     end):catch(function(error)
         warn("Error", tostring(error))

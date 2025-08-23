@@ -126,8 +126,8 @@ local catalog : {[string] : ToolInfo} = {
                 hard = backpack.Sounds.drop,
                 soft = backpack.Sounds.drop
             },
-            zipperOpen = backpack.Sounds.zipperOpen,
-            zipperClose = backpack.Sounds.zipperClose
+            openLootable = backpack.Sounds.openLootable,
+            closeLootable = backpack.Sounds.closeLootable
         }
     },
 }
