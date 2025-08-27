@@ -189,7 +189,7 @@ function Wearable.wear(self: WearableType)
         wearTrack.Stopped:Wait()
 
         if self.State:: Type_Item.ItemState == "Wearing" then -- have to do a recheck here because this is an cancellable asynchronous operation
-            warn("Entering worn state")
+            -- warn("Entering worn state")
             Item.ChangeState(self, "Worn")
             Wearable.onWorn(self)
             self.tool:SetAttribute("IsWorn", true)

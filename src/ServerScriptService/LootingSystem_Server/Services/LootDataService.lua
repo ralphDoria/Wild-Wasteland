@@ -13,6 +13,7 @@ local StandardLootable = require(LootingSystem_Server.Components.StandardLootabl
 local CorpseLootable = require(LootingSystem_Server.Components.CorpseLootable)
 
 local LootingSystem_Storage = ReplicatedStorage.LootingSystem_Storage
+local LootItemsHolding = LootingSystem_Storage.LootItemsHolding
 
 local rfn: {[string] : RemoteFunction} = {
     GetChangeReplicatorRemote = LootingSystem_Storage.Remotes.GetChangeReplicatorRemote,
@@ -22,7 +23,8 @@ local rfn: {[string] : RemoteFunction} = {
 }
 
 local remotes = {
-    SendClientCorpseFilledSlotsData = LootingSystem_Storage.Remotes.SendClientCorpseFilledSlotsData:: RemoteEvent
+    SendClientCorpseFilledSlotsData = LootingSystem_Storage.Remotes.SendClientCorpseFilledSlotsData:: RemoteEvent,
+    moveToolsToLootItemsHolding = LootingSystem_Storage.Remotes.MoveToolsToLootItemsHolding:: RemoteEvent,
 }
 
 local LootDataService = {
@@ -65,21 +67,43 @@ function LootDataService.init()
         hrp:AddTag(TAGS_LOOT.CORPSE_LOOTABLE)
     end)
 
+    remotes.moveToolsToLootItemsHolding.OnServerEvent:Connect(function(player: Player)
+        local backpack = player.Backpack
+        for _, v in backpack:GetChildren() do 
+            if v:IsA("Tool") then
+                v.Parent = LootItemsHolding
+            elseif v:IsA("Folder") then
+                for _, v in v:GetDescendants() do
+                    if v:IsA("Tool") then
+                        v.Parent = LootItemsHolding
+                    end
+                end
+            end
+        end
+    end)
+
     rfn.GetLootData.OnServerInvoke = function(player, lootableInstance: Model | Tool): Types_LootSystem.StandardFilledSlotsData
         -- warn("Sending filledSlotsData from server: ")
         -- warn(StandardLootable.createdObjects[lootableInstance].FilledSlotsData)
         return if getStandardLootable(lootableInstance) then getStandardLootable(lootableInstance).FilledSlotsData else getCorpseLootable(lootableInstance).FilledSlotsData
     end
 
-    rfn.TrySlotInteraction.OnServerInvoke = function(player, lootableInstance: Model | Tool, changeRequests: {Types_LootSystem.StandardDataChangeRequest})
+    rfn.TrySlotInteraction.OnServerInvoke = function(player, lootableInstance: Model | Tool, changeRequests: any)
         local standardLootable = StandardLootable.createdObjects[lootableInstance]
-        print(`StandardLootale: {standardLootable}`)
-        if not standardLootable then
-            warn(`{lootableInstance} is not registered.`)
+        local corpseLootable = CorpseLootable.createdObjects[lootableInstance]
+
+        if not standardLootable and not corpseLootable then
+            warn(`{lootableInstance} is not registered as a standard or corpse lootable.`)
             return false
         end
-        local success: boolean = StandardLootable.processDataChangeRequest(standardLootable, player, changeRequests)
-        return success
+        
+        if corpseLootable then
+            local success: boolean = CorpseLootable.processDataChangeRequest(corpseLootable, player, changeRequests:: Types_LootSystem.CorpseDataChangeRequest)
+            return success
+        else
+            local success: boolean = StandardLootable.processDataChangeRequest(standardLootable:: Types_LootSystem.StandardLootableObject, player, changeRequests:: Types_LootSystem.StandardDataChangeRequest)
+            return success
+        end
     end
 
     rfn.OverrideItemData.OnServerInvoke = function(player, lootableInstance: Model | Tool, filledSlotsData: Types_LootSystem.StandardFilledSlotsData)

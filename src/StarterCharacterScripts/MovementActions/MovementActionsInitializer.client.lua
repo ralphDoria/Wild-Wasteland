@@ -6,12 +6,13 @@ local humanoid : Humanoid = character.Humanoid
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ActionManager = require(ReplicatedStorage.RojoManaged_RS.ActionManagerSystem.ActionManager)
-local MovementStateMachine = require("./Modules/MovementStateMachine")
+local modules = script.Parent.Modules
+local MovementStateMachine = require(modules.MovementStateMachine)
 local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.Data.Config)
 local StaminaManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.Stamina.StaminaManager)
 local movementManagers = {
-    ["Sprint"] = require("./Modules/Sprint"),
-    ["Crouch"] = require("./Modules/Crouch")
+    ["Sprint"] = require(modules.Sprint),
+    ["Crouch"] = require(modules.Crouch)
 }
 
 movementManagers.Sprint.initialize()

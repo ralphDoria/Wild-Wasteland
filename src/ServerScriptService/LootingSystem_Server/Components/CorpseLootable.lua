@@ -133,6 +133,7 @@ function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, d
         end
     end
 
+    print("returning nil")
     return nil
 end
 

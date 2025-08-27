@@ -110,7 +110,7 @@ function Melee.initialize(self : MeleeObject)
     )
     self.trailsTransparencyUpdater = MeleeVMM.ConnectTrailsTransparencyUpdater(References_ItemSystem.viewmodelManagerObject, self.tool)
     local swingTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].swing
-    swingTrack:GetMarkerReachedSignal("swing"):Connect(function(status : "start" | "end")
+    self.trove:Connect(swingTrack:GetMarkerReachedSignal("swing"), function(status : "start" | "end")
         if self.State ~= "Unequipped" then
             if status == "start" then
 
@@ -123,6 +123,7 @@ function Melee.initialize(self : MeleeObject)
             end 
         end
     end)
+
     HitboxManager.ConnectOnHit(self.HitboxManager, function(hit: BasePart, humanoid: Humanoid, raycastResult: RaycastResult)
 
         local hitCharacter = humanoid.Parent :: Model

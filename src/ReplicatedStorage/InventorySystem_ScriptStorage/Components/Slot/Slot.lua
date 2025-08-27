@@ -153,7 +153,7 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
 
         local associatedSlotGroup: ObjectValue? = tool:FindFirstChildOfClass("ObjectValue")
         if associatedSlotGroup then
-            warn("slot group found")
+            -- warn("slot group found")
             local  connection
             self.connections.onNewSlotGroupInstanceAdded = associatedSlotGroup:GetPropertyChangedSignal("Value"):Connect(function()  
                 if connection then
@@ -223,7 +223,6 @@ end
 
 function Slot.destroy(self : Type_Slot.SlotObject)
     Slot.ChangeState(self, "Destroying")
-
 
     local slotInstance = self._itself
     if slotInstance then

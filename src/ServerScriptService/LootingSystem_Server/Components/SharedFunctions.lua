@@ -19,7 +19,7 @@ end
 function SharedFunctions.standardValidate(serverLootableObject: any, dataChangeRequest: any): Types_LootSystem.callbacks?
 
     local FilledSlotsData = serverLootableObject.FilledSlotsData
-    local slotGroupData = if Types_LootSystem.isCorpseFilledSlotsDataType(FilledSlotsData) then FilledSlotsData["1"].slotGroupData else FilledSlotsData
+    local slotGroupData = if Types_LootSystem.isCorpseFilledSlotsDataType(FilledSlotsData) then FilledSlotsData[tostring(dataChangeRequest.equipmentToolLayoutOrder)].slotGroupData else FilledSlotsData
     
     
     local lootTool = dataChangeRequest.lootTool
@@ -79,6 +79,7 @@ function SharedFunctions.processDataChangeRequest(validate: (serverLootableObjec
         end
     end
 
+    print("CHANGE REQUESTS PASSED VALIDATION")
     --[[
         Callback are split into two parts, takeLoot() and doSubstitution(), because the substitution needs to be done after all loot has been taken to ensure that when
         two loot slots are swapped, one of the loot tools doesn't end up in the player's backpack (bug) rather than both being in the LootItemsHolding folder. 

@@ -8,7 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
 
 local types_and_enums = require("./types_and_enums")
-local ActionHandlers = require("./ActionHandlers")
+local ActionHandlers = require("./ActionHandlers/ActionHandlers")
 
 -- Cache references to avoid repeated property access
 local LootingScrollingName = References_Inventory.LootingScrollingFrame.Name

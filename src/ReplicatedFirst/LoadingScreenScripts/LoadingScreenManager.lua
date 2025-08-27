@@ -100,7 +100,7 @@ local function StartPreload()
     disableSelectCoreUisAndTouchControls()
         
     ContentProvider:PreloadAsync(AssetsToPreload, function(assetId, assetFetchStatus): ...any  
-        warn(`Preloading: {assetId} | {assetFetchStatus}`)
+        -- warn(`Preloading: {assetId} | {assetFetchStatus}`)
         if assetFetchStatus == Enum.AssetFetchStatus.Success then
             assetsLoaded += 1
             TextManager.setDisplayPercentage(assetsLoaded/maxAssets*100)

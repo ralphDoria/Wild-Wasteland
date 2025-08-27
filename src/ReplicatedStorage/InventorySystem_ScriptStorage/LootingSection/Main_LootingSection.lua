@@ -11,7 +11,8 @@ local SlotGroupRegistry = require(ScriptStorage.Components.Slot.SlotGroupRegistr
 local Slot = require(ScriptStorage.Components.Slot.Slot)
 local SlotGroup = require(ScriptStorage.Components.Slot.SlotGroup)
 local remotes: {[string]: RemoteEvent} = {
-    SendClientCorpseFilledSlotsData = References_Inventory_Client.LootingRemotes.SendClientCorpseFilledSlotsData:: RemoteEvent
+    SendClientCorpseFilledSlotsData = References_Inventory_Client.LootingRemotes.SendClientCorpseFilledSlotsData:: RemoteEvent,
+    moveToolsToLootItemsHolding = References_Inventory_Client.LootingRemotes.MoveToolsToLootItemsHolding:: RemoteEvent,
 }
 
 local LootingSection = {}
@@ -29,7 +30,7 @@ local function constructEmptyCorpseLootData(): Types_LootSystem.CorpseFilledSlot
 end
 
 
-local function constructCorpseFilledSlotsDataAndDestroyInventory(): Types_LootSystem.CorpseFilledSlotsData
+local function constructCorpseFilledSlotsDataAndDestroyInventoryData(): Types_LootSystem.CorpseFilledSlotsData
     local corpseFilledSlotsData = constructEmptyCorpseLootData()
     local hotbar = References_Inventory_Client.Hotbar
 
@@ -78,8 +79,9 @@ end
 
 local function sendCorpseFilledSlotsData(character: Model)
     local hrp = character:WaitForChild("HumanoidRootPart")
-    local filledSlotsData = constructCorpseFilledSlotsDataAndDestroyInventory()
+    local filledSlotsData = constructCorpseFilledSlotsDataAndDestroyInventoryData()
     -- print(filledSlotsData)
+    remotes.moveToolsToLootItemsHolding:FireServer()
     remotes.SendClientCorpseFilledSlotsData:FireServer(filledSlotsData, hrp)
 end
 

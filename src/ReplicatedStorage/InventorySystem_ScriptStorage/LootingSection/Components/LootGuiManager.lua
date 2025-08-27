@@ -160,6 +160,8 @@ function LootGuiManager.replaceSlot(dataChangeRequest: any)
             -- Slot in specified layout order within specified equipment number's slot group is to be replaced
             overrideSlotInSlotGroup(currentlyRendering.slotGroupObjects[equipmentToolLayoutOrder], lootToolLayoutOrder, toolReplacement)    
         end
+    else
+        warn("INVALID REQUEST TYPE")
     end
 end
 

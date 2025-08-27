@@ -78,7 +78,7 @@ local function initStorageWearableLootable(storageWearable: Tool)
     local isEmpty_server: boolean = storageWearable:GetAttribute("isEmpty_server"):: boolean
 
     local function updatePromptText()
-        print(isEmpty_server, characterDependentReferences.isWearingBackpackAlready)
+        -- print(isEmpty_server, characterDependentReferences.isWearingBackpackAlready)
         if not isEmpty_server and characterDependentReferences.isWearingBackpackAlready then
             toolPrompt.ActionText = "Swap"
         elseif not isEmpty_server and not characterDependentReferences.isWearingBackpackAlready then
