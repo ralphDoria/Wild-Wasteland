@@ -5,37 +5,24 @@ local Types_LootSystem = require(ReplicatedStorage.RojoManaged_RS.InventorySyste
 local types_and_enums = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.Drag.types_and_enums)
 local Utility = require(script.Parent.Parent.Utility)
 
-local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotData, lInventoryData: types_and_enums.SlotData, changeSlotState: types_and_enums.changeSlotState, fillSlot: types_and_enums.fillSlot, emptySlot: types_and_enums.emptySlot, newSlot: types_and_enums.newSlot, destroySlot: types_and_enums.destroySlot)
-    --[[
-        - Going to be modeled off of inventoryOrHotbar_x_characterEquipment_swap
-            - which is split into 3 scenarios: 
-
-                1. EMPTY lootScrolling slot and FILLED characterEquipment slot - unwear characterEquipment and fill lootScrolling slot
-                    - if lootScrolling slot is filled during the asynchronous process of unwearing, then the wearable will find another slot to fill within
-                        loot scrolling frame. If there are no empty slots to fill, then the equipment item will be dropped
-                2. FILLED lootScrolling slot and EMPTY characterEquipment slot - empty lootScrolling slot and start wearing item
-                    - (abstract this into References_ActionHandlers.ToolStateMachine)if wearing is cancelled, then item is put into inventory, and classic procedure, 
-                        if there's no space in inventory, then item will be dropped
-                3. FILLED lootScrolling slot and FILLED characterEquipment slot - the gist of it is that the player wants to wear the lootScrolling item and get rid of
-                    their current worn item by putting it into the lootContainer, so no matter the edge case, I should try to honor that desire
-                    - lootScrolling item will be put into the inventory and put into the unequippe state (so that it can be handled by References_ActionHandlers.ToolStateMachine), but won't
-                        be given a slot at this point.
-                        - classic case of tool statemachine swap two wearable items: 
-                            - implement at References_ActionHandlers.ToolStateMachine level so that it can deal with cancellations consistently across all 3 lootScrolling_x_characterEquipment_swap cases
-    ]]
-    local lInventorySlot = lInventoryData.slotObject
+--[[
+    Heavily modeled off of P_EQUIPMENT__X__L_INVENTORY because their scenarios are nearly the same.
+]]
+local function P_EQUIPMENT__X__L_EQUIPMENT(pEquipmentData: types_and_enums.SlotData, lEquipmentData: types_and_enums.SlotData, changeSlotState: types_and_enums.changeSlotState, fillSlot: types_and_enums.fillSlot, emptySlot: types_and_enums.emptySlot, newSlot: types_and_enums.newSlot, destroySlot: types_and_enums.destroySlot)
+    local lEquipmentSlot = lEquipmentData.slotObject
     local pEquipmentSlot = pEquipmentData.slotObject
 
-    if lInventorySlot.tool and lInventorySlot.tool:GetAttribute("WearableCategory") ~= pEquipmentSlot.WearableCategory then
-        References_ActionHandlers.DiegeticErrorMessagingManager.AddMessage(`{lInventorySlot.tool.Name} can't go into my {pEquipmentSlot.WearableCategory} equipment slot. I'm such an idiot`)    
+    if lEquipmentSlot.WearableCategory ~= pEquipmentSlot.WearableCategory then
+        References_ActionHandlers.DiegeticErrorMessagingManager.AddMessage(`Wearable categories are incompatible`)    
         return
     end
                     
     local pIsEmpty = pEquipmentData.slotObject._isEmpty
-    local lIsEmpty = lInventoryData.slotObject._isEmpty
+    local lIsEmpty = lEquipmentData.slotObject._isEmpty
 
-    local equipmentToolLayoutOrder, equipmentTool = Utility.getLootInventorySlotEquipmentToolInfo(lInventorySlot)
+    local equipmentToolLayoutOrder, equipmentTool = Utility.getLootInventorySlotEquipmentToolInfo(lEquipmentSlot)
     local requestType = if equipmentToolLayoutOrder then Types_LootSystem.EnumLootableTypes.Corpse else Types_LootSystem.EnumLootableTypes.Standard
+    warn(Types_LootSystem.EnumLootableTypes.Corpse, Types_LootSystem.EnumLootableTypes.Standard, `requesttype: {requestType}`)
 
     if not pIsEmpty and pEquipmentSlot.tool:GetAttribute("isEmpty_client") == false then
         References_ActionHandlers.DiegeticErrorMessagingManager.AddMessage("I need to empty my backpack if I want to do that")
@@ -47,10 +34,10 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
             Just like picking up a filled backpack from the ground, the wearable will be taken from the server registry and implicitly stored in the player's inventory while the wearing process for the current wearable
             is started. If interrupted, the implicitly stored item will find a place in the inventory so it can be explicitly stored. If inventory is full, then item will be dropped.
        ]] 
-        local lootTool = lInventorySlot.tool
+        local lootTool = lEquipmentSlot.tool
         local pEquipmentTool = pEquipmentSlot.tool
         local originalLootableInstance = References_Inventory.LootableInstanceObjectValue.Value
-        local originalLootLayoutOrder = lInventorySlot._itself.LayoutOrder  
+        local originalLootLayoutOrder = lEquipmentSlot._itself.LayoutOrder  
         References_ActionHandlers.LootActions.TrySlotInteraction(originalLootableInstance, {
             __type = requestType,
             lootToolLayoutOrder = originalLootLayoutOrder,
@@ -68,14 +55,14 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
             References_ActionHandlers.ToolStateMachine.SetTargets(temporarySlotObject, "Worn", 
                 function(timeUntilComplete: number)
                     table.insert(tweens, Utility.loadSlot(pEquipmentSlot, timeUntilComplete))
-                    table.insert(tweens, Utility.loadSlot(lInventorySlot, timeUntilComplete))
+                    table.insert(tweens, Utility.loadSlot(lEquipmentSlot, timeUntilComplete))
                     for _, v in tweens do
                         v:Play()
                     end
 
                     changeSlotState(temporarySlotObject, "BeingSwapped")
                     changeSlotState(pEquipmentSlot, "BeingSwapped")
-                    changeSlotState(lInventorySlot, "BeingSwapped")
+                    changeSlotState(lEquipmentSlot, "BeingSwapped")
                 end,
                 function() --onCancelled
                     for _, v in tweens do
@@ -98,7 +85,7 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
                     fillSlot(pEquipmentSlot, lootTool)
                 end,
                 function() --onFinished
-                    changeSlotState(lInventorySlot, "Idle")
+                    changeSlotState(lEquipmentSlot, "Idle")
                     changeSlotState(pEquipmentSlot, "Idle")
                 end,
                 function() --onNonTargetUnworn  
@@ -130,13 +117,13 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
         local tweens: {Tween} = {}
         References_ActionHandlers.ToolStateMachine.SetTargets(pEquipmentSlot, "Idle", 
             function(timeUntilComplete: number)
-                table.insert(tweens, Utility.loadSlot(lInventoryData.slotObject, timeUntilComplete))
+                table.insert(tweens, Utility.loadSlot(lEquipmentData.slotObject, timeUntilComplete))
                 table.insert(tweens, Utility.loadSlot(pEquipmentSlot, timeUntilComplete))
                 for _, v in tweens do
                     v:Play()
                 end
 
-                changeSlotState(lInventoryData.slotObject, "BeingSwapped")
+                changeSlotState(lEquipmentData.slotObject, "BeingSwapped")
                 changeSlotState(pEquipmentSlot, "BeingSwapped")
             end,
             function() --onCancelled
@@ -154,7 +141,7 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
                 else
                     References_ActionHandlers.LootActions.TrySlotInteraction(lootableInstance, {
                         __type = requestType,
-                        lootToolLayoutOrder = if lInventoryData.slotObject._itself then lInventoryData.slotObject._itself.LayoutOrder else nil,
+                        lootToolLayoutOrder = if lEquipmentData.slotObject._itself then lEquipmentData.slotObject._itself.LayoutOrder else nil,
                         lootTool = nil,
                         substituteTool = pEquipmentSlot.tool,
                         equipmentToolLayoutOrder = equipmentToolLayoutOrder,
@@ -164,7 +151,7 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
                         print("filling inventory slot")
                         References_ActionHandlers.bindables.ImmediateUnequip:Fire(pEquipmentTool)
                         emptySlot(pEquipmentSlot)
-                        fillSlot(lInventoryData.slotObject, pEquipmentTool) 
+                        fillSlot(lEquipmentData.slotObject, pEquipmentTool) 
                     end)
                     :catch(function(err)
                         print("error, dropping item")
@@ -175,15 +162,15 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
             end,
             function() --onFinished
                 changeSlotState(pEquipmentSlot, "Idle")
-                changeSlotState(lInventoryData.slotObject, "Idle")
+                changeSlotState(lEquipmentData.slotObject, "Idle")
             end
         )   
     elseif not lIsEmpty then
         -- item will be removed from server registry and the wearing process will start for it locally. If cancelled, the item will find a place in the inventory. If full, then it will be dropped.
-        local lootTool = lInventoryData.slotObject.tool
+        local lootTool = lEquipmentData.slotObject.tool
         References_ActionHandlers.LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
             __type = requestType,
-            lootToolLayoutOrder = lInventoryData.slotObject._itself.LayoutOrder,
+            lootToolLayoutOrder = lEquipmentData.slotObject._itself.LayoutOrder,
             lootTool = lootTool,
             substituteTool = nil,
             equipmentToolLayoutOrder = equipmentToolLayoutOrder,
@@ -238,4 +225,4 @@ local function P_EQUIPMENT__X__L_INVENTORY(pEquipmentData: types_and_enums.SlotD
     end
 end
 
-return P_EQUIPMENT__X__L_INVENTORY
+return P_EQUIPMENT__X__L_EQUIPMENT

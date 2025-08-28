@@ -9,10 +9,10 @@ local Type_Equipment = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_
 local remotes = {
     ToggleWear = References_ItemSystem.ItemSystem_Storage.Wearable.Remotes.ToggleWear:: RemoteEvent,
     OnWorn = References_ItemSystem.ItemSystem_Storage.Wearable.Remotes.OnWorn:: RemoteEvent,
+    MakeAccessoryVisibleOnDeath = References_ItemSystem.ItemSystem_Storage.Wearable.Remotes.MakeAccessoryVisibleOnDeath:: RemoteEvent
 }
 local bindables = {
     ToggleWear = References_ItemSystem.ItemSystem_Storage.Wearable.Bindables.ToggleWear:: BindableEvent
-
 }
 
 -- Parent Class
@@ -226,6 +226,7 @@ end
 
 function Wearable.Destroy(self: WearableType, childObjectCleanupMethod: () -> ())
     Item.Destroy(self, function()
+        remotes.MakeAccessoryVisibleOnDeath:FireServer(self.thisAccessory)
         toggleWearBind(self, false)
         childObjectCleanupMethod()
     end)

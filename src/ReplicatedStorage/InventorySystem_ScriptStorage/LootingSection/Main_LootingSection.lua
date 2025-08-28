@@ -81,7 +81,7 @@ local function sendCorpseFilledSlotsData(character: Model)
     local hrp = character:WaitForChild("HumanoidRootPart")
     local filledSlotsData = constructCorpseFilledSlotsDataAndDestroyInventoryData()
     -- print(filledSlotsData)
-    remotes.moveToolsToLootItemsHolding:FireServer()
+    remotes.moveToolsToLootItemsHolding:FireServer(character)
     remotes.SendClientCorpseFilledSlotsData:FireServer(filledSlotsData, hrp)
 end
 

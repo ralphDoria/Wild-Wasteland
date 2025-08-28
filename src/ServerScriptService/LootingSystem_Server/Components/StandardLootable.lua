@@ -16,7 +16,7 @@ local StandardLootable = {}
 StandardLootable.createdObjects = {}:: {[Model | Tool]: Types_LootSystem.StandardLootableObject}
 
 function StandardLootable.new(lootableInstance: Model | Tool, space: number, presetData: Types_LootSystem.StandardFilledSlotsData?): Types_LootSystem.StandardLootableObject
-    local dataChangeReplicator = Instance.new("RemoteEvent")
+    local dataChangeReplicator = Instance.new("UnreliableRemoteEvent")
     dataChangeReplicator.Parent = LootableInstanceDataReplicators
 
     local self: Types_LootSystem.StandardLootableObject = {

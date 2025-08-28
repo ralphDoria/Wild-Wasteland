@@ -67,14 +67,30 @@ function LootDataService.init()
         hrp:AddTag(TAGS_LOOT.CORPSE_LOOTABLE)
     end)
 
-    remotes.moveToolsToLootItemsHolding.OnServerEvent:Connect(function(player: Player)
+    remotes.moveToolsToLootItemsHolding.OnServerEvent:Connect(function(player: Player, corpseCharacter: Model)
+        local function setCorpseCharacter(tool, char)
+            local objValueName: string = "CorpseCharacterValue"
+
+            local existingObjValue = tool:FindFirstChild(objValueName):: ObjectValue
+            if existingObjValue then
+                existingObjValue.Value = corpseCharacter
+            else
+                local objectValue = Instance.new("ObjectValue")
+                objectValue.Name = objValueName
+                objectValue.Value = char
+                objectValue.Parent = tool
+            end
+        end
+
         local backpack = player.Backpack
         for _, v in backpack:GetChildren() do 
             if v:IsA("Tool") then
+                setCorpseCharacter(v, corpseCharacter)
                 v.Parent = LootItemsHolding
             elseif v:IsA("Folder") then
                 for _, v in v:GetDescendants() do
                     if v:IsA("Tool") then
+                        setCorpseCharacter(v, corpseCharacter)
                         v.Parent = LootItemsHolding
                     end
                 end

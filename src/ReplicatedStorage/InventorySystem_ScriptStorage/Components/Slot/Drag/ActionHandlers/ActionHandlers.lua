@@ -30,6 +30,7 @@ local ActionHandlers: types_and_enums.ActionHandlers = {
         
         [L_EQUIPMENT] = function(dragData)
             print("Action: Take off corpse and drop")
+            L_EQUIPMENT__DROP(dragData)
         end,
         
         [P_EQUIPMENT] = function(dragData, _, changeSlotState, fillSlot, emptySlot)

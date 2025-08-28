@@ -45,7 +45,7 @@ function InventoryManager.new(onToolAdded: (tool: Tool) -> (), onToolRemoved: (t
 				onToolAdded(tool)
 
 				if tool:HasTag("Looted") then
-					warn("has loot tag, not filling slot here")
+					-- warn("has loot tag, not filling slot here")
 					LootedTagReplicatedToClient:FireServer(tool)
 					return
 				end

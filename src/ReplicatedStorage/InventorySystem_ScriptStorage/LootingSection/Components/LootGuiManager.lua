@@ -80,7 +80,6 @@ function LootGuiManager.RenderData(lootable: Model | Tool, filledSlotsData: any)
                     Slot.FillSlot(lootingEquipmentSlot, equipmentTool)
                     if equipmentTool:HasTag("StandardLootable") then 
                         local slotGroupData = equipmentToolAndSlotGroupData.slotGroupData
-                        print(slotGroupData)
                         local slotGroupObject = SlotGroup.new(equipmentTool.Name, equipmentTool:GetAttribute("Space"):: number, slotGroupData, References_Inventory_Client.LootingScrollingFrame)
                         slotGroupObject._itself.LayoutOrder = tonumber(string_equipmentSlotNumber):: number
                         currentlyRendering.slotGroupObjects[tonumber(string_equipmentSlotNumber):: number] = slotGroupObject
@@ -149,7 +148,10 @@ function LootGuiManager.replaceSlot(dataChangeRequest: any)
 
         if lootToolLayoutOrder == nil then
             -- Equipment slot is to be replaced with substitute tool
-            SlotGroup.Destroy(currentlyRendering.slotGroupObjects[equipmentToolLayoutOrder])
+            local slotGroupObject: SlotGroup.object? = currentlyRendering.slotGroupObjects[equipmentToolLayoutOrder]
+            if slotGroupObject then
+                SlotGroup.Destroy(slotGroupObject)
+            end
             currentlyRendering.slotGroupObjects[equipmentToolLayoutOrder] = nil
             local equipmentSlot = Slot.instanceToObjectMap[currentlyRendering.equipmentSlots[equipmentToolLayoutOrder]] 
             Slot.EmptySlot(equipmentSlot)

@@ -3,9 +3,10 @@ local Players = game:GetService("Players")
 local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local Type_Equipment = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.CharacterSection.Components.Type_Equipment)
 
-local remotes: {[string] : RemoteEvent} = {
-    ToggleWear = ItemSystem_Storage.Wearable.Remotes.ToggleWear,
-    OnWorn = ItemSystem_Storage.Wearable.Remotes.OnWorn,
+local remotes = {
+    ToggleWear = ItemSystem_Storage.Wearable.Remotes.ToggleWear:: RemoteEvent,
+    OnWorn = ItemSystem_Storage.Wearable.Remotes.OnWorn:: RemoteEvent,
+    MakeAccessoryVisibleOnDeath = ItemSystem_Storage.Wearable.Remotes.MakeAccessoryVisibleOnDeath:: RemoteEvent
 }
 
 
@@ -65,6 +66,14 @@ return function()
             end
             WornItems.Parent = player.Backpack
         end)
+    end)
+
+    remotes.MakeAccessoryVisibleOnDeath.OnServerEvent:Connect(function(player: Player, accessory: Accessory)  
+        for _, v in accessory:GetChildren() do
+            if v:IsA("BasePart") then
+                v.Transparency = 0
+            end
+        end
     end)
 
     remotes.OnWorn.OnServerEvent:Connect(function(player: Player, tool: Tool, wearableCategory)

@@ -27,7 +27,7 @@ local function getPrimaryPart(lootable: Tool | Model)
 end
 
 local function initClientLootable(lootable: Tool | Model): (ProximityPrompt, Highlight)
-    local changeReplicator: RemoteEvent? = rfn.GetChangeReplicatorRemote:InvokeServer(lootable)
+    local changeReplicator: UnreliableRemoteEvent? = rfn.GetChangeReplicatorRemote:InvokeServer(lootable)
     local onLootDataChanged: RBXScriptConnection?
 
     local promptContainer = if lootable.Name == "HumanoidRootPart" then lootable else getPrimaryPart(lootable) 
@@ -38,6 +38,8 @@ local function initClientLootable(lootable: Tool | Model): (ProximityPrompt, Hig
 
             LootActions.GetData(lootable)
                 :andThen(function(filledSlotsData: Types_LootSystem.StandardFilledSlotsData)
+                    print("onTriggered filledSlotsData:")
+                    print(filledSlotsData)
                     LootGuiManager.RenderData(lootable, filledSlotsData)
                     if changeReplicator then
                         onLootDataChanged = changeReplicator.OnClientEvent:Connect(function(dataChangeRequest: Types_LootSystem.StandardDataChangeRequest | Types_LootSystem.CorpseDataChangeRequest)  

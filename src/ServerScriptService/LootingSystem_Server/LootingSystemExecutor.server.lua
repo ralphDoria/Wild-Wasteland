@@ -1,7 +1,27 @@
-local RS = game:GetService("ReplicatedStorage")
 local SSS = game:GetService("ServerScriptService")
 local LootDataService = require(SSS.RojoManaged_SSS.LootingSystem_Server.Services.LootDataService)
 LootDataService.init()
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LootingSystem_Storage = ReplicatedStorage.LootingSystem_Storage
+local remotes = {
+    ToggleWornWearableAccessory = LootingSystem_Storage.Remotes.ToggleWornWearableAccessory:: RemoteEvent,
+}
+
+remotes.ToggleWornWearableAccessory.OnServerEvent:Connect(function(player: Player, toggle: boolean, corpseCharacter: Model, originalAccessory: Accessory)  
+    if toggle then
+            local clone: Accessory = originalAccessory:Clone()
+            clone.Name = originalAccessory.Name .. "Worn"
+            clone.Parent = corpseCharacter
+    else
+        local accessory = corpseCharacter:FindFirstChild(originalAccessory.Name  .. "Worn", true)
+        if accessory then
+            accessory:Destroy()
+        else
+            warn(originalAccessory.Name .. "Worn" .. " not found, can't be destroyed")
+        end
+    end
+end)
 -- local remotes = {
 --     OpenLootable = RS.LootingSystem_Storage.Remotes.OpenLootable,
 --     CloseLootable = RS.LootingSystem_Storage.Remotes.CloseLootable

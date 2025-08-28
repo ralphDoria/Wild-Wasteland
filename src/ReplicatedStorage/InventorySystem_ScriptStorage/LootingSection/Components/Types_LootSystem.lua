@@ -54,7 +54,7 @@ type LootableObject = {
     _itself: Model | Tool,
     Space: number,
     _numberOfItems: number,
-    DataChangeReplicatorRemote: RemoteEvent
+    DataChangeReplicatorRemote: UnreliableRemoteEvent
 }
 
 export type StandardLootableObject = LootableObject & {

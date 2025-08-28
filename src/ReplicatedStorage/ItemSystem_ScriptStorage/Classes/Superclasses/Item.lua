@@ -75,7 +75,7 @@ function Item.initialize(self : ItemType, equipping: () -> ()?, equipped: () -> 
     
     self.trove:Connect(References_ItemSystem.bindables.DropToolBindable.Event, function(key: Tool) 
         if key == self.tool then
-            print("Dropping")
+            -- print("Dropping")
             Item.drop(self)
         end
     end)
@@ -212,7 +212,7 @@ function Item.drop(self : ItemType, onDropping: () -> ()?, onDropped : () -> ()?
             onDropped()
         end
         References_ItemSystem.ItemHUD.hide()
-        warn(`DROPPED ITEM`)
+        -- warn(`DROPPED ITEM`)
     end
 end
 
@@ -259,7 +259,7 @@ function Item.Destroy(self : ItemType, childObjectCleanupMethod: () -> ())
     task.defer(function()
         self.trove:Destroy()
         table.clear(self)
-        warn(`DESTROYED ITEM`)
+        -- warn(`DESTROYED ITEM`)
     end)
 end
 

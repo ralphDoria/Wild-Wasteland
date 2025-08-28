@@ -16,7 +16,7 @@ local CorpseLootable = {}
 CorpseLootable.createdObjects = {}:: {[Model]: Types_LootSystem.CorpseLootableObject}
 
 function CorpseLootable.new(lootableInstance: Model, presetData: Types_LootSystem.CorpseFilledSlotsData?): Types_LootSystem.CorpseLootableObject
-    local dataChangeReplicator = Instance.new("RemoteEvent")
+    local dataChangeReplicator = Instance.new("UnreliableRemoteEvent")
     dataChangeReplicator.Parent = LootableInstanceDataReplicators
 
     local self: Types_LootSystem.CorpseLootableObject = {
@@ -91,12 +91,35 @@ function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, d
                         end
                         
                         -- warn(`Adding looted attribute to {equipmentTool}`)
+                        local lootedTools = {}
                         equipmentTool:AddTag("Looted")
+                        table.insert(lootedTools, equipmentTool)
                         equipmentTool.Parent = player.Backpack
-                        remotes.LootedTagReplicatedToClient.OnServerEvent:Once(function(thisPlayer: Player, tool: Tool)  
-                            if tool == equipmentTool then
-                                warn("Looting tag replicated successfully, now removing it")
-                                equipmentTool:RemoveTag("Looted")                    
+                        local standardLootable: Types_LootSystem.StandardLootableObject = StandardLootable.createdObjects[equipmentTool]
+                        if standardLootable then
+                            standardLootable.FilledSlotsData = self.FilledSlotsData[tostring(equipmentNumber)].slotGroupData
+                            local numberOfItems = 0
+                            for _, v in standardLootable.FilledSlotsData do
+                                numberOfItems += 1
+                                v:AddTag("Looted")
+                                table.insert(lootedTools, v)
+                                v.Parent = player.Backpack
+                            end
+                            StandardLootable.SetNumberOfItems(standardLootable, numberOfItems)
+                        end
+                        
+                        local removeLootedTagConnection: RBXScriptConnection
+                        removeLootedTagConnection = remotes.LootedTagReplicatedToClient.OnServerEvent:Connect(function(thisPlayer: Player, tool: Tool)  
+                            local foundIndex: number? = table.find(lootedTools, tool)
+                            if foundIndex then
+                                print(`Looted tag served its purpose for {tool}, now removing it`)
+                                equipmentTool:RemoveTag("Looted")
+                                table.remove(lootedTools, foundIndex)
+
+                                if #lootedTools == 0 then
+                                    removeLootedTagConnection:Disconnect()
+                                    print("Disconnecting rmeovedLootedTagConnection")
+                                end
                             end
                         end)
                     end
