@@ -26,7 +26,7 @@ local camShake = CameraShaker.new(Enum.RenderPriority.Last.Value, function(shake
 end)
 camShake:Start()
 
-export type MeleeObject = Item.ItemType & {
+export type MeleeObject = Item.ItemObject & {
     damage : number,
     staminaCost: number,
     swingSpeed : number,

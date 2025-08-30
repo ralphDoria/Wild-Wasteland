@@ -124,6 +124,14 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
     self.ImageButton.Image = tool.TextureId
     self.tool = tool
     self.ImageButton.Visible = true
+    local quantityValue = tool:GetAttribute("Quantity")
+    if quantityValue then
+        self.Quantity.Text = "x" .. tostring(quantityValue)
+        self.Quantity.Visible = true
+        self.connections.updateQuantityLabel = tool:GetAttributeChangedSignal("Quantity"):Connect(function()  
+            self.Quantity.Text = "x" .. tostring(tool:GetAttribute("Quantity"))
+        end) 
+    end
     self._isEmpty = false
 
     if not self.WearableCategory and self._itself.Parent ~= References_Inventory.LootingEquipmentSlots 
@@ -151,11 +159,14 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
 
     if self.WearableCategory and tool:HasTag("StorageWearable") then
 
-        local associatedSlotGroup: ObjectValue? = tool:FindFirstChildOfClass("ObjectValue")
+        local associatedSlotGroup: ObjectValue? = tool:FindFirstChild("AssociatedItemGroup"):: ObjectValue?
         if associatedSlotGroup then
-            -- warn("slot group found")
+            warn("slot group found")
             local  connection
+            
+            print(`connecting associatedSlotGroup value property changed event listener, current associatedSlotGroup.Value = {associatedSlotGroup.Value}`)
             self.connections.onNewSlotGroupInstanceAdded = associatedSlotGroup:GetPropertyChangedSignal("Value"):Connect(function()  
+                print("running callback")
                 if connection then
                     connection:Disconnect()
                 end
@@ -163,6 +174,7 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
                 if slotGroupInstance then
 
                     updateFilledSlotsAndIsEmptyStatus(slotGroupInstance)
+                    print("slotGroupInstance found, making FilledSlotcounter visible")
                     FilledSlotCounter.Visible = true
 
                     connection = slotGroupInstance:GetAttributeChangedSignal("FilledSlotCounter_Client"):Connect(function()
@@ -171,6 +183,7 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
 
                     
                 else
+                    print("slotGroupInstance not found")
                     if connection then
                         connection:Disconnect()
                     end
@@ -209,7 +222,7 @@ function Slot.EmptySlot(self : Type_Slot.SlotObject?)
     self.ImageButton.Visible = false
     self._isEmpty = true
     for name, v in self.connections do
-        if name ~= "hoverBegin" and name ~= "hoverEnd" then            
+        if name ~= "hoverBegin" and name ~= "hoverEnd" and name ~= "updateQuantityLabel" then            
             v:Disconnect()
         end
     end

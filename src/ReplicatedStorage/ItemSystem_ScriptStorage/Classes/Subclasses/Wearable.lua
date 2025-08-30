@@ -3,7 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local References_ItemSystem = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ItemSystem_ScriptStorage.References_ItemSystem)
 
-local Type_Item = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.ToolStateMachine.Type_Item)
+local Type_Item = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Components.Shared.Type_Item)
 local Type_Equipment = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.CharacterSection.Components.Type_Equipment)
 
 local remotes = {
@@ -19,7 +19,7 @@ local bindables = {
 local Item = require("./../Superclasses/Item")
 
 local ToolCatalog: Folder = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
-export type WearableType = Item.ItemType & {
+export type WearableType = Item.ItemObject & {
     originalAccessory: Accessory,
     thisAccessory: Accessory,
     WearSpeed: number,

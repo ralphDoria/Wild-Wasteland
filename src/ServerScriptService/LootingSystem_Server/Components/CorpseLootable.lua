@@ -129,7 +129,7 @@ function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, d
                     equipmentToolAndSlotGroupData.equipmentTool = substituteTool
                     if substituteTool then
                         local substituteLootableObject: Types_LootSystem.StandardLootableObject = StandardLootable.createdObjects[substituteTool]
-                        equipmentToolAndSlotGroupData.slotGroupData = substituteLootableObject.FilledSlotsData
+                        equipmentToolAndSlotGroupData.slotGroupData = if substituteLootableObject.FilledSlotsData then substituteLootableObject.FilledSlotsData else nil
 
                         if not equipmentTool then
                             local space_substituteTool: number? = substituteTool:GetAttribute("Space"):: number? 
@@ -161,7 +161,11 @@ function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, d
 end
 
 function CorpseLootable.processDataChangeRequest(self: Types_LootSystem.CorpseLootableObject, player: Player, changeRequests: {Types_LootSystem.CorpseDataChangeRequest})
+    print("Before:")
+    print(self.FilledSlotsData)
     local result = SharedFunctions.processDataChangeRequest(CorpseLootable._validate, self, player, changeRequests)
+    print("After:")
+    print(self.FilledSlotsData)
     return result
 end
 

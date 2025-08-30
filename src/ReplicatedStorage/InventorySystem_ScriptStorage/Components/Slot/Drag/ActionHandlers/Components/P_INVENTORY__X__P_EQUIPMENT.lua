@@ -74,12 +74,12 @@ local function P_INVENTORY__X__P_EQUIPMENT(wearableSlotData: types_and_enums.Slo
                     end
                 end
                 if completedUnwearing then
-                    local emptyInventoryOrHotbarSlot = References_ActionHandlers.EmptySlotFinder.any()
-                    if emptyInventoryOrHotbarSlot then
+                    local emptyPlayerInventorySlot = References_ActionHandlers.EmptySlotFinder.any()
+                    if emptyPlayerInventorySlot then
                         print("empty slot found")
                         local wearableTool = wearableSlot.tool
                         emptySlot(wearableSlot)
-                        fillSlot(emptyInventoryOrHotbarSlot, wearableTool)
+                        fillSlot(emptyPlayerInventorySlot, wearableTool)
                         --TODO: DROP
                     else
                         print("emtpy slot not founding; dropping")

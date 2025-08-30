@@ -7,6 +7,7 @@ local highlight: Highlight = ItemSystem_Storage.Shared.Instances.Highlight
 
 
 local EmptySlotFinder = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.EmptySlotFinder)
+local StackableSlotFinder = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.StackableSlotFinder)
 local DiegeticErrorMessaging = require(ReplicatedStorage.RojoManaged_RS.DiegeticErrorMessagingManager)
 local ToolStateMachine = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.ToolStateMachine.Main_ToolStateMachine)
 local Slot = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.Slot)
@@ -16,7 +17,8 @@ local bindables  = {
     DropToolBindable = ItemSystem_Storage.Shared.Bindables.DropToolBindable,
 }
 local remotes = {
-    PickUpTool = ItemSystem_Storage.Shared.Remotes.PickUpTool
+    RequestPickUpTool = ItemSystem_Storage.Shared.Remotes.RequestPickUpTool:: RemoteFunction,
+    RequestMergeStackables = ItemSystem_Storage.Stackable.Remotes.RequestMergeStackables:: RemoteFunction,
 }
 
 export type ToolPromptManager = {
@@ -47,6 +49,7 @@ function ToolPromptManager.new(tool: Tool) : ToolPromptManager
     pp.Enabled = false
     pp.RequiresLineOfSight = false
     pp.HoldDuration = 0.5
+    
     pp.Parent = tool:FindFirstChild("BodyAttach", true)
     ToolPromptManager._initialize(self)
 
@@ -56,7 +59,7 @@ end
 function ToolPromptManager._initialize(self : ToolPromptManager)
     
     --Initial check (maybe use observer pattern in the future)
-    if self.tool.Parent == workspace then
+    if self.tool:FindFirstAncestor("Workspace") and self.tool.Parent and not self.tool.Parent:IsA("Model") then
         self.pp.Enabled = true
     else
         self.pp.Enabled = false
@@ -74,88 +77,39 @@ function ToolPromptManager._initialize(self : ToolPromptManager)
     )
     table.insert(
         self.connections,
-        self.pp.Triggered:Connect(function(thisPlayer: Player) --possible race condition?
-            if thisPlayer == player then
-                --TODO: this needs to be more robustly coordinated w/ StorageWearable. Perhaps pu these actionNames in a module they can both require
-                local actionText = self.pp.ActionText
-                if actionText == "Pick Up" then
-                    if EmptySlotFinder.any() then
-                    self.pp.Enabled = false
-                        remotes.PickUpTool:FireServer(self.tool)
-                        bindables.OnPickUp:Fire(self.tool) 
-                    else
-                        DiegeticErrorMessaging.AddMessage("I can't carry any more items")
-                    end
-                elseif actionText == "Put On" or actionText == "Swap"then
-                    self.tool:AddTag("Looted")
-                    remotes.PickUpTool:FireServer(self.tool) --for putting the tool into player's backpack
-                    bindables.OnPickUp:Fire(self.tool) --for putting tool into the unequipped state
-                    warn("Waiting for tool to be picked up")
-                    self.tool:GetPropertyChangedSignal("Parent"):Wait() --make sure there are no race conditions involved with this method
-                    warn("Tool picked up, delaying, then starting procedure")
-                    task.wait()
-                    local wearableSlot: Slot.SlotObject = Slot.wearableCategoryToObjectMap[self.tool:GetAttribute("WearableCategory")]
-                    local temporarySlotObject = Slot.new("Inventory")
-                    Slot.FillSlot(temporarySlotObject, self.tool)
+        self.pp.Triggered:Connect(function(thisPlayer: Player) 
+            local actionText = self.pp.ActionText
+            if actionText == "Pick Up" then
 
-                    local tweens = {}
-                    ToolStateMachine.SetTargets(temporarySlotObject, "Worn", 
-                        function(estimatedPathsTime: number) -- onValidated
-                            Slot.ChangeState(temporarySlotObject, "BeingSwapped")
-                            Slot.ChangeState(wearableSlot, "BeingSwapped")
-                            table.insert(tweens, Slot.loadSlot(wearableSlot, estimatedPathsTime))  
-                            for _, v in tweens do
-                                v:Play()
-                            end
-                        end,
-                        function(completedUnwearing: boolean?) -- onCancelled
-                            warn("Cancelled")
-                            for _, v in tweens do
-                                if v.PlaybackState == Enum.PlaybackState.Playing then
-                                    v:Cancel()                        
-                                end
-                            end
-                            if actionText == "Put On" then
-                                bindables.DropToolBindable:Fire(temporarySlotObject.tool)
-                                Slot.destroy(temporarySlotObject)
-                            elseif actionText == "Swap" then
-                                bindables.DropToolBindable:Fire(temporarySlotObject.tool)
-                                Slot.destroy(temporarySlotObject)
-                            end
-                        end,
-                        function() --onResolved
-                            if wearableSlot._isEmpty then
-                                warn("Successfully wore and emptied")
-                                -- successfull wore item from inventory/hotbar and now emptying its slot and filling it's new place in CharacterEquipmentSlots
-                                assert(temporarySlotObject.tool)
-                                Slot.destroy(temporarySlotObject)
-                                Slot.FillSlot(wearableSlot, self.tool)
-                            elseif not (wearableSlot._isEmpty and temporarySlotObject._isEmpty) then
-                                warn("Successfully swapped and wore")
-                                -- took off item that was currently worn and put on item in hover slot
-                                Slot.destroy(temporarySlotObject)
-                                Slot.EmptySlot(wearableSlot)
-                                Slot.FillSlot(wearableSlot, self.tool)
-                            end
-                        end,
-                        function(status: string)
-                            Slot.ChangeState(wearableSlot, "Idle")
-                            self.tool:RemoveTag("Looted")
-                        end,
-                        function() --onNontargetUnworn
-                            bindables.DropToolBindable:Fire(wearableSlot.tool)
-                            Slot.EmptySlot(wearableSlot) -- this will cause ItemMovementTracker's onDropped to print a warning, but this is to prevent any race conditions
+                local currentQuantity = self.tool:GetAttribute("Quantity")
+                if currentQuantity then
+                   
+                    local sourceTool = self.tool
+                    local foundUnmaxedStackable: boolean = true
+                    while foundUnmaxedStackable and sourceTool.Parent ~= nil do -- remember that stackables are destroyed when their quantity reaches 0
+                        local unmaxedStackable = StackableSlotFinder.any(self.tool.Name)
+                        if unmaxedStackable == nil then
+                            foundUnmaxedStackable = false
+                            continue -- continues to empty slot finder
+                        else
+                            local destinationTool = unmaxedStackable.tool
+                            remotes.RequestMergeStackables:InvokeServer(sourceTool, destinationTool) -- this yields until serverside operation completes
                         end
-                    )
-                elseif actionText == "Swap" then
-                    local slotObject = Slot.wearableCategoryToObjectMap[self.tool:GetAttribute("WearableCategory")]
-                    if not slotObject then
-                        error("Didn't find wearable slot")
                     end
-                    
-                else
-                    warn("Unrecognized Action Text")
                 end
+
+                if EmptySlotFinder.any() then
+                    self.pp.Enabled = false
+                    local isSuccess: boolean = remotes.RequestPickUpTool:InvokeServer(self.tool)
+                    if not isSuccess then print("RequestPickUpTool Denied"); return end
+                    bindables.OnPickUp:Fire(self.tool) 
+                else
+                    DiegeticErrorMessaging.AddMessage("I can't carry any more items")
+                end
+            elseif actionText == "Put On" or actionText == "Swap"then
+                ToolPromptManager._putOnOrSwapWearable(actionText, self.tool)
+            else
+                warn("Unrecognized Action Text")
             end
         end)
     )
@@ -170,6 +124,88 @@ function ToolPromptManager._initialize(self : ToolPromptManager)
         self.pp.PromptHidden:Connect(function(a0: Enum.ProximityPromptInputType)
             self.highlight.Enabled = false
         end)
+    )
+    local isStackable = self.tool:GetAttribute("Quantity") ~= nil
+    if isStackable then
+        local stackableName = self.tool.Name -- this should already be plural
+        local function updateStackablePromptText()
+            local currentQuantity = self.tool:GetAttribute("Quantity") 
+            return `{currentQuantity} {if currentQuantity == 1 then stackableName:sub(1, stackableName:len() - 1) else stackableName}`
+        end
+
+        -- initial set
+        self.pp.ObjectText = updateStackablePromptText()  
+
+        table.insert(
+            self.connections,
+            self.tool:GetAttributeChangedSignal("Quantity"):Connect(function()  
+                self.pp.ObjectText = updateStackablePromptText()  
+            end)
+        )
+    end
+end
+
+function ToolPromptManager._putOnOrSwapWearable(actionText: string, tool: Tool)
+    tool:AddTag("Looted")
+    local isSuccess: boolean = remotes.RequestPickUpTool:InvokeServer(tool)
+    if not isSuccess then print("RequestPickUpTool Denied"); return end
+    bindables.OnPickUp:Fire(tool) --for putting tool into the unequipped state
+    warn("Waiting for tool to be picked up")
+    tool:GetPropertyChangedSignal("Parent"):Wait() --make sure there are no race conditions involved with this method
+    warn("Tool picked up, delaying, then starting procedure")
+    task.wait()
+    local wearableSlot: Slot.SlotObject = Slot.wearableCategoryToObjectMap[tool:GetAttribute("WearableCategory")]
+    local temporarySlotObject = Slot.new("Inventory")
+    Slot.FillSlot(temporarySlotObject, tool)
+
+    local tweens = {}
+    ToolStateMachine.SetTargets(temporarySlotObject, "Worn", 
+        function(estimatedPathsTime: number) -- onValidated
+            Slot.ChangeState(temporarySlotObject, "BeingSwapped")
+            Slot.ChangeState(wearableSlot, "BeingSwapped")
+            table.insert(tweens, Slot.loadSlot(wearableSlot, estimatedPathsTime))  
+            for _, v in tweens do
+                v:Play()
+            end
+        end,
+        function(completedUnwearing: boolean?) -- onCancelled
+            warn("Cancelled")
+            for _, v in tweens do
+                if v.PlaybackState == Enum.PlaybackState.Playing then
+                    v:Cancel()                        
+                end
+            end
+            if actionText == "Put On" then
+                bindables.DropToolBindable:Fire(temporarySlotObject.tool)
+                Slot.destroy(temporarySlotObject)
+            elseif actionText == "Swap" then
+                bindables.DropToolBindable:Fire(temporarySlotObject.tool)
+                Slot.destroy(temporarySlotObject)
+            end
+        end,
+        function() --onResolved
+            if wearableSlot._isEmpty then
+                warn("Successfully wore and emptied")
+                -- successfull wore item from inventory/hotbar and now emptying its slot and filling it's new place in CharacterEquipmentSlots
+                assert(temporarySlotObject.tool)
+                Slot.destroy(temporarySlotObject)
+                Slot.FillSlot(wearableSlot, tool)
+            elseif not (wearableSlot._isEmpty and temporarySlotObject._isEmpty) then
+                warn("Successfully swapped and wore")
+                -- took off item that was currently worn and put on item in hover slot
+                Slot.destroy(temporarySlotObject)
+                Slot.EmptySlot(wearableSlot)
+                Slot.FillSlot(wearableSlot, tool)
+            end
+        end,
+        function(status: string)
+            Slot.ChangeState(wearableSlot, "Idle")
+            tool:RemoveTag("Looted")
+        end,
+        function() --onNontargetUnworn
+            bindables.DropToolBindable:Fire(wearableSlot.tool)
+            Slot.EmptySlot(wearableSlot) -- this will cause ItemMovementTracker's onDropped to print a warning, but this is to prevent any race conditions
+        end
     )
 end
 

@@ -11,7 +11,8 @@ local Types_Slot = require("./../../Components/Slot/Type_Slot")
 
 local Promise = require(ReplicatedStorage.Packages.Promise)
 
-local Type_Item = require("./Type_Item")
+
+local Type_Item = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Components.Shared.Type_Item)
 local GetStatePath = require("./GetStatePath")
 
 local currentOperation: {targetSlot: Types_Slot.SlotObject?, targetState: Type_Item.ItemState?, connections: {RBXScriptConnection}, promise: any} = {

@@ -2,11 +2,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local PlaySoundUtil = require(ReplicatedStorage:FindFirstChild("Utility", true).PlaySoundUtil)
-local remotes: {[string] : RemoteEvent} = {
+local remotes = {
     PlaySound = ItemSystem_Storage.Shared.Remotes.PlaySound,
     ToggleToolCanCollide = ItemSystem_Storage.Shared.Remotes.ToggleToolCanCollide,
     DropTool = ItemSystem_Storage.Shared.Remotes.DropTool,
-    PickUpTool = ItemSystem_Storage.Shared.Remotes.PickUpTool
+    RequestPickUpTool = ItemSystem_Storage.Shared.Remotes.RequestPickUpTool:: RemoteFunction
 }
 local pickUp : Sound = ItemSystem_Storage.Shared.Sounds.pickUp
 local OnHitFloor = require("./OnHitFloor")
@@ -45,10 +45,21 @@ return function()
         end
         OnHitFloor(tool)
     end)
-    remotes.PickUpTool.OnServerEvent:Connect(function(player: Player, tool: Tool)
-        local BodyAttach = tool.PrimaryPart :: BasePart
-        PlaySoundUtil(pickUp, BodyAttach.Position) 
-        tool.Parent = player.Backpack
-    end)
+    remotes.RequestPickUpTool.OnServerInvoke = function(player: Player, tool: Tool)
+        local MAX_PICKUP_RANGE = 5
+        local character = player.Character
+        local bodyAttach = tool.PrimaryPart
+        local isWithinRange: boolean = if character and bodyAttach and math.abs((character.PrimaryPart.Position - bodyAttach.Position).Magnitude) < MAX_PICKUP_RANGE then true else false
+        local isInValidParent: boolean? = tool:FindFirstAncestorOfClass("Workspace") and (tool.Parent and not tool.Parent:FindFirstChildOfClass("Humanoid"))
+        if isWithinRange and isInValidParent then
+            local BodyAttach = tool.PrimaryPart :: BasePart
+            PlaySoundUtil(pickUp, BodyAttach.Position) 
+            tool.Parent = player.Backpack
+            return true
+        else
+            warn("RequestPickUpTool denied due to failing range and/or parent checks")
+            return false
+        end
+    end
     --more to add later
 end

@@ -5,7 +5,8 @@ local toolTags = {
      ["Melee"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Subclasses.Melee),--the tool tag is just going to be the name of the tool
      ["HealingInjection"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Items.Consumables.HealingInjection),
      ["NV Goggles"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Items.Wearables.NVGoggles),
-     ["StorageWearable"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Subclasses.StorageWearable)
+     ["StorageWearable"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Subclasses.StorageWearable),
+     ["Stackable"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Subclasses.Stackable)
 }
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local handleTaggedInstance = require(ReplicatedStorage.RojoManaged_RS.Utility.handleTaggedInstances)

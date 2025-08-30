@@ -13,6 +13,8 @@ local L_INVENTORY__DROP = require("./Components/L_INVENTORY__DROP")
 local L_EQUIPMENT__DROP = require("./Components/L_EQUIPMENT__DROP")
 local P_EQUIPMENT__DROP = require("./Components/P_EQUIPMENT__DROP")
 local P_EQUIPMENT__X__L_INVENTORY = require("./Components/P_EQUIPMENT__X__L_INVENTORY")
+local P_EQUIPMENT__X__L_EQUIPMENT = require("./Components/P_EQUIPMENT__X__L_EQUIPMENT")
+local L_EQUIPMENT__X_P_INVENTORY = require("./Components/L_EQUIPMENT__X__P_INVENTORY")
 
 -- Enum slot types
 local P_INVENTORY = types_and_enums.EnumSlotType.P_INVENTORY
@@ -69,8 +71,9 @@ local ActionHandlers: types_and_enums.ActionHandlers = {
             [L_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData)
                 print("Action: Looting equipment to looting scrolling")
             end,
-            [P_EQUIPMENT] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData)
+            [P_EQUIPMENT] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, changeSlotState, fillSlot, emptySlot, newSlot, destroySlot)
                 print("Action: Looting equipment to character equipment")
+                P_EQUIPMENT__X__L_EQUIPMENT(hoverData, dragData, changeSlotState, fillSlot, emptySlot, newSlot, destroySlot)
             end,
             [P_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData)
                 print("Action: Looting equipment to inventory/hotbar")
@@ -82,8 +85,9 @@ local ActionHandlers: types_and_enums.ActionHandlers = {
                 print("Action: Character equipment to looting scrolling")
                 P_EQUIPMENT__X__L_INVENTORY(dragData, hoverData, changeSlotState, fillSlot, emptySlot, newSlot, destroySlot)
             end,
-            [L_EQUIPMENT] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData)
+            [L_EQUIPMENT] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, changeSlotState, fillSlot, emptySlot, newSlot, destroySlot)
                 print("Action: Character equipment to looting equipment")
+                P_EQUIPMENT__X__L_EQUIPMENT(dragData, hoverData, changeSlotState, fillSlot, emptySlot, newSlot, destroySlot)
             end,
             [P_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, changeSlotState, fillSlot, emptySlot)
                 print("Action: Character equipment to inventory/hotbar")

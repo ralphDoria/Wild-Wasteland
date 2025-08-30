@@ -1,17 +1,16 @@
 --!strict
-local References_ItemSystem = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ItemSystem_ScriptStorage.References_ItemSystem)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local References_ItemSystem = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.References_ItemSystem)
+local Type_Item = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Components.Shared.Type_Item)
 
-type state = "Equipping" | "Idle" | "Unequipping" | "Unequipped" | "Activated" 
-    | "Wearing" | "Unwearing" | "Worn"
-    | "Dropping" | "Dropped" 
-    | "Destroying" | "UpdatingCharacter"
+export type State = Type_Item.ItemState
 
-export type ItemType = {
+export type ItemObject = {
     tool : Tool,
     bodyAttach: BasePart,
     soundObjects: any,
     actionNames: {[string]: string},
-    State : state,
+    State : State,
     dropEquippedToolOnDeath: RBXScriptConnection?,
     trove: any
 }
@@ -21,8 +20,8 @@ local Item = {}
 --[[
     Makes this tool usable for the humanoid's current character
 ]]
-function Item.new(tool : Tool) : ItemType
-    local self : ItemType = {
+function Item.new(tool : Tool) : ItemObject
+    local self : ItemObject = {
         tool = tool,
         bodyAttach = tool:FindFirstChild("BodyAttach", true):: BasePart,
         soundObjects = References_ItemSystem.ToolInfo.get(tool.Name).soundObjects, -- For ergonomics; Only a pointer to an existing data table, so doesn't take that much memory
@@ -42,7 +41,7 @@ function Item.new(tool : Tool) : ItemType
     return self
 end
 
-function Item.initialize(self : ItemType, equipping: () -> ()?, equipped: () -> ()?, unequipping: () -> ()?, unequipped: () -> ()?, onDropping : () -> ()?, onDropped : () -> ()?)
+function Item.initialize(self : ItemObject, equipping: () -> ()?, equipped: () -> ()?, unequipping: () -> ()?, unequipped: () -> ()?, onDropping : () -> ()?, onDropped : () -> ()?)
 
     local equipTrack : AnimationTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].equip
     Item.TrackAnimTrack(self, equipTrack, "Equip")
@@ -92,7 +91,7 @@ end
     This will create and update custom attributes of the tool called [trackName]Length 
     and [trackName]TimePosition. 
 ]]
-function Item.TrackAnimTrack(self: ItemType, animTrack: AnimationTrack, trackName: string)
+function Item.TrackAnimTrack(self: ItemObject, animTrack: AnimationTrack, trackName: string)
     while animTrack.Length == 0 do
         task.wait()
     end
@@ -108,7 +107,7 @@ function Item.TrackAnimTrack(self: ItemType, animTrack: AnimationTrack, trackNam
     end)
 end
 
-function Item.equip(self: ItemType, equipping: () -> ()?, equipped: () -> ()?, onDropping : () -> ()?, onDropped : () -> ()?)
+function Item.equip(self: ItemObject, equipping: () -> ()?, equipped: () -> ()?, onDropping : () -> ()?, onDropped : () -> ()?)
     Item.ChangeState(self, "Equipping")
     self.dropEquippedToolOnDeath = References_ItemSystem.humanoid.Died:Once(function(...: any)  
         -- warn("NOT DROPPING EQUIPPED TOOL BECAUSE THIS IS BUGGED: TOOL WOULD FALL THROUGH FLOOR")
@@ -140,7 +139,7 @@ function Item.equip(self: ItemType, equipping: () -> ()?, equipped: () -> ()?, o
     end
 end
 
-function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> ()?)
+function Item.unequip(self: ItemObject, unequipping: () -> ()?, unequipped: () -> ()?)
     Item.ChangeState(self, "Unequipping")
     if self.dropEquippedToolOnDeath then
         self.dropEquippedToolOnDeath:Disconnect()
@@ -172,7 +171,7 @@ function Item.unequip(self: ItemType, unequipping: () -> ()?, unequipped: () -> 
     end
 end
 
-function Item.immediateUnequip(self: ItemType)
+function Item.immediateUnequip(self: ItemObject)
     if self.State == "Unequipped" then return end
     
     for _, v in self.actionNames do
@@ -186,12 +185,12 @@ function Item.immediateUnequip(self: ItemType)
     References_ItemSystem.ItemHUD.hide()
 end
 
-function Item.ChangeState(self: ItemType, state: state)
+function Item.ChangeState(self: ItemObject, state: State)
     self.tool:SetAttribute("State", state)
     self.State = state
 end
 
-function Item.drop(self : ItemType, onDropping: () -> ()?, onDropped : () -> ()?)
+function Item.drop(self : ItemObject, onDropping: () -> ()?, onDropped : () -> ()?)
     if self.State == "Idle" or self.State == "Equipping" or self.State == "Unequipped" or self.State == "Wearing" or self.State == "Unwearing" then
         Item.ChangeState(self, "Dropping")
         for _, v in self.actionNames do
@@ -216,7 +215,7 @@ function Item.drop(self : ItemType, onDropping: () -> ()?, onDropped : () -> ()?
     end
 end
 
-function Item.toggleDropBind(self : ItemType, toggle : boolean, onDropping: () -> ()?, onDropped : () -> ()?)
+function Item.toggleDropBind(self : ItemObject, toggle : boolean, onDropping: () -> ()?, onDropped : () -> ()?)
     if toggle then
         References_ItemSystem.ActionManager.bindAction(
             self.actionNames.dropItem, 
@@ -245,7 +244,7 @@ function Item.toggleDropBind(self : ItemType, toggle : boolean, onDropping: () -
     end
 end
 
-function Item.Destroy(self : ItemType, childObjectCleanupMethod: () -> ())
+function Item.Destroy(self : ItemObject, childObjectCleanupMethod: () -> ())
     Item.ChangeState(self, "Unequipped")
     childObjectCleanupMethod()
     --animManager internal data

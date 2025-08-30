@@ -1,4 +1,4 @@
-local Type_Item = require("./Type_Item")
+local Type_Item = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Components.Shared.Type_Item)
 
 local STATE_ORDER: {Type_Item.ItemState} = {
     [1] = "Unequipped",

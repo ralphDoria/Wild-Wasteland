@@ -12,8 +12,9 @@ local barbedBat = ToolCatalog["Barbed Bat"]
 local healingInjection = ToolCatalog["Healing Injection"]
 local nvGoggles = ToolCatalog["NV Goggles"]
 local raiderAxe = ToolCatalog["Raider Axe"]
-local capStash = ToolCatalog["Cap Stash"]
+local bloxyColaCaps = ToolCatalog["Bloxy Cola Caps"]
 local backpack = ToolCatalog["Backpack"]
+local lightBullets = ToolCatalog["Light Bullets"]
 
 local ToolInfo = {}
 
@@ -94,20 +95,24 @@ local catalog : {[string] : ToolInfo} = {
             }
         }
     },
-    [capStash.Name] = {
+    [bloxyColaCaps.Name] = {
         animObjects = {
-            equip = capStash.Anims.equip,
-            idle = capStash.Anims.idle,
+            equip = bloxyColaCaps.Anims.equip,
+            idle = bloxyColaCaps.Anims.idle,
         },
         soundObjects = {
-            equip = capStash.Sounds.equip,
-            unequip = capStash.Sounds.unequip,
+            equip = bloxyColaCaps.Sounds.equip,
+            unequip = bloxyColaCaps.Sounds.unequip,
             move = {
-                ["1"] = capStash.Sounds.move.move1,
-                ["2"] = capStash.Sounds.move.move2,
-                ["3"] = capStash.Sounds.move.move3,
-                ["4"] = capStash.Sounds.move.move4
+                ["1"] = bloxyColaCaps.Sounds.move.move1,
+                ["2"] = bloxyColaCaps.Sounds.move.move2,
+                ["3"] = bloxyColaCaps.Sounds.move.move3,
+                ["4"] = bloxyColaCaps.Sounds.move.move4
 
+            },
+            drop = {
+                hard = bloxyColaCaps.Sounds.unequip,
+                soft = bloxyColaCaps.Sounds.unequip
             },
         }
     },
@@ -130,6 +135,20 @@ local catalog : {[string] : ToolInfo} = {
             closeLootable = backpack.Sounds.closeLootable
         }
     },
+    -- [lightBullets.Name] = {
+    --     animObjects = {
+    --         equip = capStash.Anims.equip,
+    --         idle = capStash.Anims.idle,
+    --     },
+    --     soundObjects = {
+    --         equip = lightBullets.Sounds.equip,
+    --         unequip = lightBullets.Sounds.unequip,
+    --         drop = {
+    --             hard = lightBullets.Sounds.unequip,
+    --             soft = lightBullets.Sounds.unequip
+    --         },
+    --     }
+    -- }
 }
 
 function ToolInfo.get(toolName : string) : ToolInfo

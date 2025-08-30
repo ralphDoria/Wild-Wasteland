@@ -17,18 +17,12 @@ local function P_EQUIPMENT__X__L_EQUIPMENT(pEquipmentData: types_and_enums.SlotD
         return
     end
                     
-    local pIsEmpty = pEquipmentData.slotObject._isEmpty
-    local lIsEmpty = lEquipmentData.slotObject._isEmpty
+    local pIsEmpty = pEquipmentSlot._isEmpty
+    local lIsEmpty = lEquipmentSlot._isEmpty
 
-    local equipmentToolLayoutOrder, equipmentTool = Utility.getLootInventorySlotEquipmentToolInfo(lEquipmentSlot)
-    local requestType = if equipmentToolLayoutOrder then Types_LootSystem.EnumLootableTypes.Corpse else Types_LootSystem.EnumLootableTypes.Standard
-    warn(Types_LootSystem.EnumLootableTypes.Corpse, Types_LootSystem.EnumLootableTypes.Standard, `requesttype: {requestType}`)
+    local lootEquipmentTool = lEquipmentSlot.tool
+    local lEquipmentToolLayoutOrder = lEquipmentSlot._itself.LayoutOrder  
 
-    if not pIsEmpty and pEquipmentSlot.tool:GetAttribute("isEmpty_client") == false then
-        References_ActionHandlers.DiegeticErrorMessagingManager.AddMessage("I need to empty my backpack if I want to do that")
-        return
-    end
-    
     if not pIsEmpty and not lIsEmpty then
        --[[
             Just like picking up a filled backpack from the ground, the wearable will be taken from the server registry and implicitly stored in the player's inventory while the wearing process for the current wearable
@@ -37,14 +31,13 @@ local function P_EQUIPMENT__X__L_EQUIPMENT(pEquipmentData: types_and_enums.SlotD
         local lootTool = lEquipmentSlot.tool
         local pEquipmentTool = pEquipmentSlot.tool
         local originalLootableInstance = References_Inventory.LootableInstanceObjectValue.Value
-        local originalLootLayoutOrder = lEquipmentSlot._itself.LayoutOrder  
         References_ActionHandlers.LootActions.TrySlotInteraction(originalLootableInstance, {
-            __type = requestType,
-            lootToolLayoutOrder = originalLootLayoutOrder,
-            lootTool = lootTool,
+            __type = "Corpse",
+            lootToolLayoutOrder = nil,
+            lootTool = nil,
             substituteTool = nil,
-            equipmentToolLayoutOrder = equipmentToolLayoutOrder,
-            equipmentTool = equipmentTool
+            equipmentToolLayoutOrder = lEquipmentToolLayoutOrder,
+            equipmentTool = lootEquipmentTool
         })
         :andThen(function()
             -- start unwearing process
@@ -71,10 +64,10 @@ local function P_EQUIPMENT__X__L_EQUIPMENT(pEquipmentData: types_and_enums.SlotD
                         end
                     end
                     -- warn("Cancelled")
-                    local emptyInventoryOrHotbarSlot = References_ActionHandlers.EmptySlotFinder.any()
-                    if emptyInventoryOrHotbarSlot then
+                    local emptyPlayerEquipmentSlot = References_ActionHandlers.EmptySlotFinder.any()
+                    if emptyPlayerEquipmentSlot then
                         destroySlot(temporarySlotObject)
-                        fillSlot(emptyInventoryOrHotbarSlot, lootTool)
+                        fillSlot(emptyPlayerEquipmentSlot, lootTool)
                     else
                         destroySlot(temporarySlotObject)
                         References_ActionHandlers.bindables.DropToolBindable:Fire(lootTool)
@@ -92,13 +85,12 @@ local function P_EQUIPMENT__X__L_EQUIPMENT(pEquipmentData: types_and_enums.SlotD
                     -- TODO put original tool in pEquipmentData in lootTool's previous position
                     if originalLootableInstance == References_Inventory.LootableInstanceObjectValue.Value then
                         References_ActionHandlers.LootActions.TrySlotInteraction(originalLootableInstance, {
-                            __type = requestType,
-                            lootToolLayoutOrder = originalLootLayoutOrder,
+                            __type = "Corpse",
+                            lootToolLayoutOrder = nil,
                             lootTool = nil,
                             substituteTool = pEquipmentTool,
-                            equipmentToolLayoutOrder = equipmentToolLayoutOrder,
-                            equipmentTool = equipmentTool
-
+                            equipmentToolLayoutOrder = lEquipmentToolLayoutOrder,
+                            equipmentTool = nil
                         })
                         :catch(function(err)
                             warn("Dropping tool because try slot interaction for pEquipmentTool failed")
@@ -140,12 +132,12 @@ local function P_EQUIPMENT__X__L_EQUIPMENT(pEquipmentData: types_and_enums.SlotD
                     References_ActionHandlers.bindables.DropToolBindable:Fire(pEquipmentTool)
                 else
                     References_ActionHandlers.LootActions.TrySlotInteraction(lootableInstance, {
-                        __type = requestType,
+                        __type = "Corpse",
                         lootToolLayoutOrder = if lEquipmentData.slotObject._itself then lEquipmentData.slotObject._itself.LayoutOrder else nil,
                         lootTool = nil,
                         substituteTool = pEquipmentSlot.tool,
-                        equipmentToolLayoutOrder = equipmentToolLayoutOrder,
-                        equipmentTool = equipmentTool
+                        equipmentToolLayoutOrder = lEquipmentToolLayoutOrder,
+                        equipmentTool = lootEquipmentTool
                     })
                     :andThen(function()
                         print("filling inventory slot")
@@ -169,12 +161,12 @@ local function P_EQUIPMENT__X__L_EQUIPMENT(pEquipmentData: types_and_enums.SlotD
         -- item will be removed from server registry and the wearing process will start for it locally. If cancelled, the item will find a place in the inventory. If full, then it will be dropped.
         local lootTool = lEquipmentData.slotObject.tool
         References_ActionHandlers.LootActions.TrySlotInteraction(References_Inventory.LootableInstanceObjectValue.Value, {
-            __type = requestType,
+            __type = "Corpse",
             lootToolLayoutOrder = lEquipmentData.slotObject._itself.LayoutOrder,
             lootTool = lootTool,
             substituteTool = nil,
-            equipmentToolLayoutOrder = equipmentToolLayoutOrder,
-            equipmentTool = equipmentTool
+            equipmentToolLayoutOrder = lEquipmentToolLayoutOrder,
+            equipmentTool = lootEquipmentTool
         })
         :andThen(function()
             -- start wearing process
