@@ -92,7 +92,7 @@ function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, d
                         
                         -- warn(`Adding looted attribute to {equipmentTool}`)
                         local lootedTools = {}
-                        equipmentTool:AddTag("Looted")
+                        equipmentTool:AddTag("IgnoreInventorySlotAutofill")
                         table.insert(lootedTools, equipmentTool)
                         equipmentTool.Parent = player.Backpack
                         local standardLootable: Types_LootSystem.StandardLootableObject = StandardLootable.createdObjects[equipmentTool]
@@ -101,7 +101,7 @@ function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, d
                             local numberOfItems = 0
                             for _, v in standardLootable.FilledSlotsData do
                                 numberOfItems += 1
-                                v:AddTag("Looted")
+                                v:AddTag("IgnoreInventorySlotAutofill")
                                 table.insert(lootedTools, v)
                                 v.Parent = player.Backpack
                             end
@@ -113,7 +113,7 @@ function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, d
                             local foundIndex: number? = table.find(lootedTools, tool)
                             if foundIndex then
                                 print(`Looted tag served its purpose for {tool}, now removing it`)
-                                equipmentTool:RemoveTag("Looted")
+                                equipmentTool:RemoveTag("IgnoreInventorySlotAutofill")
                                 table.remove(lootedTools, foundIndex)
 
                                 if #lootedTools == 0 then

@@ -16,6 +16,7 @@ local LootingEquipmentName = References_Inventory.LootingEquipmentSlots.Name
 local CharacterEquipmentName = References_Inventory.CharacterEquipmentSlots.Name
 local InventoryScrollingName = References_Inventory.InventoryScrollingFrame.Name
 local HotbarName = References_Inventory.Hotbar.Name
+local SlpittingMenuName = References_Inventory.SplittingMenuFrame.Name
 
 
 -- Helper function to determine slot type (cached for performance)
@@ -30,6 +31,8 @@ local function getSlotType(slot): number
         return types_and_enums.EnumSlotType.P_EQUIPMENT
     elseif element:FindFirstAncestor(InventoryScrollingName) or element:FindFirstAncestor(HotbarName) then
         return types_and_enums.EnumSlotType.P_INVENTORY
+    elseif element:FindFirstAncestor(SlpittingMenuName) then
+        return types_and_enums.EnumSlotType.SPLIT_SLOT
     else
         return types_and_enums.EnumSlotType.INVALID
     end

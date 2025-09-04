@@ -4,7 +4,7 @@
 
 local Type_Equipment = require(game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage.CharacterSection.Components.Type_Equipment)
 
-export type SlotState = "Idle" | "BeingSwapped" | "Dragging" | "Emptying" | "Filling" | "Destroying"
+export type SlotState = "Idle" | "BeingSwapped" | "Dragging" | "Emptying" | "Filling" | "Destroying" | "Suspended"
 
 export type SlotObject = {
     State: SlotState,

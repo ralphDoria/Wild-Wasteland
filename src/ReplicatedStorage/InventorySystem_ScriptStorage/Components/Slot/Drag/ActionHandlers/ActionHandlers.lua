@@ -21,6 +21,7 @@ local P_INVENTORY = types_and_enums.EnumSlotType.P_INVENTORY
 local P_EQUIPMENT = types_and_enums.EnumSlotType.P_EQUIPMENT
 local L_INVENTORY = types_and_enums.EnumSlotType.L_INVENTORY
 local L_EQUIPMENT = types_and_enums.EnumSlotType.L_EQUIPMENT
+local SPLIT_SLOT = types_and_enums.EnumSlotType.SPLIT_SLOT
 
 local ActionHandlers: types_and_enums.ActionHandlers = {
     -- Outside inventory actions (when isOutsideInventory is true)
@@ -43,6 +44,9 @@ local ActionHandlers: types_and_enums.ActionHandlers = {
         [P_INVENTORY] = function(dragData)
             print("Action: Use ItemSystem drop method or open drop menu")
             References_ActionHandlers.bindables.DropToolBindable:Fire(dragData.slotObject.tool)
+        end,
+        [SPLIT_SLOT] = function(dragData)
+            print("Action: Drop split slot")
         end
     },
     

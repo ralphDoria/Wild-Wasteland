@@ -32,6 +32,7 @@ References_ItemSystem.bindables = {
     OnPickUp = bindables.OnPickUp:: BindableEvent,
     DropToolBindable = bindables.DropToolBindable:: BindableEvent,
     ImmediateUnequip = bindables.ImmediateUnequip:: BindableEvent,
+    ToggleDropBind = bindables.ToggleDropBind:: BindableEvent
 }
     -- remotes
 local remotes = ItemSystem_Storage.Shared.Remotes

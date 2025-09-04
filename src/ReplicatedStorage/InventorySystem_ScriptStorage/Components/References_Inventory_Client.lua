@@ -59,6 +59,9 @@ References_Inventory_Client.TemplateSlotGroup = References_Inventory_Client.Temp
 References_Inventory_Client.TemplateSlot = References_Inventory_Client.Templates:WaitForChild("SlotTemplate")
 References_Inventory_Client.TemplateItemInfoDisplay = References_Inventory_Client.Templates:WaitForChild("ItemInfoDisplayTemplate")
 
+-- Splitting Menu
+References_Inventory_Client.SplittingMenuFrame = References_Inventory_Client.InventoryScreenGui:WaitForChild("SplittingMenu"):: Frame
+References_Inventory_Client.splittingMenuObject = nil:: any
 --[[
     This function should be called after a new character spawns in, since the Inventory Gui has resetOnSpawn enabled
 ]]
@@ -102,6 +105,8 @@ function References_Inventory_Client.update()
     References_Inventory_Client.TemplateSlotGroup = References_Inventory_Client.Templates:WaitForChild("SlotGroupTemplate")
     References_Inventory_Client.TemplateSlot = References_Inventory_Client.Templates:WaitForChild("SlotTemplate")
     References_Inventory_Client.TemplateItemInfoDisplay = References_Inventory_Client.Templates:WaitForChild("ItemInfoDisplayTemplate")
+
+    References_Inventory_Client.SplittingMenuFrame = References_Inventory_Client.InventoryScreenGui:WaitForChild("SplittingMenu"):: Frame
 end
 
 return References_Inventory_Client

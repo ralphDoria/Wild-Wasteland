@@ -72,12 +72,14 @@ function HotbarManager.toggleKeybindToHotbarSlot(self: HotbarObject, toggle : bo
     if toggle then
         --warn("enbaling keybindToHotbarSlot")
         self.keybindConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then return end
             if self.hotbar then
                 for _, v in self.hotbar:GetChildren() do
                     if v:IsA("Frame") then
                         if v.LayoutOrder == table.find(hotbarNumberToKeybind, input.KeyCode) then
                             local correspondingHotbarSlot = hotbarSlotToSlotData[v]
-                            if correspondingHotbarSlot._isEmpty == false then
+                            if correspondingHotbarSlot._isEmpty == false  then
+                                if correspondingHotbarSlot.State == "Suspended" then return end
                                 assert(correspondingHotbarSlot.tool ~= nil)
                                 local state = correspondingHotbarSlot.tool:GetAttribute("State")
                                 if state == "Unequipping" or state == "Unequipped" then

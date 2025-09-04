@@ -1,8 +1,13 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ItemSystem_Storage = ReplicatedStorage.ItemSystem_Storage
+local LootItemsHolding = ReplicatedStorage.LootingSystem_Storage.LootItemsHolding:: Folder
 
+local stackableRemotes = ItemSystem_Storage.Stackable.Remotes:: Folder
 local remotes = {
-    RequestMergeStackables = ItemSystem_Storage.Stackable.Remotes.RequestMergeStackables:: RemoteFunction,
+    RequestMergeStackables = stackableRemotes.RequestMergeStackables:: RemoteFunction,
+    RequestDuplicateStackable = stackableRemotes.RequestDuplicateStackable:: RemoteFunction,
+    RequestQuantityTransfer = stackableRemotes.RequestQuantityTransfer:: RemoteFunction,
+    DestroyUnusedStackable = stackableRemotes.DestroyUnusedStackable:: RemoteEvent
 }
 
 local function MergeQuantities(source: Tool, destination: Tool)
@@ -38,4 +43,42 @@ return function()
         MergeQuantities(source, destination)
         return
     end
+
+    remotes.RequestQuantityTransfer.OnServerInvoke = function(player: Player, source: Tool, destination: Tool, quantityToTransfer: number) 
+        local currentSourceQuantity = source:GetAttribute("Quantity")
+        local destinationQuantity = destination:GetAttribute("Quantity")
+        local originalSourceQuantity = currentSourceQuantity + destinationQuantity
+        assert(currentSourceQuantity and destinationQuantity and quantityToTransfer < originalSourceQuantity)
+        assert(source.Name == destination.Name, "Error: not the same stackable type")
+        source:SetAttribute("Quantity", originalSourceQuantity - quantityToTransfer)
+        destination:SetAttribute("Quantity", quantityToTransfer)
+        return true
+    end
+
+    remotes.RequestDuplicateStackable.OnServerInvoke = function(player: Player, stackableToSplit: Tool)
+        local stackableToSplitQuantity = stackableToSplit:GetAttribute("Quantity")
+        assert(stackableToSplitQuantity)
+        local parent = stackableToSplit.Parent
+        local hasValidParent = parent and (parent:FindFirstChildOfClass("Humanoid") or parent:IsA("Backpack") or parent == LootItemsHolding)
+        if hasValidParent  then
+            local clone = stackableToSplit:Clone()
+            clone:AddTag("IgnoreInventorySlotAutofill")
+            clone.Parent = player.Backpack
+            clone:SetAttribute("Quantity", 0)
+            return clone
+        else
+            return nil
+        end
+    end
+
+    remotes.DestroyUnusedStackable.OnServerEvent:Connect(function(player: Player, tool: Tool)  
+        assert(tool, "Tool doesn't exist")
+        local isStackable = tool:GetAttribute("Quantity")
+        local doesBelongToPlayer = tool.Parent == player.Backpack -- unused split split slot stackables should only be in the player's backpack if truly unused
+
+        assert(isStackable and doesBelongToPlayer, "Tool is either not a stackable or doesn't belong to the requesting client")
+
+        tool:Destroy()
+        print("Destroyed unused stackable")
+    end)
 end

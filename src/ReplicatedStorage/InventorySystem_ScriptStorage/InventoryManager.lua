@@ -9,7 +9,7 @@ local CharacterSection = require(ScriptStorage.CharacterSection.CharacterSection
 local HotbarSection = require(ScriptStorage.HotbarSection.Main_HotbarSection)
 local LootingSection = require(ScriptStorage.LootingSection.Main_LootingSection)
 local SlotRegistry = require(ScriptStorage.Components.Slot.SlotRegistry)
-
+local SplittingMenuManager = require(ScriptStorage.Components.SplittingMenuManager)
 local EmptySlotFinder = require(ScriptStorage.Components.Slot.EmptySlotFinder)
 
 -- Universal Inventory Components
@@ -24,7 +24,9 @@ export type InventoryManager = {
 	itemMovementTrackerObject: ItemMovementTracker.ItemMovementTracker,
 	characterSectionObject: CharacterSection.CharacterSectionObject,
 	hotbarSectionObject: HotbarSection.HotbarObject,
-	resizeInventoryConnection: RBXScriptConnection?
+	resizeInventoryConnection: RBXScriptConnection?,
+	splittingMenuObject: SplittingMenuManager.SplittingMenuManager,
+
 }
 
 local InventoryManager = {}
@@ -44,7 +46,7 @@ function InventoryManager.new(onToolAdded: (tool: Tool) -> (), onToolRemoved: (t
 			function(tool) --onAdded
 				onToolAdded(tool)
 
-				if tool:HasTag("Looted") then
+				if tool:HasTag("IgnoreInventorySlotAutofill") then
 					-- warn("has loot tag, not filling slot here")
 					LootedTagReplicatedToClient:FireServer(tool)
 					return
@@ -65,8 +67,10 @@ function InventoryManager.new(onToolAdded: (tool: Tool) -> (), onToolRemoved: (t
 				Slot.EmptySlot(SlotRegistry.toolToObjectMap[tool])
 			end
 		),
-		resizeInventoryConnection = nil
+		resizeInventoryConnection = nil,
+		splittingMenuObject = SplittingMenuManager.new(References_Inventory.SplittingMenuFrame),
 	}
+	References_Inventory.splittingMenuObject = self.splittingMenuObject
 
 	InventoryToggle.ChangeForm("Closed")
 	-- warn("LOOTING SECTION IS CURRENTLY DISABLED")
@@ -75,7 +79,7 @@ function InventoryManager.new(onToolAdded: (tool: Tool) -> (), onToolRemoved: (t
 	self.resizeInventoryConnection = References_Inventory.InventoryScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()  
 		InventoryManager.ResizeGui(self)
 	end)
-
+	
 	InventoryToggle.Bind()
  
 	warn("INITIALIZED INVENTORY SYSTEM")
@@ -86,7 +90,9 @@ function InventoryManager.Destroy(self: InventoryManager)
 	CharacterSection.Destroy(self.characterSectionObject)
 	ItemMovementTracker.Destroy(self.itemMovementTrackerObject)
 	HotbarSection.Destroy(self.hotbarSectionObject)
-
+	SplittingMenuManager.Destroy(self.splittingMenuObject)
+	References_Inventory.splittingMenuObject = nil
+	References_Inventory.InventoryScreenGui.Enabled = false
 	-- LootingSection.Destroy(self.lootin) Looting section does not need to be destroyed because it only connects a signel connection w/ once, which is the humanoid.died connection
 end
 

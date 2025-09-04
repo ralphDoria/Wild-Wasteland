@@ -57,6 +57,8 @@ function Item.initialize(self : ItemObject, equipping: () -> ()?, equipped: () -
     end)
     
     self.trove:Connect(self.tool.AncestryChanged, function(child: Instance, parent: Instance?)  
+        if parent == nil then return end -- either object is being destroyed has been parented to nil manually -- either way it wouldn't/shouldn't run the code below
+
         if parent and parent:FindFirstChildOfClass("Humanoid") then
             References_ItemSystem.remotes.ToggleToolCanCollide:FireServer(self.tool:FindFirstChild("ToolModel"), false)
         else
@@ -76,6 +78,12 @@ function Item.initialize(self : ItemObject, equipping: () -> ()?, equipped: () -
         if key == self.tool then
             -- print("Dropping")
             Item.drop(self)
+        end
+    end)
+    
+    self.trove:Connect(References_ItemSystem.bindables.ToggleDropBind.Event, function(key: Tool, toggle) 
+        if key == self.tool then
+            Item.toggleDropBind(self, toggle)
         end
     end)
     

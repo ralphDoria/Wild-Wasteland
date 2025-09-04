@@ -33,6 +33,13 @@ function Stackable.initialize(self : StackableObject)
         function() --onDropped()
         end
     )
+
+    self.tool.Destroying:Once(function()
+        print("Stackable is being destroyed")
+        Stackable.Destroy(self)
+        print("Stackable has been destroyed")
+    end)
+
 end
 
 function Stackable.Destroy(self: StackableObject)

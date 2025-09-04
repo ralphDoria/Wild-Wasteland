@@ -7,7 +7,9 @@ local PlaySound = require(ReplicatedStorage.RojoManaged_RS.Utility.PlaySoundUtil
 local ItemSystem_Storage = References_Inventory.ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
 local bindables = {
     DropToolBindable = ItemSystem_Storage.Shared.Bindables.DropToolBindable,
+    ToggleDropBind = ItemSystem_Storage.Shared.Bindables.ToggleDropBind
 }
+
 local SFX = {
     hover = References_Inventory.Storage.SFX.hover
 }
@@ -22,6 +24,7 @@ local DragFunctionality = require("./../Slot/Drag/DragFunctionality")
 local ToolStateMachine = require("./../ToolStateMachine/Main_ToolStateMachine")
 local handleDragDrop = require(InventoryScriptStorage.Components.Slot.Drag.handleDragDrop)
 local SlotRegistry = require(InventoryScriptStorage.Components.Slot.SlotRegistry)
+local SplittingMenuManager = require(InventoryScriptStorage.Components.SplittingMenuManager)
 
 export type SlotObject = Type_Slot.SlotObject
 export type State = Type_Slot.SlotState
@@ -117,10 +120,25 @@ function Slot.loadSlot(slot: SlotObject, duration: number)
     return tween
 end
 
+function Slot.toggleSuspend(slot: SlotObject, toggle: boolean)
+    if toggle then
+        slot.ActionIndicator.Image = slot.ActionIndicator:GetAttribute("suspendImage"):: string
+        slot.ActionIndicator.Rotation = -180
+        slot.ActionIndicator.Visible = true
+        TweenService:Create(slot.ActionIndicator, TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.In, math.huge), {Rotation = 180}):Play()
+        slot.ImageButton.Interactable = false
+        Slot.ChangeState(slot, "Suspended")
+    else
+        TweenService:Create(slot.ActionIndicator, TweenInfo.new(0), {Rotation = 0}):Play()
+        slot.ActionIndicator.Visible = false
+        slot.ImageButton.Interactable = true
+        Slot.ChangeState(slot, "Idle")
+    end
+end
+
 function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
     Slot.ChangeState(self, "Filling")
     -- print("Filling slot: ", self.HotbarNumber.Text)
-    -- self.Quantity.Visible = if itemType == "Misc" then true else false
     self.ImageButton.Image = tool.TextureId
     self.tool = tool
     self.ImageButton.Visible = true
@@ -131,6 +149,23 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
         self.connections.updateQuantityLabel = tool:GetAttributeChangedSignal("Quantity"):Connect(function()  
             self.Quantity.Text = "x" .. tostring(tool:GetAttribute("Quantity"))
         end) 
+
+        self.connections.openSplittingMenu = self.ImageButton.MouseButton2Click:Connect(function()  
+            -- initialize split slot
+            if self.tool and self.tool:GetAttribute("Quantity") < 2 then return end
+
+            bindables.ToggleDropBind:Fire(self.tool, false)
+            Slot.toggleSuspend(self, true) -- have to suspend slot to prevent player from potentially dropping it before quantity has time to adjust (quantity can only be adjusted if in player's inventory)
+            SplittingMenuManager.createAndShowSplitSlotMenu(References_Inventory.splittingMenuObject, tool, 
+                function() -- onClosed()
+                    if self.tool and self.tool:GetAttribute("State") == "Idle" then
+                        bindables.ToggleDropBind:Fire(self.tool, true)
+                    end
+                    Slot.toggleSuspend(self, false)
+                end, 
+                Slot.new, Slot.FillSlot, Slot.toggleSuspend)
+        end)
+        --for mobile players, I'm thinking a long touch is how they'll open the splitting menu
     end
     self._isEmpty = false
 
@@ -222,7 +257,7 @@ function Slot.EmptySlot(self : Type_Slot.SlotObject?)
     self.ImageButton.Visible = false
     self._isEmpty = true
     for name, v in self.connections do
-        if name ~= "hoverBegin" and name ~= "hoverEnd" and name ~= "updateQuantityLabel" then            
+        if name ~= "hoverBegin" and name ~= "hoverEnd" then            
             v:Disconnect()
         end
     end

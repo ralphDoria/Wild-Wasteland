@@ -14,7 +14,6 @@ function Hover.isOutsideInventory(): boolean
     local mousePos = References_Inventory.UserInputService:GetMouseLocation()
     local guis = References_Inventory.PlayerGui:GetGuiObjectsAtPosition(mousePos.X, mousePos.Y - References_Inventory.GuiService:GetGuiInset().Y)
     -- warn(guis)
-    local filteredGuis = {}
 
     for _, v in guis do 
         if v == References_Inventory.CharacterSection
@@ -22,15 +21,26 @@ function Hover.isOutsideInventory(): boolean
             or v == References_Inventory.LootingSection 
             or v == References_Inventory.Hotbar
             then
-            table.insert(filteredGuis, v)
+            print("ooga booga")
+            return false
         end
     end
 
-    if #filteredGuis == 0 then 
-        return true
-    else
-        return false
+    return true
+end
+
+function Hover.isOutsideSplittingMenu(): boolean
+    local mousePos = References_Inventory.UserInputService:GetMouseLocation()
+    local guis = References_Inventory.PlayerGui:GetGuiObjectsAtPosition(mousePos.X, mousePos.Y - References_Inventory.GuiService:GetGuiInset().Y)
+    -- warn(guis)
+
+    for _, v in guis do 
+        if v == References_Inventory.SplittingMenuFrame then
+            return false
+        end
     end
+
+    return true
 end
 
 local itemInfoDisplays: {[Type_Slot.SlotObject]: Frame} = {}

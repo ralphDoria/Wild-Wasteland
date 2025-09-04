@@ -146,7 +146,7 @@ function ToolPromptManager._initialize(self : ToolPromptManager)
 end
 
 function ToolPromptManager._putOnOrSwapWearable(actionText: string, tool: Tool)
-    tool:AddTag("Looted")
+    tool:AddTag("IgnoreInventorySlotAutofill")
     local isSuccess: boolean = remotes.RequestPickUpTool:InvokeServer(tool)
     if not isSuccess then print("RequestPickUpTool Denied"); return end
     bindables.OnPickUp:Fire(tool) --for putting tool into the unequipped state
@@ -200,7 +200,7 @@ function ToolPromptManager._putOnOrSwapWearable(actionText: string, tool: Tool)
         end,
         function(status: string)
             Slot.ChangeState(wearableSlot, "Idle")
-            tool:RemoveTag("Looted")
+            tool:RemoveTag("IgnoreInventorySlotAutofill")
         end,
         function() --onNontargetUnworn
             bindables.DropToolBindable:Fire(wearableSlot.tool)

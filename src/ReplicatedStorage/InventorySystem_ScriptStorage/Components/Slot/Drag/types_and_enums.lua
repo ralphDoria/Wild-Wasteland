@@ -9,7 +9,8 @@ types_and_enums.EnumSlotType = {
     L_EQUIPMENT = 2,
     P_EQUIPMENT = 3,
     P_INVENTORY = 4,
-    INVALID = 5
+    SPLIT_SLOT = 5,
+    INVALID = 6
 }
 
 local Types_Slot = require(InventoryScriptStorage.Components.Slot.Type_Slot)

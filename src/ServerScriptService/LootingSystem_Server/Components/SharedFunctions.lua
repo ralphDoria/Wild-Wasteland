@@ -35,12 +35,12 @@ function SharedFunctions.standardValidate(serverLootableObject: any, dataChangeR
                     end
                     
                     -- warn(`Adding looted attribute to {lootTool}`)
-                    lootTool:AddTag("Looted")
+                    lootTool:AddTag("IgnoreInventorySlotAutofill")
                     lootTool.Parent = player.Backpack
                     LootedTagReplicatedToClient.OnServerEvent:Once(function(thisPlayer: Player, tool: Tool)  
                         if tool == lootTool then
                             warn("Looting tag replicated successfully, now removing it")
-                            lootTool:RemoveTag("Looted")                    
+                            lootTool:RemoveTag("IgnoreInventorySlotAutofill")                    
                         end
                     end)
                 end
