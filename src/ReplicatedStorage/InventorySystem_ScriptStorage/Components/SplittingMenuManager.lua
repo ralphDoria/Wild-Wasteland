@@ -109,7 +109,6 @@ function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuMana
                 onCloseAreaClicked:Disconnect()
             end
             splitSlotMenu.trove:Destroy()
-            print("Disconnecting trove connections")
             SplittingMenuManager.toggleShow(self, false)
             if splitSlotMenu.splitSlot then
                 splitSlotMenu.splitSlot._itself:Destroy()
@@ -125,7 +124,7 @@ function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuMana
             end
             table.clear(splitSlotMenu)
             onClosed()
-            print("CleanUp SplitSlotMenu Completed")
+            -- print("CleanUp SplitSlotMenu Completed")
         end
         
         onCloseAreaClicked = SplittingMenuManager.connectOnCloseAreaClicked(function()  
@@ -166,20 +165,22 @@ function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuMana
             end)
 
             print("Connecting slot state changed")
+            local lastState
             splitSlotMenu.trove:Connect(stateChanged, function(slot, state)  
+                warn(slot, state)
                 if slot.tool and slot.tool == duplicateStackable then
                     if state == "Dragging" then
-                        print("Closing menu due to start drag")
+                        warn("Closing menu due to start drag")
                         SplittingMenuManager.toggleShow(self, false) 
-                    elseif state == "Idle" then
-                        print("Opening menu due to stoppped drag")
+                    elseif state == "Idle" and lastState == "Dragging" then
+                        warn("Opening menu due to stoppped drag")
                         SplittingMenuManager.toggleShow(self, true) 
                     end
+                    lastState = state
                 end
             end)
 
             splitSlotMenu.trove:Connect(splitSlot._itself:GetAttributeChangedSignal("Used"), function()
-                print("Used attribute changed signal received")
                 if splitSlot._itself:GetAttribute("Used") == true then
                     if splitSlotMenu.cleanUp then
                         splitSlotMenu.cleanUp()
