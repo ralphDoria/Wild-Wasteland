@@ -19,7 +19,7 @@ References_Inventory_Client.Trove = require(ReplicatedStorage.Packages.Trove)
 
 References_Inventory_Client.Storage = References_Inventory_Client.ReplicatedStorage.InventorySystem_Storage
 -- Top Level Inventory Refernces
-References_Inventory_Client.backpack = References_Inventory_Client.player.Backpack:: Backpack
+References_Inventory_Client.backpack = References_Inventory_Client.player:WaitForChild("Backpack"):: Backpack
 References_Inventory_Client.InventoryScreenGui = References_Inventory_Client.PlayerGui:WaitForChild("Inventory"):: ScreenGui
 References_Inventory_Client.MainInventory = References_Inventory_Client.InventoryScreenGui:WaitForChild("MainInventory"):: Frame
 References_Inventory_Client.DropArea = References_Inventory_Client.InventoryScreenGui:FindFirstChild("DropArea", true):: Frame

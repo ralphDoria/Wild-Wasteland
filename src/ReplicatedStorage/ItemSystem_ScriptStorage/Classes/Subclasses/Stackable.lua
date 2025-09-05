@@ -34,7 +34,6 @@ function Stackable.initialize(self : StackableObject)
         end
     )
 
-    print("Connecting stackable destroying event listener")
     self.trove:Add(
         self.tool.Destroying:Once(function()
             print("Calling stackable destroy")

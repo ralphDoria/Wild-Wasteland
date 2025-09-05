@@ -15,7 +15,6 @@ local P_EQUIPMENT__DROP = require("./Components/P_EQUIPMENT__DROP")
 local P_EQUIPMENT__X__L_INVENTORY = require("./Components/P_EQUIPMENT__X__L_INVENTORY")
 local P_EQUIPMENT__X__L_EQUIPMENT = require("./Components/P_EQUIPMENT__X__L_EQUIPMENT")
 local L_EQUIPMENT__X_P_INVENTORY = require("./Components/L_EQUIPMENT__X__P_INVENTORY")
-local SPLIT_SLOT__DROP = require("./Components/SPLIT_SLOT__DROP")
 local SPLIT_SLOT__X__L_INVENTORY = require("./Components/SPLIT_SLOT__X__L_INVENTORY")
 local SPLIT_SLOT__X__P_INVENTORY = require("./Components/SPLIT_SLOT__X__P_INVENTORY")
 
@@ -78,10 +77,6 @@ local ActionHandlers: types_and_enums.ActionHandlers = {
                 print("Action: Looting scrolling to inventory/hotbar")
                 P_INVENTORY__X__L_INVENTORY(hoverData, dragData, fillSlot, emptySlot)
             end,
-            [SPLIT_SLOT] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData)
-                print("Action: split slot to loot inventory slot")
-                SPLIT_SLOT__X__L_INVENTORY()
-            end,
         },
         
         [L_EQUIPMENT] = {
@@ -128,9 +123,14 @@ local ActionHandlers: types_and_enums.ActionHandlers = {
                 print("Action: Inventory/hotbar to inventory/hotbar")
                 P_INVENTORY__SWAP(dragData, hoverData)
             end,
-            [SPLIT_SLOT] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData)
+        },
+        [SPLIT_SLOT] = {
+            [P_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, _, fillSlot)
                 print("Action: split slot to player inventory slot")
-                SPLIT_SLOT__X__P_INVENTORY()
+                SPLIT_SLOT__X__P_INVENTORY(dragData, hoverData, fillSlot)
+            end,
+            [L_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, _, fillSlot)
+                print("Action: split slot to loot inventory slot")
             end,
         }
     }
