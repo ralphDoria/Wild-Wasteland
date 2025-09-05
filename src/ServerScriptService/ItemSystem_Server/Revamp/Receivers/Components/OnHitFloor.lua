@@ -26,7 +26,7 @@ return function(tool : Tool)
         if partThatTouched.Parent:FindFirstChild("Humanoid") == nil and partThatTouched:FindFirstAncestorOfClass("Tool") == nil then
             local isOnSoftMaterial = checkSoftMaterial(partThatTouched)
             if isOnSoftMaterial then
-                warn("hit floor: soft material: ", partThatTouched, partThatTouched.Parent)
+                -- warn("hit floor: soft material: ", partThatTouched, partThatTouched.Parent)
                 playSound(soundObjects.drop.soft, BodyAttach)
                 touchedEvent:Disconnect()
             else

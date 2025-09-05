@@ -167,13 +167,10 @@ function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuMana
             print("Connecting slot state changed")
             local lastState
             splitSlotMenu.trove:Connect(stateChanged, function(slot, state)  
-                warn(slot, state)
                 if slot.tool and slot.tool == duplicateStackable then
                     if state == "Dragging" then
-                        warn("Closing menu due to start drag")
                         SplittingMenuManager.toggleShow(self, false) 
                     elseif state == "Idle" and lastState == "Dragging" then
-                        warn("Opening menu due to stoppped drag")
                         SplittingMenuManager.toggleShow(self, true) 
                     end
                     lastState = state

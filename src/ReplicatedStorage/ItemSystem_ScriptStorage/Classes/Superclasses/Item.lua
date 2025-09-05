@@ -261,7 +261,6 @@ function Item.toggleDropBind(self : ItemObject, toggle : boolean, onDropping: ()
 end
 
 function Item.Destroy(self : ItemObject, childObjectCleanupMethod: () -> ())
-    print(self)
     Item.ChangeState(self, "Unequipped")
     childObjectCleanupMethod()
     --animManager internal data

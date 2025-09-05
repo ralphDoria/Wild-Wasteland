@@ -87,7 +87,7 @@ function Slot.new(slotType : "Hotbar" | "Inventory" | "Wearable", wearableCatego
         Hover.removeEffect(self)
     end)
     self.connections.onDestroying = self._itself.Destroying:Connect(function(...: any)  
-        print(`Destroying slot that contains {self.tool}`)
+        -- print(`Destroying slot that contains {self.tool}`)
         Slot.destroy(self)
     end)
 

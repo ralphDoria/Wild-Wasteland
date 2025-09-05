@@ -12,6 +12,7 @@ local function initInventorySystem(character: Model)
                 warn("Item Instance returned nil")
                 return
             else
+                warn(`Created new instance of {tool}`)
                 ItemInstantiator.toolToDestroyInfoMap[itemInstance.tool] = {
                     itemInstance = itemInstance,
                     destroyFunction = destroyFunction
