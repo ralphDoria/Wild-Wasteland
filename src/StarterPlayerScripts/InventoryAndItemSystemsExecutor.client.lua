@@ -22,6 +22,7 @@ local function initInventorySystem(character: Model)
             local destroyInfo = ItemInstantiator.toolToDestroyInfoMap[tool]
             if destroyInfo then
                 task.defer(function()
+                    print(`Destroying Item Object for {destroyInfo.itemInstance.tool}`)
                     destroyInfo.destroyFunction(destroyInfo.itemInstance)
                     ItemInstantiator.toolToDestroyInfoMap[tool] = nil
                 end)

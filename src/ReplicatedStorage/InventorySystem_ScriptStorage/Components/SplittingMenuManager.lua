@@ -14,13 +14,16 @@ local stackableRemotes = RS.ItemSystem_Storage.Stackable.Remotes
 local remotes = {
     RequestDuplicateStackable = stackableRemotes.RequestDuplicateStackable:: RemoteFunction,
     RequestQuantityTransfer = stackableRemotes.RequestQuantityTransfer:: RemoteFunction,
-    DestroyUnusedStackable = stackableRemotes.DestroyUnusedStackable:: RemoteEvent
+    -- DestroyUnusedStackable = stackableRemotes.DestroyUnusedStackable:: RemoteEvent,
+    CancelDuplicateRequest = stackableRemotes.CancelDuplicateRequest:: RemoteEvent,
 }
 
 export type SplitSlotMenuObject = {
     splitSlot: Type_Slot.SlotObject?,
+    duplicateStackable: Tool?,
     trove: any,
-    cleanUp: () -> ()?
+    cleanUp: () -> ()?,
+    operationId: number,
 }
 
 export type SplittingMenuManager = {
@@ -36,8 +39,10 @@ export type SplittingMenuManager = {
 
     splitSlotMenuObject: SplitSlotMenuObject?,
     currentOperation_createSplitSlotMenu: any,
-    internalValuechanged: RBXScriptSignal
+    internalValuechanged: RBXScriptSignal,
 }
+local currentOperationId = 0 -- per client
+
 local SplittingMenuManager = {}
 
 local ti = TweenInfo.new(0.1)
@@ -70,13 +75,13 @@ function SplittingMenuManager.new(SplittingMenuFrame: Frame)
 
         splitSlotMenuObject = nil,
         currentOperation_createSplitSlotMenu = nil,
-        internalValuechanged = sliderObject.internalValueChanged
+        internalValuechanged = sliderObject.internalValueChanged,
     }
 
     return self
 end
 
-function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuManager, stackableTool: Tool, onClosed, newSlot, fillSlot, suspendSlot)
+function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuManager, stackableTool: Tool, onClosed, newSlot, fillSlot, suspendSlot, stateChanged: RBXScriptSignal)
 
     if self.currentOperation_createSplitSlotMenu then
         self.currentOperation_createSplitSlotMenu:cancel() 
@@ -85,39 +90,42 @@ function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuMana
         self.splitSlotMenuObject.cleanUp()
     end
 
+    currentOperationId += 1
     local splitSlotMenu: SplitSlotMenuObject = {
         splitSlot = nil,
         trove = Trove.new(),
-        cleanUp = nil
+        cleanUp = nil,
+        operationId = currentOperationId
     }
     self.splitSlotMenuObject = splitSlotMenu
 
     self.currentOperation_createSplitSlotMenu = Promise.new(function(resolve, reject, onCancel)
         SplittingMenuManager._toggleLoadingIcon(self, true)
         SplittingMenuManager.toggleShow(self, true)
-        print("Created stackable")
         local onCloseAreaClicked: RBXScriptConnection
 
         splitSlotMenu.cleanUp = function()
             if onCloseAreaClicked then
                 onCloseAreaClicked:Disconnect()
             end
-            SplittingMenuManager.toggleShow(self, false)
             splitSlotMenu.trove:Destroy()
+            print("Disconnecting trove connections")
+            SplittingMenuManager.toggleShow(self, false)
             if splitSlotMenu.splitSlot then
-                splitSlotMenu.splitSlot._itself.Visible = false
-
-                local cachedTool = splitSlotMenu.splitSlot.tool
-                if cachedTool then
-                    remotes.RequestQuantityTransfer:InvokeServer(stackableTool, cachedTool, 0)
-                    remotes.DestroyUnusedStackable:FireServer(cachedTool)
-                end
-
                 splitSlotMenu.splitSlot._itself:Destroy()
+                if splitSlotMenu.splitSlot._itself:GetAttribute("Used") == nil then
+                    local duplicateStackable = splitSlotMenu.duplicateStackable
+                    if duplicateStackable then
+                        task.spawn(function()
+                            remotes.RequestQuantityTransfer:InvokeServer(stackableTool, duplicateStackable, 0)
+                        end)
+                        remotes.CancelDuplicateRequest:FireServer(splitSlotMenu.operationId)
+                    end
+                end
             end
             table.clear(splitSlotMenu)
             onClosed()
-            print("finished running split slot menu cleanup")
+            print("CleanUp SplitSlotMenu Completed")
         end
         
         onCloseAreaClicked = SplittingMenuManager.connectOnCloseAreaClicked(function()  
@@ -132,9 +140,9 @@ function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuMana
             end
         end)
         
-        local duplicateStackable: Tool? = remotes.RequestDuplicateStackable:InvokeServer(stackableTool)
-        print("requested to create duplicate stackable")
+        local duplicateStackable: Tool? = remotes.RequestDuplicateStackable:InvokeServer(splitSlotMenu.operationId, stackableTool)
         if duplicateStackable then
+            splitSlotMenu.duplicateStackable = duplicateStackable
             resolve(duplicateStackable)
         else
             reject("Failed to get duplicate stackable")
@@ -143,6 +151,7 @@ function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuMana
         :andThen(function(duplicateStackable: Tool)
             SplittingMenuManager._toggleLoadingIcon(self, false)
             local splitSlot = newSlot("Inventory"):: Type_Slot.SlotObject
+            splitSlot._itself:AddTag("SplitSlot")
             fillSlot(splitSlot, duplicateStackable)
             suspendSlot(splitSlot, true)
             UiSliderManager.setSliderRange(self.sliderObject, 1, stackableTool:GetAttribute("Quantity"):: number - 1)
@@ -154,6 +163,28 @@ function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuMana
                 suspendSlot(splitSlot, true)
                 remotes.RequestQuantityTransfer:InvokeServer(stackableTool, duplicateStackable, internalValue)
                 suspendSlot(splitSlot, false)
+            end)
+
+            print("Connecting slot state changed")
+            splitSlotMenu.trove:Connect(stateChanged, function(slot, state)  
+                if slot.tool and slot.tool == duplicateStackable then
+                    if state == "Dragging" then
+                        print("Closing menu due to start drag")
+                        SplittingMenuManager.toggleShow(self, false) 
+                    elseif state == "Idle" then
+                        print("Opening menu due to stoppped drag")
+                        SplittingMenuManager.toggleShow(self, true) 
+                    end
+                end
+            end)
+
+            splitSlotMenu.trove:Connect(splitSlot._itself:GetAttributeChangedSignal("Used"), function()
+                print("Used attribute changed signal received")
+                if splitSlot._itself:GetAttribute("Used") == true then
+                    if splitSlotMenu.cleanUp then
+                        splitSlotMenu.cleanUp()
+                    end
+                end
             end)
 
             splitSlotMenu.splitSlot = splitSlot

@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ItemSystem_Storage = ReplicatedStorage.ItemSystem_Storage
 local LootItemsHolding = ReplicatedStorage.LootingSystem_Storage.LootItemsHolding:: Folder
@@ -7,7 +8,8 @@ local remotes = {
     RequestMergeStackables = stackableRemotes.RequestMergeStackables:: RemoteFunction,
     RequestDuplicateStackable = stackableRemotes.RequestDuplicateStackable:: RemoteFunction,
     RequestQuantityTransfer = stackableRemotes.RequestQuantityTransfer:: RemoteFunction,
-    DestroyUnusedStackable = stackableRemotes.DestroyUnusedStackable:: RemoteEvent
+    DestroyUnusedStackable = stackableRemotes.DestroyUnusedStackable:: RemoteEvent,
+    CancelDuplicateRequest = stackableRemotes.CancelDuplicateRequest:: RemoteEvent,
 }
 
 local function MergeQuantities(source: Tool, destination: Tool)
@@ -38,7 +40,25 @@ local function MergeQuantities(source: Tool, destination: Tool)
     end
 end
 
+type operationsType = {
+    [Player]: {
+        [string]: Tool
+    }
+}
+
+local operations: operationsType = {}
+
+
 return function()
+
+    Players.PlayerAdded:Connect(function(player: Player)  
+        operations[player] = {}
+    end)
+
+    Players.PlayerRemoving:Connect(function(player: Player)  
+        operations[player] = nil
+    end)
+
     remotes.RequestMergeStackables.OnServerInvoke = function(player: Player, source: Tool, destination: Tool)
         MergeQuantities(source, destination)
         return
@@ -55,9 +75,9 @@ return function()
         return true
     end
 
-    remotes.RequestDuplicateStackable.OnServerInvoke = function(player: Player, stackableToSplit: Tool)
+    remotes.RequestDuplicateStackable.OnServerInvoke = function(player: Player, operationId: string, stackableToSplit: Tool)
         local stackableToSplitQuantity = stackableToSplit:GetAttribute("Quantity")
-        assert(stackableToSplitQuantity)
+        assert(stackableToSplitQuantity and operationId)
         local parent = stackableToSplit.Parent
         local hasValidParent = parent and (parent:FindFirstChildOfClass("Humanoid") or parent:IsA("Backpack") or parent == LootItemsHolding)
         if hasValidParent  then
@@ -65,11 +85,25 @@ return function()
             clone:AddTag("IgnoreInventorySlotAutofill")
             clone.Parent = player.Backpack
             clone:SetAttribute("Quantity", 0)
+            operations[player][operationId] = clone
             return clone
         else
             return nil
         end
     end
+
+
+
+    remotes.CancelDuplicateRequest.OnServerEvent:Connect(function(player: Player, operationId: string)
+        local playerOperations = operations[player]
+        if playerOperations then
+            local operationResult: Tool? = playerOperations[operationId]
+            if operationResult then
+                operationResult:Destroy()
+                playerOperations[operationId] = nil
+            end
+        end
+    end)
 
     remotes.DestroyUnusedStackable.OnServerEvent:Connect(function(player: Player, tool: Tool)  
         assert(tool, "Tool doesn't exist")

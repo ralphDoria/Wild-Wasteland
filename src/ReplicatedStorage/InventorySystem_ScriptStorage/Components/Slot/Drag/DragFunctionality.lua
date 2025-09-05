@@ -70,7 +70,7 @@ function Drag.stop(slot: Type_Slot.SlotObject)
     Drag.currentSlot = nil
 end
 
-function Drag.InitForSlot(slot: Type_Slot.SlotObject, onDraggedStopped: (hoverSlot: Type_Slot.SlotObject?, isOutsideInventory: boolean) -> ()): RBXScriptConnection
+function Drag.InitForSlot(slot: Type_Slot.SlotObject, onDragStarted: () -> (), onDragStopped: (hoverSlot: Type_Slot.SlotObject?, isOutsideInventory: boolean) -> ()): RBXScriptConnection
     return slot.ImageButton.MouseButton1Down:Connect(function()
 
         -- reason for these cached variables is because on touch inputs, hover coincides w/ drag via long presss
@@ -89,6 +89,7 @@ function Drag.InitForSlot(slot: Type_Slot.SlotObject, onDraggedStopped: (hoverSl
                         cached.hoverSlot = Hover.currentSlot
                         cached.isOutsideInventory = Hover.isOutsideInventory()
                     end)
+                    onDragStarted()                    
                     PlaySound(SFX.pickUp)
                 end
             end
@@ -96,7 +97,6 @@ function Drag.InitForSlot(slot: Type_Slot.SlotObject, onDraggedStopped: (hoverSl
 
         local endDrag
         endDrag = References_Inventory.UserInputService.InputEnded:Connect(function(inputObject: InputObject, a1: boolean)  
-
 
             if inputObject.UserInputType == Enum.UserInputType.MouseButton1 or inputObject.UserInputType == Enum.UserInputType.Touch then
 
@@ -111,7 +111,7 @@ function Drag.InitForSlot(slot: Type_Slot.SlotObject, onDraggedStopped: (hoverSl
                 Drag.stop(slot)
                 PlaySound(SFX.setDown)
 
-                onDraggedStopped(cached.hoverSlot, cached.isOutsideInventory)
+                onDragStopped(cached.hoverSlot, cached.isOutsideInventory)
             end
         end)
     end)

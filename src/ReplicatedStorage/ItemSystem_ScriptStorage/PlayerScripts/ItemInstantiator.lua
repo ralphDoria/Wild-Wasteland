@@ -43,7 +43,7 @@ function ItemInstantiator.initToolPrompts()
                 This will probably error because onUntagged will run when the instance is being destroyed, & thus taggedInstance won't exist in toolPromptObjects. I can't
                 think of a solution right now, however
                 ]]
-                warn(`DESTROYING TOOL PROMPT`)
+                -- warn(`DESTROYING TOOL PROMPT`)
                 References_ItemSystem.ToolPromptManager.Destroy(ItemInstantiator.toolPromptObjects[taggedInstance])
             end
         )

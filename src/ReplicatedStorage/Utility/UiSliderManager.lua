@@ -72,7 +72,7 @@ function UiSliderManager._initialize(self: UiSliderObject)
         -- updates internal value when text box focus lost
     self.trove:Connect(self.textBox.FocusLost, function()
         local textBoxValue = self.textBox.Text
-        if string.len(textBoxValue) ~= 0 then
+        if tonumber(textBoxValue)  then
             --valid input
             if tonumber(textBoxValue) == self._internalValue then return end
 

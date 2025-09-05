@@ -194,12 +194,17 @@ function Item.immediateUnequip(self: ItemObject)
 end
 
 function Item.ChangeState(self: ItemObject, state: State)
-    self.tool:SetAttribute("State", state)
+    if self.tool then
+        self.tool:SetAttribute("State", state)
+    else
+        warn("Tool seems to already have been destroyed, cannot change its state")
+    end
     self.State = state
 end
 
 function Item.drop(self : ItemObject, onDropping: () -> ()?, onDropped : () -> ()?)
     if self.State == "Idle" or self.State == "Equipping" or self.State == "Unequipped" or self.State == "Wearing" or self.State == "Unwearing" then
+        local originalState = self.State
         Item.ChangeState(self, "Dropping")
         for _, v in self.actionNames do
             if References_ItemSystem.ActionManager.isBinded(v) then
@@ -209,7 +214,10 @@ function Item.drop(self : ItemObject, onDropping: () -> ()?, onDropped : () -> (
         if onDropping then
             onDropping()
         end
-        if self.State ~= "Unequipped" then
+        -- local equippedTool = References_ItemSystem.character and References_ItemSystem.character:FindFirstChildOfClass("Tool")
+        if originalState ~= "Unequipped" then
+            print(self.State)
+            print("Stopping all animations")
             References_ItemSystem.ToolAnimationManager.StopAllAnimsForTool(References_ItemSystem.animationManagerObject, self.tool)
             References_ItemSystem.ToolAnimationManager.StopAllAnimsForTool(References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject, self.tool)
         end
@@ -253,13 +261,16 @@ function Item.toggleDropBind(self : ItemObject, toggle : boolean, onDropping: ()
 end
 
 function Item.Destroy(self : ItemObject, childObjectCleanupMethod: () -> ())
+    print(self)
     Item.ChangeState(self, "Unequipped")
     childObjectCleanupMethod()
     --animManager internal data
     local humanoid: Humanoid = References_ItemSystem.humanoid
     if not (humanoid:GetState() == Enum.HumanoidStateType.Dead) then
-        References_ItemSystem.ToolAnimationManager.RemoveTool(References_ItemSystem.animationManagerObject, self.tool)
-        References_ItemSystem.ViewmodelManager.removeTool(References_ItemSystem.viewmodelManagerObject, self.tool)
+        if self.tool then
+            References_ItemSystem.ToolAnimationManager.RemoveTool(References_ItemSystem.animationManagerObject, self.tool)
+            References_ItemSystem.ViewmodelManager.removeTool(References_ItemSystem.viewmodelManagerObject, self.tool)
+        end
     else
         -- warn("At humanoid death, ToolAnimationManager and ViewmodelManager is handled by References module")
     end

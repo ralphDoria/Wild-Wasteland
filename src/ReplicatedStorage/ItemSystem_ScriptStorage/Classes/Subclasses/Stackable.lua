@@ -34,10 +34,10 @@ function Stackable.initialize(self : StackableObject)
         end
     )
 
-    self.tool.Destroying:Once(function()
-        print("Stackable is being destroyed")
-        Stackable.Destroy(self)
-        print("Stackable has been destroyed")
+    self.trove:Add(function()
+        self.tool.Destroying:Once(function()
+            Stackable.Destroy(self)
+        end)
     end)
 
 end

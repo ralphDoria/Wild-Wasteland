@@ -142,6 +142,7 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
     self.ImageButton.Image = tool.TextureId
     self.tool = tool
     self.ImageButton.Visible = true
+
     local quantityValue = tool:GetAttribute("Quantity")
     if quantityValue then
         self.Quantity.Text = "x" .. tostring(quantityValue)
@@ -152,7 +153,7 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
 
         self.connections.openSplittingMenu = self.ImageButton.MouseButton2Click:Connect(function()  
             -- initialize split slot
-            if self.tool and self.tool:GetAttribute("Quantity") < 2 then return end
+            if self._itself:HasTag("SplitSlot") or self.tool and self.tool:GetAttribute("Quantity") < 2 then return end
 
             bindables.ToggleDropBind:Fire(self.tool, false)
             Slot.toggleSuspend(self, true) -- have to suspend slot to prevent player from potentially dropping it before quantity has time to adjust (quantity can only be adjusted if in player's inventory)
@@ -163,7 +164,7 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
                     end
                     Slot.toggleSuspend(self, false)
                 end, 
-                Slot.new, Slot.FillSlot, Slot.toggleSuspend)
+                Slot.new, Slot.FillSlot, Slot.toggleSuspend, Slot.StateChanged)
         end)
         --for mobile players, I'm thinking a long touch is how they'll open the splitting menu
     end
@@ -229,9 +230,15 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
         end
     end
 
-    self.connections.DragFunctionality = DragFunctionality.InitForSlot(self, function(hoverSlot, isOutsideInventory)
-        handleDragDrop(self, isOutsideInventory, hoverSlot, Slot.ChangeState, Slot.FillSlot, Slot.EmptySlot, Slot.new, Slot.destroy)
-    end)
+    self.connections.DragFunctionality = DragFunctionality.InitForSlot(self, 
+        function()
+            Slot.ChangeState(self, "Dragging")
+        end,
+        function(hoverSlot, isOutsideInventory)
+            Slot.ChangeState(self, "Idle")
+            handleDragDrop(self, isOutsideInventory, hoverSlot, Slot.ChangeState, Slot.FillSlot, Slot.EmptySlot, Slot.new, Slot.destroy)
+        end
+    )
 
     Slot.toolToObjectMap[tool] = self
 
