@@ -21,7 +21,6 @@ function Hover.isOutsideInventory(): boolean
             or v == References_Inventory.LootingSection 
             or v == References_Inventory.Hotbar
             then
-            print("ooga booga")
             return false
         end
     end
@@ -59,7 +58,7 @@ local function createItemInfoDisplay(slot: Type_Slot.SlotObject)
     clone.AnchorPoint = Vector2.new(0.5, 1)
     clone.Position = UDim2.fromOffset(
         slot._itself.AbsolutePosition.X - slot._itself.AnchorPoint.X*slot._itself.AbsoluteSize.X + 0.5*slot._itself.AbsoluteSize.X, 
-        slot._itself.AbsolutePosition.Y - slot._itself.AnchorPoint.Y*slot._itself.AbsoluteSize.Y + References_Inventory.GuiService:GetGuiInset().Y
+        slot._itself.AbsolutePosition.Y - slot._itself.AnchorPoint.Y*slot._itself.AbsoluteSize.Y --- References_Inventory.GuiService:GetGuiInset().Y
     )
 
     clone.Visible = true
@@ -84,11 +83,12 @@ function Hover.applyEffect(slot: Type_Slot.SlotObject)
 
     if not slot._isEmpty then
         -- for creating a delay before possibly showing info display
+        local delayTime = 0
         task.spawn(function()
             local accumulatedTime = 0
             while Hover.currentSlot == slot do
                 accumulatedTime += task.wait()
-                if accumulatedTime >= 0.5 then
+                if accumulatedTime >= delayTime then
                     itemInfoDisplays[slot] = createItemInfoDisplay(slot)
                     break
                 end
