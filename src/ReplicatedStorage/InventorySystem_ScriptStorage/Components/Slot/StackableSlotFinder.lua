@@ -21,33 +21,46 @@ local function isUnmaxedStackable(slot: Type_Slot.SlotObject)
     end
 end
 function StackableSlotFinder.hotbar(stackableName: string): Type_Slot.SlotObject?
+    local currentSlot: Type_Slot.SlotObject? = nil
+
     for _, v in HotbarSlotsRegistry.instanceToObjectMap do
         if v.tool and v.tool.Name == stackableName then
             if isUnmaxedStackable(v) then
-                return v
-            end
-        end
-    end
-
-    return nil
-end
-
-function StackableSlotFinder.inventory(stackableName: string): Type_Slot.SlotObject?
-	local slotObjectToReturn: Type_Slot.SlotObject?
-
-    local lowestLayoutOrder: number = math.huge
-    for _, slotGroupObject in SlotGroupRegistry.instanceToObjectMap do
-        if slotGroupObject._itself:FindFirstAncestor(References_Inventory.LootingScrollingFrame.Name) then return end
-        for instance, object in slotGroupObject.slotInstanceToObjectMap do
-            if object.tool and object.tool.Name == stackableName then
-                if isUnmaxedStackable(object) then
-                    return object
+                if not currentSlot then
+                    currentSlot = v
+                else
+                    if currentSlot._itself.LayoutOrder > v._itself.LayoutOrder then
+                        currentSlot = v
+                    end
                 end
             end
         end
     end
 
-    return nil
+    return currentSlot
+end
+
+function StackableSlotFinder.inventory(stackableName: string): Type_Slot.SlotObject?
+	local currentSlot: Type_Slot.SlotObject?
+
+    for _, slotGroupObject in SlotGroupRegistry.instanceToObjectMap do
+        if slotGroupObject._itself:FindFirstAncestor(References_Inventory.LootingScrollingFrame.Name) then return end
+        for instance, object in slotGroupObject.slotInstanceToObjectMap do
+            if object.tool and object.tool.Name == stackableName then
+                if isUnmaxedStackable(object) then
+                    if not currentSlot then
+                        currentSlot = object
+                    else
+                        if currentSlot._itself.LayoutOrder > object._itself.LayoutOrder then
+                            currentSlot = object
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return currentSlot
 end
 
 function StackableSlotFinder.any(stackableName: string): Type_Slot.SlotObject?
