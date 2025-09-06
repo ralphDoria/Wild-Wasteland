@@ -148,17 +148,16 @@ end
 function ToolPromptManager._putOnOrSwapWearable(actionText: string, tool: Tool)
     tool:AddTag("IgnoreInventorySlotAutofill")
     local isSuccess: boolean = remotes.RequestPickUpTool:InvokeServer(tool)
+    warn("Waiting for tool to be picked up")
     if not isSuccess then print("RequestPickUpTool Denied"); return end
     bindables.OnPickUp:Fire(tool) --for putting tool into the unequipped state
-    warn("Waiting for tool to be picked up")
-    tool:GetPropertyChangedSignal("Parent"):Wait() --make sure there are no race conditions involved with this method
-    warn("Tool picked up, delaying, then starting procedure")
-    task.wait()
+    task.wait() -- allows task scheduler to switch to necessary event listeners fired to in the above lines (tool creation & pick up bindable)
     local wearableSlot: Slot.SlotObject = Slot.wearableCategoryToObjectMap[tool:GetAttribute("WearableCategory")]
     local temporarySlotObject = Slot.new("Inventory")
     Slot.FillSlot(temporarySlotObject, tool)
 
     local tweens = {}
+    print("Calling ToolStateMachine.SetTargets")
     ToolStateMachine.SetTargets(temporarySlotObject, "Worn", 
         function(estimatedPathsTime: number) -- onValidated
             Slot.ChangeState(temporarySlotObject, "BeingSwapped")
