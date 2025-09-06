@@ -34,6 +34,8 @@ end
 function Drag.start(slot: Type_Slot.SlotObject, whileDragging: () -> ())
     -- slot._itself.Interactable = false
     slot.ImageButton.ImageTransparency = 1
+    slot.FilledSlotCounter.Visible = false
+    slot.Quantity.Visible = false
     local ghostSlot = createGhostSlot(slot)
     table.insert(currentGhostSlots, ghostSlot)
     Drag.currentSlot = slot
@@ -63,6 +65,8 @@ end
 function Drag.stop(slot: Type_Slot.SlotObject)
     -- slot._itself.Interactable = true
     slot.ImageButton.ImageTransparency = 0
+    slot.FilledSlotCounter.Visible = slot.WearableCategory ~= nil
+    slot.Quantity.Visible = slot.tool and slot.tool:GetAttribute("Quantity") ~= nil
     References_Inventory.RunService:UnbindFromRenderStep("Drag")
     for _, v in currentGhostSlots do
         v:Destroy()
