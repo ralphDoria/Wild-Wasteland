@@ -12,6 +12,7 @@
 
 ------------------------------------------------------------------------<<<ROBLOX LIBRARIES>>>
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local tiltAt = ReplicatedStorage:WaitForChild("CharacterRemotes"):WaitForChild("tiltAt")
 
@@ -24,7 +25,7 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 local mouse = player:GetMouse()
 local camera = workspace.CurrentCamera
 
-local M6Ds : Motor6D = {
+local M6Ds = {
     rightHip = torso:WaitForChild("Right Hip"),
     leftHip = torso:WaitForChild("Left Hip"),
 	rightShoulder = torso:WaitForChild("Right Shoulder"),
@@ -39,7 +40,7 @@ local M6Ds : Motor6D = {
 --|
 --V
 
-local originC0 : CFrame = {} --this is so we know the default positions for each Motor6D
+local originC0 = {} --this is so we know the default positions for each Motor6D
 local originC0Holder = ReplicatedStorage:WaitForChild("originC0Holder")
 
 for key, v in pairs(M6Ds) do --populating the originC0 table
@@ -57,6 +58,7 @@ M6Ds.neck.MaxVelocity = 1/3
 local timeAccumulated = 0
 local remoteEventFireRate = 0.1
 
+
 --trying to make the arms rotate relative to head position
 
 --[[ scratch work
@@ -68,6 +70,7 @@ local remoteEventFireRate = 0.1
     targetCFrameOfRightArm * torso.CFrame * rightShoulder.C0 = targetCFrameOfRightArm * rightArm.CFrame * rightShoulder.C1
     rightShoulder.C0 = 
 ]]
+local ti = TweenInfo.new(remoteEventFireRate, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
 RunService.RenderStepped:Connect(function(dt)
     if timeAccumulated < remoteEventFireRate then
         timeAccumulated += dt
@@ -77,13 +80,39 @@ RunService.RenderStepped:Connect(function(dt)
         local theta = math.asin(camera.CFrame.LookVector.Y)
 
         --moved calculations to to client-sided
-        local newCalculatedCFrames : CFrame = {
+        local newCalculatedCFrames = {
             neck = originC0.neck * CFrame.Angles(-theta, 0, 0),
             rightShoulder = originC0.rightShoulder  * CFrame.Angles(0, 0, theta),
             leftShoulder = originC0.leftShoulder * CFrame.Angles(0, 0, -theta), 
             bodyAttachJoint = originC0.bodyAttachJoint * CFrame.Angles(theta, 0, 0)
         }
-        tiltAt:FireServer(newCalculatedCFrames, character:FindFirstChildOfClass("Tool"))
+        
+        local isToolEquipped = character:FindFirstChildOfClass("Tool")
+        tiltAt:FireServer(newCalculatedCFrames, isToolEquipped)
+
+        local torso = player.Character.Torso
+
+        -- --[[
+        -- torso.BodyAttachJoint.C0 = newCalculatedCFrames.bodyAttachJoint
+        -- torso.Neck.C0 = newCalculatedCFrames.neck
+        -- ]]
+        -- TweenService:Create(torso.BodyAttachJoint, ti, {C0 = newCalculatedCFrames.bodyAttachJoint}):Play()
+        -- TweenService:Create(torso.Neck, ti, {C0 = newCalculatedCFrames.neck}):Play()
+        -- if isToolEquipped then
+        --     --[[
+        --     torso["Right Shoulder"].C0 = newCalculatedCFrames.rightShoulder
+        --     torso["Left Shoulder"].C0 = newCalculatedCFrames.leftShoulder
+        --     ]]
+        --     TweenService:Create(torso["Right Shoulder"], ti, {C0 = newCalculatedCFrames.rightShoulder}):Play()
+        --     TweenService:Create(torso["Left Shoulder"], ti, {C0 = newCalculatedCFrames.leftShoulder}):Play()
+        -- else
+        --     --[[
+        --     torso["Right Shoulder"].C0 = originC0.rightShoulder
+        --     torso["Left Shoulder"].C0 = originC0.leftShoulder
+        --     ]]
+        --     TweenService:Create(torso["Right Shoulder"], ti, {C0 = originC0.rightShoulder}):Play()
+        --     TweenService:Create(torso["Left Shoulder"], ti, {C0 = originC0.leftShoulder}):Play()
+        -- end
     end
 end)
 
