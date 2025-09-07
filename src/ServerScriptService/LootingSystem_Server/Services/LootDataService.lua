@@ -11,6 +11,7 @@ local Types_LootSystem = require(InventoryScriptStorage.LootingSection.Component
 local LootingSystem_Server = game:GetService("ServerScriptService").RojoManaged_SSS.LootingSystem_Server
 local StandardLootable = require(LootingSystem_Server.Components.StandardLootable)
 local CorpseLootable = require(LootingSystem_Server.Components.CorpseLootable)
+local LootToolsDestructionTracker = require(LootingSystem_Server.Components.LootToolsDestructionTracker)
 
 local LootingSystem_Storage = ReplicatedStorage.LootingSystem_Storage
 local LootItemsHolding = LootingSystem_Storage.LootItemsHolding
@@ -113,6 +114,7 @@ function LootDataService.init()
             return false
         end
         
+        print(player)
         if corpseLootable then
             local success: boolean = CorpseLootable.processDataChangeRequest(corpseLootable, player, changeRequests:: Types_LootSystem.CorpseDataChangeRequest)
             return success
@@ -137,13 +139,56 @@ function LootDataService.init()
 
     LootDataService.initialized = true
 
-    rfn.GetChangeReplicatorRemote.OnServerInvoke = function(player, lootableInstance: Tool | Model): RemoteEvent
+    rfn.GetChangeReplicatorRemote.OnServerInvoke = function(player, lootableInstance: Tool | Model): UnreliableRemoteEvent
         while getStandardLootable(lootableInstance) == nil and getCorpseLootable(lootableInstance) == nil do
             task.wait()
             print(`Waiting for {lootableInstance} to be initialized on the server`)
         end
         return if getStandardLootable(lootableInstance) then getStandardLootable(lootableInstance).DataChangeReplicatorRemote else getCorpseLootable(lootableInstance).DataChangeReplicatorRemote
     end
+
+    LootToolsDestructionTracker.ToolDestroyed:Connect(function(tool: Tool, lootableInstance: Tool)
+        warn(`SERVER CALLING PROCESS DATA CHANGE REQUEST TO EMPTY DESTROYED LOOT TOOL'S  ({tool.Name})SLOT`)
+        local standardLootable = StandardLootable.createdObjects[lootableInstance]
+        local corpseLootable = CorpseLootable.createdObjects[lootableInstance]
+        assert(corpseLootable or standardLootableObjects, "Could not find lootalbe associated with tool")
+
+        if corpseLootable then
+            local equipmentLayoutOrder, toolLayoutOrder = CorpseLootable.getEquipmentAndToolLayoutOrders(corpseLootable.FilledSlotsData, tool)
+            if not equipmentLayoutOrder or not toolLayoutOrder then warn("Couldn't locate destroyed tool in corpse lootable") return end
+
+            CorpseLootable.processDataChangeRequest(corpseLootable, nil, --setting the player argument as nil is ok here because loot tool will be nil
+                {
+                    {
+                        __type = Types_LootSystem.EnumLootableTypes.Corpse,
+                        lootToolLayoutOrder = toolLayoutOrder,
+                        lootTool = tool,
+                        substituteTool = nil,
+                        equipmentToolLayoutOrder = equipmentLayoutOrder,
+                        equipmentTool = corpseLootable.FilledSlotsData[tostring(equipmentLayoutOrder)].equipmentTool:: Tool
+                    }
+                }
+            )
+        else
+            print(`Indexed Table: {standardLootable}`)
+            local toolLayoutOrder: number? = StandardLootable.getToolLayoutOrder(standardLootable.FilledSlotsData, tool)
+            if not toolLayoutOrder then warn("couldn't locate destroyed tool in standard lootable") return end
+
+            StandardLootable.processDataChangeRequest(standardLootable, nil, 
+                {
+                    {
+                        __type = Types_LootSystem.EnumLootableTypes.Standard,
+                        lootToolLayoutOrder = toolLayoutOrder,
+                        lootTool = tool,
+                        substituteTool = nil,
+                        equipmentToolLayoutOrder = nil,
+                        equipmentTool = nil
+                    }
+                }
+            )
+        end
+
+    end)
 end
 
 return LootDataService

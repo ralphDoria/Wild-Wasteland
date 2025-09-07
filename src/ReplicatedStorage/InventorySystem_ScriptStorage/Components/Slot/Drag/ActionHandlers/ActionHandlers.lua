@@ -75,7 +75,7 @@ local ActionHandlers: types_and_enums.ActionHandlers = {
             end,
             [P_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, _, fillSlot, emptySlot)
                 print("Action: Looting scrolling to inventory/hotbar")
-                P_INVENTORY__X__L_INVENTORY(hoverData, dragData, fillSlot, emptySlot)
+                P_INVENTORY__X__L_INVENTORY(dragData, hoverData, fillSlot, emptySlot)
             end,
         },
         

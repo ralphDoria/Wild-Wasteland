@@ -7,7 +7,7 @@ Types_LootSystem.EnumLootableTypes = {
 }
 
 export type StandardFilledSlotsData = {
-    [string]: Tool? -- string will be a number in the form of a string which'll represent the Layout Order
+    [string]: Tool -- string will be a number in the form of a string which'll represent the Layout Order
 }
 
 export type CorpseFilledSlotsData = {
@@ -78,7 +78,7 @@ export type StandardDataChangeRequest = DataChangeRequest<"Standard">
 export type CorpseDataChangeRequest =  DataChangeRequest<"Corpse"> & {equipmentToolLayoutOrder: number, equipmentTool: Tool}
 
 export type callbacks = {
-    takeLoot: (Player) -> (),
+    takeLoot: (Player?) -> (),
     doSubstitution: () -> ()
 }
 
