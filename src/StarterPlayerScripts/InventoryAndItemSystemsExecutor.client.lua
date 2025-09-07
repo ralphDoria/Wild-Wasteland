@@ -23,9 +23,11 @@ local function initInventorySystem(character: Model)
             local destroyInfo = ItemInstantiator.toolToDestroyInfoMap[tool]
             if destroyInfo then
                 task.defer(function()
-                    print(`Destroying Item Object for {destroyInfo.itemInstance.tool}`)
-                    destroyInfo.destroyFunction(destroyInfo.itemInstance)
-                    ItemInstantiator.toolToDestroyInfoMap[tool] = nil
+                    if destroyInfo.itemInstance and destroyInfo.itemInstance.tool then -- in the case of stackables being destroyed when within inventory do to merges, item info can be destroyed
+                        print(`Destroying Item Object for {destroyInfo.itemInstance.tool}`)
+                        destroyInfo.destroyFunction(destroyInfo.itemInstance)
+                        ItemInstantiator.toolToDestroyInfoMap[tool] = nil
+                    end
                 end)
             else
                 warn("Destroy info not found")

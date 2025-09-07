@@ -70,7 +70,7 @@ function ItemMovementTracker._init(
 		if child.Parent == character then
 			--print(child.Name .. " equipped")
             onEquipping(child)
-		elseif child.Parent == workspace or child:FindFirstAncestor(LootItemsHolding.Name) then
+		elseif child.Parent == workspace or child:FindFirstAncestor(LootItemsHolding.Name) or child.Parent == nil then
 			--print(child.Name .. " dropped from gui")
             ItemMovementTracker._removeFromCachedTools(self, child)
 		end
@@ -79,7 +79,7 @@ function ItemMovementTracker._init(
 	self.trove:Connect(character.ChildRemoved, function(child: Instance)
 		if not child:IsA("Tool") then return end
 	
-		if child.Parent == workspace or child:FindFirstAncestor(LootItemsHolding.Name) then
+		if child.Parent == workspace or child:FindFirstAncestor(LootItemsHolding.Name) or child.Parent == nil then
 			--print(child.Name .. " dropped from equip")
             ItemMovementTracker._removeFromCachedTools(self, child)
 		end
