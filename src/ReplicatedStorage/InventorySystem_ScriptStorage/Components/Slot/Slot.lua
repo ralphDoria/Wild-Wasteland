@@ -269,9 +269,9 @@ function Slot.EmptySlot(self : Type_Slot.SlotObject?)
         end
     end
 
-    if self.WearableCategory then
-        self.ImageButton.Visible = true
-        self.ImageButton.Image = EquipmentInitData[self.WearableCategory].image
+        if self.WearableCategory then
+            self.ImageButton.Visible = true
+            self.ImageButton.Image = EquipmentInitData[self.WearableCategory].image
     end
     Slot.ChangeState(self, "Idle")
 end

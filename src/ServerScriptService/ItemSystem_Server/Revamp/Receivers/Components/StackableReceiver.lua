@@ -27,12 +27,10 @@ local function MergeQuantities(source: Tool, destination: Tool)
     print(sourceQuantity, destinationQuantity)
     print(result)
     destination:SetAttribute("Quantity", math.min(result, MAX_QUANTITY))
+
     local excessQuantity: number = result - MAX_QUANTITY
-
-    if excessQuantity > 0 then
-        source:SetAttribute("Quantity", excessQuantity)
-    else
-
+    source:SetAttribute("Quantity", excessQuantity)
+    if excessQuantity <= 0 then
         -- source depleted; destroy the item
         -- handle this your own way, i'll just unassign its type
         -- destroy source

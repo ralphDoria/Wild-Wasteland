@@ -13,17 +13,6 @@ local remotes = {
     RequestMergeStackables = ItemSystem_Storage.Stackable.Remotes.RequestMergeStackables:: RemoteFunction,
 }
 
-local function isUnmaxedStackable(slot: types_and_enums.SlotObject)
-    assert(slot.tool)
-    local currentQuantity = slot.tool:GetAttribute("Quantity")
-    local MAX_QUANTITY = slot.tool:GetAttribute("MAX_QUANTITY")
-    if currentQuantity and MAX_QUANTITY and currentQuantity ~= MAX_QUANTITY then
-        return true
-    else
-        return false
-    end
-end
-
 local function SPLIT_SLOT__X__P_INVENTORY(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, fillSlot)
     -- dragData will always be the split slot
     local splitSlot = dragData.slotObject
@@ -35,32 +24,20 @@ local function SPLIT_SLOT__X__P_INVENTORY(dragData: types_and_enums.SlotData, ho
             -- fire remote event to request merge 
 
             local sourceTool = splitSlot.tool:: Tool
-
             if pInventoryTool:GetAttribute("Quantity") < pInventoryTool:GetAttribute("MAX_QUANTITY") then
+                -- signal to SpittingMenu to toggle loading icon
+                dragData.slotObject._itself:SetAttribute("Merging", true) 
                 remotes.RequestMergeStackables:InvokeServer(sourceTool, pInventoryTool) -- this yields until serverside operation completes
-            end
-
-            local foundUnmaxedStackable: boolean = true
-            while foundUnmaxedStackable and sourceTool.Parent ~= nil do -- remember that stackables are destroyed when their quantity reaches 0
-                local unmaxedStackable = StackableSlotFinder.any(splitSlot.tool.Name)
-                if unmaxedStackable == nil then
-                    foundUnmaxedStackable = false
-                    continue -- continues to empty slot finder
+                local slotInstance = dragData.slotObject._itself
+                if not slotInstance then return end -- this means that player exited SplittingMenu (via clicking outside of gui), however values should still be set properly on server
+                if sourceTool.Parent == nil then
+                    slotInstance:SetAttribute("Used", true) 
                 else
-                    local destinationTool = unmaxedStackable.tool
-                    remotes.RequestMergeStackables:InvokeServer(sourceTool, destinationTool) -- this yields until serverside operation completes
+                    -- signal to SplittingMenu to update maxQuantity
+                    slotInstance:SetAttribute("UpdateSplittingMenuMaxQuantity", true) 
                 end
-            end
-
-            local emptySlot = EmptySlotFinder.any()
-            if emptySlot then
-                -- split slot stackable is already in inventory, so just fill a slot
-                local splitSlotTool = splitSlot.tool
-                dragData.slotObject._itself:SetAttribute("Used", true) 
-                task.wait()-- realize I have to defer this so that the TaskScheduler knows to switch over to SplittingMenuManager to receive the fired signal and do its cleanup
-                fillSlot(emptySlot, splitSlotTool)
-            else
-                DiegeticErrorMessaging.AddMessage("I can't carry any more items")
+                task.wait()
+                slotInstance:SetAttribute("Merging", nil) 
             end
         else
             print("Can't merge, not same stackable type")

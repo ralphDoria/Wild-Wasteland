@@ -171,6 +171,7 @@ function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuMana
                     if state == "Dragging" then
                         SplittingMenuManager.toggleShow(self, false) 
                     elseif state == "Idle" and lastState == "Dragging" then
+                        if splitSlot._itself:GetAttribute("Merging") then return end
                         SplittingMenuManager.toggleShow(self, true) 
                     end
                     lastState = state
@@ -178,10 +179,28 @@ function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuMana
             end)
 
             splitSlotMenu.trove:Connect(splitSlot._itself:GetAttributeChangedSignal("Used"), function()
-                if splitSlot._itself:GetAttribute("Used") == true then
+                local slotInstance = splitSlot._itself
+                if slotInstance:GetAttribute("Used") == true then
                     if splitSlotMenu.cleanUp then
                         splitSlotMenu.cleanUp()
                     end
+                end
+            end)
+
+            splitSlotMenu.trove:Connect(splitSlot._itself:GetAttributeChangedSignal("UpdateSplittingMenuMaxQuantity"), function()
+                local slotInstance = splitSlot._itself
+                if slotInstance:GetAttribute("UpdateSplittingMenuMaxQuantity") == true then
+                    local newTotal = stackableTool:GetAttribute("Quantity"):: number + duplicateStackable:GetAttribute("Quantity"):: number
+                    if newTotal < 2 then
+                        if splitSlotMenu.cleanUp then
+                            splitSlotMenu.cleanUp()
+                        end
+                    else
+                        UiSliderManager.setSliderRange(self.sliderObject, 1, newTotal - 1)
+                        UiSliderManager.forceToZero(self.sliderObject)
+                        SplittingMenuManager.toggleShow(self, true)
+                    end
+                    slotInstance:SetAttribute("UpdateSplittingMenuMaxQuantity", nil)
                 end
             end)
 
