@@ -96,6 +96,9 @@ function ToolPromptManager._initialize(self : ToolPromptManager)
                             remotes.RequestMergeStackables:InvokeServer(sourceTool, destinationTool) -- this yields until serverside operation completes
                         end
                     end
+                    if sourceTool.Parent == nil then
+                        return
+                    end
                 end
 
                 if EmptySlotFinder.any() then
