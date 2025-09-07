@@ -261,7 +261,7 @@ function Item.toggleDropBind(self : ItemObject, toggle : boolean, onDropping: ()
 end
 
 function Item.Destroy(self : ItemObject, childObjectCleanupMethod: () -> ())
-    Item.ChangeState(self, "Unequipped")
+    Item.immediateUnequip(self)
     childObjectCleanupMethod()
     --animManager internal data
     local humanoid: Humanoid = References_ItemSystem.humanoid
