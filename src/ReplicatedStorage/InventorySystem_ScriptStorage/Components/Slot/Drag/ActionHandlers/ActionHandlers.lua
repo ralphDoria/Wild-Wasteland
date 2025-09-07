@@ -129,8 +129,9 @@ local ActionHandlers: types_and_enums.ActionHandlers = {
                 print("Action: split slot to player inventory slot")
                 SPLIT_SLOT__X__P_INVENTORY(dragData, hoverData, fillSlot)
             end,
-            [L_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, _, fillSlot)
+            [L_INVENTORY] = function(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, _, fillSlot, emptySlot)
                 print("Action: split slot to loot inventory slot")
+                SPLIT_SLOT__X__L_INVENTORY(dragData, hoverData, fillSlot, emptySlot)
             end,
         }
     }
