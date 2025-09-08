@@ -177,6 +177,8 @@ function ViewmodelManager.toggleViewmodelToolVisibility(self : ViewmodelManager,
         for _, v in vmToolModel:GetDescendants() do
             if v:IsA("BasePart") then
                 v.LocalTransparencyModifier = vmToolTransparency
+            elseif v:IsA("Decal") then
+                v.Transparency = vmToolTransparency
             end
         end
     end
@@ -187,6 +189,8 @@ function ViewmodelManager.toggleViewmodelToolVisibility(self : ViewmodelManager,
         for _, v in toolModel:GetDescendants() do
             if v:IsA("BasePart") then
                 v.LocalTransparencyModifier = toolTransparency
+            elseif v:IsA("Decal") then
+                v.Transparency = toolTransparency
             end
         end
     end

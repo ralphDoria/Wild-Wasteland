@@ -135,20 +135,27 @@ local catalog : {[string] : ToolInfo} = {
             closeLootable = backpack.Sounds.closeLootable
         }
     },
-    -- [lightBullets.Name] = {
-    --     animObjects = {
-    --         equip = capStash.Anims.equip,
-    --         idle = capStash.Anims.idle,
-    --     },
-    --     soundObjects = {
-    --         equip = lightBullets.Sounds.equip,
-    --         unequip = lightBullets.Sounds.unequip,
-    --         drop = {
-    --             hard = lightBullets.Sounds.unequip,
-    --             soft = lightBullets.Sounds.unequip
-    --         },
-    --     }
-    -- }
+    [lightBullets.Name] = {
+        animObjects = {
+            equip = lightBullets.Anims.equip,
+            idle = lightBullets.Anims.idle,
+        },
+        soundObjects = {
+            equip = bloxyColaCaps.Sounds.equip,
+            unequip = bloxyColaCaps.Sounds.unequip,
+            move = {
+                ["1"] = bloxyColaCaps.Sounds.move.move1,
+                ["2"] = bloxyColaCaps.Sounds.move.move2,
+                ["3"] = bloxyColaCaps.Sounds.move.move3,
+                ["4"] = bloxyColaCaps.Sounds.move.move4
+
+            },
+            drop = {
+                hard = bloxyColaCaps.Sounds.unequip,
+                soft = bloxyColaCaps.Sounds.unequip
+            },
+        }
+    }
 }
 
 function ToolInfo.get(toolName : string) : ToolInfo
