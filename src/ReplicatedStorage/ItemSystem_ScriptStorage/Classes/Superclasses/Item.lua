@@ -135,8 +135,8 @@ function Item.equip(self: ItemObject, equipping: () -> ()?, equipped: () -> ()?,
         equipTrack:AdjustSpeed(1)
         vmEquipTrack:AdjustSpeed(1)
     else
-        equipTrack:Play(0.1, 1, 1)
-        vmEquipTrack:Play(0.1, 1, 1)
+        equipTrack:Play(0, 1, 1)
+        vmEquipTrack:Play(0, 1, 1)
     end
     equipTrack.Stopped:Wait()
     if self.State == "Equipping" then
@@ -157,6 +157,7 @@ function Item.unequip(self: ItemObject, unequipping: () -> ()?, unequipped: () -
     References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].idle:Stop()
     References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].idle:Stop()
     local unequipSFX: Sound? = self.soundObjects.unequip:: Sound
+    print("Firing to play unequip sfx")
     References_ItemSystem.remotes.PlaySound:FireServer(if unequipSFX then unequipSFX else self.soundObjects.equip :: Sound, self.bodyAttach, 0)
     local equipTrack : AnimationTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].equip
     equipTrack.Priority = Enum.AnimationPriority.Action
@@ -166,8 +167,8 @@ function Item.unequip(self: ItemObject, unequipping: () -> ()?, unequipped: () -
         equipTrack:AdjustSpeed(-1)
         vmEquipTrack:AdjustSpeed(-1)
     else
-        equipTrack:Play(0.1, 1, -1)
-        vmEquipTrack:Play(0.1, 1, -1)
+        equipTrack:Play(0, 1, -1)
+        vmEquipTrack:Play(0, 1, -1)
     end
     equipTrack.Stopped:Wait()
     equipTrack:Stop(0)
