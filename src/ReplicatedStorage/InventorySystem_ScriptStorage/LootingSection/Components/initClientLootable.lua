@@ -20,7 +20,7 @@ end
 
 local function getPrimaryPart(lootable: Tool | Model)
     while lootable.PrimaryPart == nil do
-        warn(`{lootable}'s PrimaryPart is nil, but may just be loading in. Did you make sure to set it?`)
+        -- warn(`{lootable}'s PrimaryPart is nil, but may just be loading in. Did you make sure to set it?`)
         task.wait()
     end 
     return lootable.PrimaryPart   
