@@ -1,4 +1,4 @@
-
+--!strict 
 local RS = game:GetService("ReplicatedStorage")
 local LootingSystem_Storage = RS.LootingSystem_Storage 
 local LootItemsHolding: Folder = LootingSystem_Storage.LootItemsHolding
@@ -14,6 +14,7 @@ local remotes = {
 local CorpseLootable = {}
 
 CorpseLootable.createdObjects = {}:: {[Model]: Types_LootSystem.CorpseLootableObject}
+local LootToolsDestructionTracker = require(script.Parent.LootToolsDestructionTracker)
 
 function CorpseLootable.new(lootableInstance: Model, presetData: Types_LootSystem.CorpseFilledSlotsData?): Types_LootSystem.CorpseLootableObject
     local dataChangeReplicator = Instance.new("UnreliableRemoteEvent")
@@ -56,6 +57,7 @@ function CorpseLootable._initialize(self: Types_LootSystem.CorpseLootableObject,
                 for _, tool: Tool? in equipmentToolAndSlotGroupData.slotGroupData do
                     if tool then
                         numberOfItems += 1
+                        LootToolsDestructionTracker.ToolToLootableInstanceMap[tool] = self._itself
                     end
                 end
             end
@@ -65,6 +67,9 @@ function CorpseLootable._initialize(self: Types_LootSystem.CorpseLootableObject,
 end
 
 function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, dataChangeRequest: Types_LootSystem.CorpseDataChangeRequest): Types_LootSystem.callbacks?
+    warn("CorpseLootable:")
+    warn(self)
+    warn("__________________________")
     local equipmentTool: Tool? = dataChangeRequest.equipmentTool
     local equipmentNumber = dataChangeRequest.equipmentToolLayoutOrder
 
@@ -78,7 +83,7 @@ function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, d
             local substituteTool = dataChangeRequest.substituteTool
 
             local callbacks: Types_LootSystem.callbacks = {
-                takeLoot = function(player: Player)
+                takeLoot = function(player: Player?)
                     if equipmentTool then
                         if not substituteTool then
                             -- Subtract the number of slots in the equipmentTool's slot group, or the value of the space attribute of the equipment tool
@@ -90,6 +95,8 @@ function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, d
                             end
                         end
                         
+                        if not player then return end
+
                         -- warn(`Adding looted attribute to {equipmentTool}`)
                         local lootedTools = {}
                         equipmentTool:AddTag("IgnoreInventorySlotAutofill")
@@ -129,7 +136,7 @@ function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, d
                     equipmentToolAndSlotGroupData.equipmentTool = substituteTool
                     if substituteTool then
                         local substituteLootableObject: Types_LootSystem.StandardLootableObject = StandardLootable.createdObjects[substituteTool]
-                        equipmentToolAndSlotGroupData.slotGroupData = if substituteLootableObject.FilledSlotsData then substituteLootableObject.FilledSlotsData else nil
+                        equipmentToolAndSlotGroupData.slotGroupData = if substituteLootableObject.FilledSlotsData then substituteLootableObject.FilledSlotsData else {}
 
                         if not equipmentTool then
                             local space_substituteTool: number? = substituteTool:GetAttribute("Space"):: number? 
@@ -141,6 +148,7 @@ function CorpseLootable._validate(self: Types_LootSystem.CorpseLootableObject, d
                         end
 
                         substituteTool.Parent = LootItemsHolding
+                        LootToolsDestructionTracker.ToolToLootableInstanceMap[substituteTool] = self._itself
                     else
                         equipmentToolAndSlotGroupData.slotGroupData = {}
                     end
@@ -173,6 +181,21 @@ function CorpseLootable.Destroy(self: Types_LootSystem.CorpseLootableObject)
     self.DataChangeReplicatorRemote:Destroy()
     CorpseLootable.createdObjects[self._itself] = nil
     table.clear(self)
+end
+
+--[[
+    This function is not for equipment tools!!
+]]
+function CorpseLootable.getEquipmentAndToolLayoutOrders(slotGroupData: Types_LootSystem.CorpseFilledSlotsData, tool): (number?, number?)
+
+    for equipmentLayoutOrder, eqInfo in slotGroupData do
+        local toolLayoutOrder: number? = SharedFunctions.getToolLayoutOrder(eqInfo.slotGroupData, tool)
+        if toolLayoutOrder then
+            assert(tonumber(equipmentLayoutOrder), `Could not convert equipmentToolLayoutOrder = {equipmentLayoutOrder} to a number`)
+            return tonumber(equipmentLayoutOrder), toolLayoutOrder
+        end
+    end
+    return nil
 end
 
 return CorpseLootable

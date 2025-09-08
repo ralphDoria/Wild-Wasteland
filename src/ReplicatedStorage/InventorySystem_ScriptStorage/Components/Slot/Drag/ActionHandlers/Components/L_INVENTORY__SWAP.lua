@@ -5,7 +5,27 @@ local Types_LootSystem = require(ReplicatedStorage.RojoManaged_RS.InventorySyste
 local types_and_enums = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.Drag.types_and_enums)
 local Utility = require(script.Parent.Parent.Utility)
 
+local ItemSystem_Storage = ReplicatedStorage.ItemSystem_Storage
+local remotes = {
+    RequestMergeStackables = ItemSystem_Storage.Stackable.Remotes.RequestMergeStackables:: RemoteFunction,
+}
+
 local function L_INVENTORY__SWAP(lsData0: types_and_enums.SlotData, lsData1: types_and_enums.SlotData, fillSlot, emptySlot)
+
+    -- If stackables of same type, then merge
+    local sourceTool = lsData0.slotObject.tool
+    local destinationTool = lsData1.slotObject.tool
+    if sourceTool and destinationTool then
+        if sourceTool.Name == destinationTool.Name then
+            if sourceTool:GetAttribute("Quantity") then
+                task.spawn(function()
+                    remotes.RequestMergeStackables:InvokeServer(sourceTool, destinationTool)
+                end)
+                return
+            end
+        end
+    end
+
     local slot0 = lsData0.slotObject
     local slot1 = lsData1.slotObject
     local slot0Tool: Tool? = slot0.tool

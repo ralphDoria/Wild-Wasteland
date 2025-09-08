@@ -7,10 +7,6 @@ local LootableInstanceDataReplicators: Folder = LootingSystem_Storage.Remotes.Lo
 local Types_LootSystem = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.LootingSection.Components.Types_LootSystem)
 local SharedFunctions = require("./SharedFunctions")
 
-local remotes = {
-    LootedTagReplicatedToClient = LootingSystem_Storage.Remotes.LootedTagReplicatedToClient
-}
-
 local StandardLootable = {}
 
 StandardLootable.createdObjects = {}:: {[Model | Tool]: Types_LootSystem.StandardLootableObject}
@@ -63,4 +59,7 @@ function StandardLootable.Destroy(self: Types_LootSystem.StandardLootableObject)
     table.clear(self)
 end
 
+function StandardLootable.getToolLayoutOrder(slotGroupData: Types_LootSystem.StandardFilledSlotsData, tool: Tool): number?
+    return SharedFunctions.getToolLayoutOrder(slotGroupData, tool)
+end
 return StandardLootable

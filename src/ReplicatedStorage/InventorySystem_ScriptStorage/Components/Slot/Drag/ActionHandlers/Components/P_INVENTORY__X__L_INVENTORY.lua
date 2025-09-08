@@ -7,7 +7,50 @@ local Utility = require(script.Parent.Parent.Utility)
 local InventoryScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
 local Types_LootSystem = require(InventoryScriptStorage.LootingSection.Components.Types_LootSystem)
 
-local function P_INVENTORY__X__L_INVENTORY(inventoryOrHotbarSlotData: types_and_enums.SlotData, lootScrollingSlotData: types_and_enums.SlotData, fillSlot: types_and_enums.fillSlot, emptySlot: types_and_enums.emptySlot)
+local ItemSystem_Storage = ReplicatedStorage.ItemSystem_Storage
+local remotes = {
+    RequestMergeStackables = ItemSystem_Storage.Stackable.Remotes.RequestMergeStackables:: RemoteFunction,
+}
+
+local function getSlotType(slot): number
+    local element = slot._itself
+    
+    if element:FindFirstAncestor(References_Inventory.LootingScrollingFrame.Name) then
+        return types_and_enums.EnumSlotType.L_INVENTORY
+    elseif element:FindFirstAncestor(References_Inventory.InventoryScrollingFrame.Name) or element:FindFirstAncestor(References_Inventory.Hotbar.Name) then
+        return types_and_enums.EnumSlotType.P_INVENTORY
+    else
+        return types_and_enums.EnumSlotType.INVALID
+    end
+end
+
+local function P_INVENTORY__X__L_INVENTORY(dragData: types_and_enums.SlotData, hoverData: types_and_enums.SlotData, fillSlot: types_and_enums.fillSlot, emptySlot: types_and_enums.emptySlot)
+
+    -- If stackables of same type, then merge
+    local sourceTool = dragData.slotObject.tool
+    local destinationTool = hoverData.slotObject.tool
+    if sourceTool and destinationTool then
+        if sourceTool.Name == destinationTool.Name then
+            if sourceTool:GetAttribute("Quantity") then
+                task.spawn(function()
+                    remotes.RequestMergeStackables:InvokeServer(sourceTool, destinationTool)
+                end)
+                return
+            end
+        end
+    end
+
+    local inventoryOrHotbarSlotData 
+    local lootScrollingSlotData
+
+    local slotType_dragData = getSlotType(dragData.slotObject) -- rechecking slot types to differentiate them here, but we already know they one must be a player invenotry slot and the other must be a loot inventory slot
+    if slotType_dragData == types_and_enums.EnumSlotType.L_INVENTORY then
+        lootScrollingSlotData = dragData
+        inventoryOrHotbarSlotData = hoverData
+    else
+        lootScrollingSlotData = hoverData
+        inventoryOrHotbarSlotData = dragData
+    end
 
     local inventoryOrHotbarSlotTool: Tool? = inventoryOrHotbarSlotData.slotObject.tool
     local lootTool: Tool? = lootScrollingSlotData.slotObject.tool

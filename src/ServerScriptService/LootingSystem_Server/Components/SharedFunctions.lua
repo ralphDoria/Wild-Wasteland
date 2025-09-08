@@ -1,3 +1,5 @@
+--!strict
+
 local RS = game:GetService("ReplicatedStorage")
 local LootingSystem_Storage = RS.LootingSystem_Storage 
 local Types_LootSystem = require(RS.RojoManaged_RS.InventorySystem_ScriptStorage.LootingSection.Components.Types_LootSystem)
@@ -16,6 +18,8 @@ function SharedFunctions.SetNumberOfItems(serverLootableObject: any, num: number
     end
 end
 
+local LootToolsDestructionTracker = require(script.Parent.LootToolsDestructionTracker)
+
 function SharedFunctions.standardValidate(serverLootableObject: any, dataChangeRequest: any): Types_LootSystem.callbacks?
 
     local FilledSlotsData = serverLootableObject.FilledSlotsData
@@ -28,12 +32,14 @@ function SharedFunctions.standardValidate(serverLootableObject: any, dataChangeR
     local currentLootTool = slotGroupData[tostring(slotNumber)]
     if currentLootTool == lootTool then
         local callbacks: Types_LootSystem.callbacks = {
-            takeLoot = function(player: Player)
+            takeLoot = function(player: Player?)
                 if lootTool then
                     if not substituteTool then
                         SharedFunctions.SetNumberOfItems(serverLootableObject, serverLootableObject._numberOfItems - 1)
                     end
                     
+                    if not player then return end
+
                     -- warn(`Adding looted attribute to {lootTool}`)
                     lootTool:AddTag("IgnoreInventorySlotAutofill")
                     lootTool.Parent = player.Backpack
@@ -54,6 +60,7 @@ function SharedFunctions.standardValidate(serverLootableObject: any, dataChangeR
                     end
 
                     substituteTool.Parent = LootItemsHolding
+                    LootToolsDestructionTracker.ToolToLootableInstanceMap[substituteTool] = serverLootableObject._itself:: Tool
                 end
 
                 local changeReplicator = serverLootableObject.DataChangeReplicatorRemote
@@ -67,7 +74,7 @@ function SharedFunctions.standardValidate(serverLootableObject: any, dataChangeR
     end
 end
 
-function SharedFunctions.processDataChangeRequest(validate: (serverLootableObject: any, dataChangeRequest: any) -> Types_LootSystem.callbacks?, serverLootableObject: any, player: Player, changeRequests: any)
+function SharedFunctions.processDataChangeRequest(validate: (serverLootableObject: any, dataChangeRequest: any) -> Types_LootSystem.callbacks?, serverLootableObject: any, player: Player?, changeRequests: any)
     local callbacks_to_run_if_all_requests_validated: {Types_LootSystem.callbacks} = {}
 
     for _, dataChangeRequest in changeRequests do
@@ -91,6 +98,16 @@ function SharedFunctions.processDataChangeRequest(validate: (serverLootableObjec
        v.doSubstitution() 
     end
     return true
+end
+
+function SharedFunctions.getToolLayoutOrder(slotGroupData: Types_LootSystem.StandardFilledSlotsData, tool: Tool): number?
+    for layoutOrder, lootTool in slotGroupData do
+        if lootTool == tool then
+            return tonumber(layoutOrder)
+        end
+    end
+
+    return nil
 end
 
 return SharedFunctions
