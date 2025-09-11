@@ -38,8 +38,6 @@ local function impactEffect(position: Vector3, normal: Vector3, isCharacter: boo
 		impact.CFrame = CFrame.lookAlong(position, normal)
 		impact.Parent = Workspace
 
-		impact.SparkEmitter:Emit(10)
-		impact.CircleEmitter:Emit(2)
 	else
 		if tool:GetAttribute(Constants.AMMO_TYPE_ATTRIBUTE) == "Energy Cores" then 
 			impact = impactTemplates.Energy 
@@ -51,15 +49,19 @@ local function impactEffect(position: Vector3, normal: Vector3, isCharacter: boo
 		impact.CFrame = CFrame.lookAlong(position, normal)
 		impact.Parent = Workspace
 
-		impact.SparkEmitter:Emit(10)
-		impact.CircleEmitter:Emit(2)
-
 		createBulletHole(position, normal)
 	end
 
-	task.delay(0.5, function()
-		impact:Destroy()
-	end)
+	task.spawn(function()
+        task.wait(0.2)
+		for _, v in impact:GetChildren() do
+			if v:IsA("ParticleEmitter") then
+				v.Enabled = false
+			end
+		end
+        --wait for the particles to fade out with Debris
+        Debris:AddItem(impact, 1)
+    end)
 end
 
 return impactEffect

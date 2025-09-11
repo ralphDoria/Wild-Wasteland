@@ -11,6 +11,7 @@ local CameraRecoiler = require(GunUtility.CameraRecoiler)
 local getRayDirections = require(GunUtility.getRayDirections)
 local castRays = require(GunUtility.castRays)
 local drawRayResults = require(GunUtility.drawRayResults)
+local bindSoundsToAnimationEvents = require(GunUtility.bindSoundsToAnimationEvents)
 
 local gunRemotesFolder = References_ItemSystem.ItemSystem_Storage.Gun.Remotes
 local gunRemotes = {
@@ -104,6 +105,7 @@ function Gun.initialize(self: GunObject)
         function() --onDropped()
         end
     )
+
 end
 
 function Gun.recoil(self: GunObject)
@@ -171,6 +173,9 @@ function Gun.shoot(self: GunObject)
 	end
 
 	gunRemotes.shoot:FireServer(now, self.tool, origin, tagged)
+	local shootSound = self.soundObjects.shoot
+	playSound(shootSound, self.tool:FindFirstChild("BodyAttach"))
+	gunRemotes.replicateItemSound:FireServer(self.tool, shootSound.Name)
 
 	local muzzlePosition = self.muzzle.Position -- remember that this is the muzzle position of the viewmodel tool
 	drawRayResults(muzzlePosition, rayResults, self.tool)
@@ -218,7 +223,7 @@ end
 
 function Gun.reload(self: GunObject)
 	local magSize = self.tool:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE)
-	if self.isReloading or self.ammo < magSize then
+	if not (self.ammo < magSize and not self.isReloading) then
 		return
 	end
 

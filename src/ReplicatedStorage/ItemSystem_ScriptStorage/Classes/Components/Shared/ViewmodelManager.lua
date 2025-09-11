@@ -15,7 +15,7 @@ export type ViewmodelManager = {
     viewmodel : Model,
     ToolToVMToolMapping : { [Tool] : Tool },
     toolAnimationManagerObject : ToolAnimationManager.AnimationManager,
-    connections : {[Tool | string]: {[string]: RBXScriptConnection}},
+    connections : {[Tool | string]: any},
     mouseSway : any
 }
 
@@ -55,7 +55,6 @@ function ViewmodelManager.AddTool(self: ViewmodelManager, tool: Tool, animations
     ToolAnimationManager.LoadAnimations(self.toolAnimationManagerObject, tool, animations)
     self.connections[tool] = {}
     self.connections[tool].equipped = tool.Equipped:Connect(function()
-        print(`Adding {tool}'s vmTool to viewmodel`)
         ViewmodelManager.toggleViewmodelToolVisibility(self, tool)
         ViewmodelManager._toggleBobAndSway(self, true)
         vmTool.Parent = self.viewmodel
@@ -114,6 +113,20 @@ function ViewmodelManager._initialize(self : ViewmodelManager)
             ViewmodelManager.toggleViewmodelToolVisibility(self, ViewmodelManager.findOriginalTool(self, equippedViewmodelTool) :: Tool) 
         end
     end)
+    self.connections.excludeFromRaycast = self.viewmodel.DescendantAdded:Connect(function(descendant: Instance)  
+        if descendant:IsA("BasePart") then
+            descendant.CanCollide = false
+            descendant.CanQuery = false
+            descendant.CanTouch = false
+        end
+    end)
+    for _, descendant in self.viewmodel:GetDescendants() do
+        if descendant:IsA("BasePart") then
+            descendant.CanCollide = false
+            descendant.CanQuery = false
+            descendant.CanTouch = false
+        end
+    end
 end
 
 function ViewmodelManager._viewmodelBobAndSwayCalculation(self: ViewmodelManager, deltaTime: number)

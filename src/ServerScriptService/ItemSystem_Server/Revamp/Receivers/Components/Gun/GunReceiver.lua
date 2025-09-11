@@ -10,17 +10,16 @@ local gunRemotes = {
 }
 
 local GunComponents = ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Components.Gun
-local Constants = GunComponents.Constants
+local Constants = require(GunComponents.Constants)
 local getRayDirections = require(GunComponents.Utility.getRayDirections)
 local castRays = require(GunComponents.Utility.castRays)
 
 local ServerChecks = script.Parent.ServerChecks
-local validateShootArguments =  ServerChecks.validateShootArguments
-local validateShot = ServerChecks.validateShot
-local validateTag = ServerChecks.validateTag
-local validateReload = ServerChecks.validateReload
-
-local validateInstance = script.Parent.TypeValidation.validateInstance
+local validateShootArguments = require(ServerChecks.validateShootArguments)
+local validateShot = require(ServerChecks.validateShot)
+local validateTag = require(ServerChecks.validateTag)
+local validateReload = require(ServerChecks.validateReload)
+local validateInstance = require(script.Parent.TypeValidation.validateInstance)
 
 return function()
     --LEGACY CODE
@@ -188,7 +187,7 @@ return function()
                 continue 
             end
 
-            gunRemotes.replicateItemSound:FireClient(otherPlayer, gun)
+            gunRemotes.replicateItemSound:FireClient(otherPlayer, gun, soundName)
         end
     end)
 end
