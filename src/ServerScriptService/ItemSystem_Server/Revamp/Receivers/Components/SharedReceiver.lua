@@ -13,6 +13,7 @@ local OnHitFloor = require("./OnHitFloor")
 
 return function()
     remotes.PlaySound.OnServerEvent:Connect(function(player: Player, sound : Sound, soundParent : any, delayCorrection : number)  
+        print(`Playing {sound}`)
         PlaySoundUtil(sound, soundParent, delayCorrection)
     end)
     remotes.ToggleToolCanCollide.OnServerEvent:Connect(function(player: Player, toolModel: Model | MeshPart, toggle: boolean)

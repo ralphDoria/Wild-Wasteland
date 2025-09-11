@@ -2,7 +2,7 @@
 
 export type ToolInfo = {
     animObjects : {[string] : Animation},
-    soundObjects : {[string] : (Sound | {[string] : Sound})}
+    soundObjects : {any}
 }
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +15,7 @@ local raiderAxe = ToolCatalog["Raider Axe"]
 local bloxyColaCaps = ToolCatalog["Bloxy Cola Caps"]
 local backpack = ToolCatalog["Backpack"]
 local lightBullets = ToolCatalog["Light Bullets"]
+local m9 = ToolCatalog["M9"]
 
 local ToolInfo = {}
 
@@ -154,6 +155,47 @@ local catalog : {[string] : ToolInfo} = {
                 hard = bloxyColaCaps.Sounds.unequip,
                 soft = bloxyColaCaps.Sounds.unequip
             },
+        }
+    },
+    [m9.Name] = {
+        animObjects = {
+            equip = m9.Anims.equip,
+            idle = m9.Anims.idle,
+            sprint = m9.Anims.sprint,
+            reload = m9.Anims.reload,
+            hipfire = m9.Anims.hipfire,
+            viewmodelFire = m9.Anims.viewmodelFire,
+            ADS_transition = m9.Anims.ADS_transition,
+            ADS_idle = m9.Anims.ADS_idle,
+            ADS_fire = m9.Anims.ADS_fire
+        },
+        soundObjects = {
+            equip = m9.Sounds.equip,
+            unequip = m9.Sounds.unequip,
+            fire = m9.Sounds.fire,
+            dryFire = m9.Sounds.dryFire,
+            ADS_in = m9.Sounds.ADS_in,
+            ADS_out = m9.Sounds.ADS_out,
+            reload = {
+                magIn = m9.Sounds.reload.magIn,
+                magOut = m9.Sounds.reload.magIn,
+                slideBack = m9.Sounds.reload.slideBack,
+                slideRelease = m9.Sounds.reload.slideRelease,
+            },
+            bulletImpact = {
+                flesh = { -- array
+                    m9.Sounds.bulletImpact.flesh.variant1,
+                    m9.Sounds.bulletImpact.flesh.variant2,
+                    m9.Sounds.bulletImpact.flesh.variant3,
+                    m9.Sounds.bulletImpact.flesh.variant4,
+                },
+                hardSurface = {
+                    m9.Sounds.bulletImpact.hardSurface.variant1,
+                    m9.Sounds.bulletImpact.hardSurface.variant2,
+                    m9.Sounds.bulletImpact.hardSurface.variant3,
+                    m9.Sounds.bulletImpact.hardSurface.variant4,
+                }
+            }
         }
     }
 }

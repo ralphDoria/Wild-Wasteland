@@ -1,7 +1,10 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player.PlayerGui
-local InputCategorizer = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ActionManagerSystem.Components.InputCategorizer)
+local InputCategorizer = require(ReplicatedStorage.RojoManaged_RS.ActionManagerSystem.Components.InputCategorizer)
+local Constants = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Components.Gun.Constants)
+
 
 local itemHudGui: ScreenGui = playerGui:WaitForChild("ItemHUD")
 local frame: Frame = itemHudGui:FindFirstChild("Frame"):: Frame
@@ -24,14 +27,30 @@ local ItemHUD = {
 function ItemHUD.setTool(tool: Tool)
     name.Text = tool.Name
     image.Image = tool:GetAttribute("ToolGuiImageId"):: string
-    if tool:HasTag("Gun") then
+    if tool:GetAttribute("_ammo") then
+        loaded.Text = tostring(tool:GetAttribute(Constants.AMMO_ATTRIBUTE))::string
+        unloaded.Text = tostring(tool:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE))::string
+        -- ammoReserveLabel.Text = 
         AmmoInfo.Visible = true
-        loaded.Text = tostring(tool:GetAttribute("Loaded"))::string
-        unloaded.Text = tostring(tool:GetAttribute("Unloaded"))::string
-        -- Set loaded and unloaded labels here
     else
         AmmoInfo.Visible = false
     end
+end
+
+function ItemHUD.setAmmo(num: number)
+    warn("NOT IMPLEMENTED YET")
+end
+
+function ItemHUD.setMagazineSize(num: number)
+    warn("NOT IMPLEMENTED YET")
+end
+
+function ItemHUD.setAmmoReserve(num: number)
+    warn("NOT IMPLEMENTED YET")
+end
+
+function ItemHUD.setReloading(toggle: boolean)
+    warn("NOT IMPLEMENTED YET")
 end
 
 --[[

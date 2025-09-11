@@ -55,6 +55,7 @@ function ViewmodelManager.AddTool(self: ViewmodelManager, tool: Tool, animations
     ToolAnimationManager.LoadAnimations(self.toolAnimationManagerObject, tool, animations)
     self.connections[tool] = {}
     self.connections[tool].equipped = tool.Equipped:Connect(function()
+        print(`Adding {tool}'s vmTool to viewmodel`)
         ViewmodelManager.toggleViewmodelToolVisibility(self, tool)
         ViewmodelManager._toggleBobAndSway(self, true)
         vmTool.Parent = self.viewmodel
