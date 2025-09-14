@@ -167,7 +167,8 @@ local catalog : {[string] : ToolInfo} = {
             viewmodelFire = m9.Anims.viewmodelFire,
             ADS_transition = m9.Anims.ADS_transition,
             ADS_idle = m9.Anims.ADS_idle,
-            ADS_fire = m9.Anims.ADS_fire
+            ADS_shoot = m9.Anims.ADS_shoot,
+            ADS_viewmodelShoot = m9.Anims.ADS_viewmodelShoot,
         },
         soundObjects = {
             equip = m9.Sounds.equip,
@@ -179,6 +180,7 @@ local catalog : {[string] : ToolInfo} = {
             reload = {
                 magIn = m9.Sounds.reload.magIn,
                 magOut = m9.Sounds.reload.magIn,
+                magTap = m9.Sounds.reload.magTap,
                 slideBack = m9.Sounds.reload.slideBack,
                 slideRelease = m9.Sounds.reload.slideRelease,
             },
@@ -207,6 +209,22 @@ function ToolInfo.get(toolName : string) : ToolInfo
         end
     end
     error(toolName .. " not found in ToolInfo catalog")
+end
+
+function ToolInfo.soundSearch(soundTable: {any}, targetSoundName: string): Sound?
+    for index, v in soundTable do
+        if typeof(v) == "Instance" and v:IsA("Sound") and v.Name == targetSoundName then
+            return v
+        elseif typeof(v) == "table" then
+            local found = ToolInfo.soundSearch(v, targetSoundName)
+            if found then
+                return found
+            else
+                continue
+            end
+        end
+    end
+    return nil
 end
 
 return ToolInfo

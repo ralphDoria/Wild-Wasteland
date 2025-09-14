@@ -47,10 +47,12 @@ end
 
 local function onReplicateItemSound(gun: Tool, soundName: string)
 	local x = ToolInfo.get(gun.Name)	
-	local sound = x.soundObjects[soundName]
+	local sound = ToolInfo.soundSearch(x.soundObjects, soundName)
 	if sound then
 		local delayCorrection = sound:GetAttribute("DelayCorreciton")
 		playSound(sound, gun:FindFirstChild("BodyAttach"), if delayCorrection then delayCorrection else nil)
+	else
+		warn(`{soundName} not found`)
 	end
 end
 
