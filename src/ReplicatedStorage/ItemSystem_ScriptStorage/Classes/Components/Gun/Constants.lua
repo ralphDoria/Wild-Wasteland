@@ -19,6 +19,7 @@ local Constants = {
 	RECOIL_MIN_ATTRIBUTE = "recoilMin",
 	RECOIL_MAX_ATTRIBUTE = "recoilMax",
 	UNANCHORED_IMPULSE_FORCE_ATTRIBUTE = "unanchoredImpulseForce",
+	AIMING_SPEED_ATTRIBUTE = "aimingSpeed",
 
 	KEYBOARD_RELOAD_KEY_CODE = Enum.KeyCode.R,
 	GAMEPAD_RELOAD_KEY_CODE = Enum.KeyCode.ButtonX,

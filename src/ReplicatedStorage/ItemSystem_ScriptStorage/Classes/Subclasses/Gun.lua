@@ -1,5 +1,6 @@
 -- local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Debris = game:GetService("Debris")
 local player = game:GetService("Players").LocalPlayer
 local ItemSystem_ScriptStorage = ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage
 local References_ItemSystem = require(ItemSystem_ScriptStorage.References_ItemSystem)
@@ -35,7 +36,9 @@ local Item = require("../Superclasses/Item")
 export type GunObject = Item.ItemObject & {
 	muzzle: Part,
 	aimPart: Part,
+	shellSpawnPart: Part,
     ammo: number,
+	aimingSpeed: number,
 
 	-- boolean states
 	isAiming: boolean,
@@ -49,16 +52,19 @@ local Gun = {}
 
 function Gun.new(tool: Tool): GunObject
 
-    local self = Item.new(tool)
+    local self = Item.new(tool):: GunObject
 
 	local vmTool = References_ItemSystem.viewmodelManagerObject.ToolToVMToolMapping[tool]
 	if vmTool then print("Found ViewmodelTool") end
 	local muzzle = vmTool:WaitForChild("Muzzle"):: Part
 	local aimPart = vmTool:WaitForChild("AimPart"):: Part
+	local shellSpawnPart = vmTool:WaitForChild("ShellSpawnPart"):: Part
 
 	self.muzzle = muzzle
 	self.aimPart = aimPart
+	self.shellSpawnPart = shellSpawnPart
     self.ammo = tool:GetAttribute(Constants.AMMO_ATTRIBUTE)
+	self.aimingSpeed = tool:GetAttribute(Constants.AIMING_SPEED_ATTRIBUTE)
 	-- boolean states
 	self.isAiming = false
 	self.isSprinting = false
@@ -85,6 +91,7 @@ function Gun.initialize(self: GunObject)
 
 			Gun.toggleActivateBind(self, true)
 			Gun.toggleReloadBind(self, true)
+			Gun.toggleAimingBind(self, true)
         end, 
         function() --onEquipped
         end,
@@ -93,6 +100,7 @@ function Gun.initialize(self: GunObject)
 			Gun.deactivate(self) -- for safety, may be dead code
 			Gun.toggleActivateBind(self, false)
 			Gun.toggleReloadBind(self, false)
+			Gun.toggleAimingBind(self, false)
 			player.CameraMode = Enum.CameraMode.Classic
         end,
         function() --onUnequipped()
@@ -106,6 +114,20 @@ function Gun.initialize(self: GunObject)
         end
     )
 
+	--CFrame recoil for when aiming because viewmodel aiming animation only animates blowback, movement recoil
+	self.trove:Connect(References_ItemSystem.RunService.RenderStepped, function(deltaTime: number)
+		local vmAimingShootTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].ADS_shoot
+		if not vmAimingShootTrack.IsPlaying then return end
+
+		local vmHead = References_ItemSystem.viewmodelManagerObject.viewmodel:FindFirstChild("Head")
+		if not vmHead then return end
+
+		local aiming_recoil_offset = CFrame.new(0, 0, 0.3) * CFrame.Angles(math.rad(5), 0, 0)
+		local alpha = vmAimingShootTrack.TimePosition/vmAimingShootTrack.Length
+		--print(alpha) | isn't reaching 1, but it doesn't matter because it's just the recoil animation and the last frame isn't really needed to be shown
+		local transition_ads_recoil_offset = CFrame.new():Lerp(aiming_recoil_offset, alpha)
+		vmHead.CFrame *= transition_ads_recoil_offset
+	end)
 end
 
 function Gun.recoil(self: GunObject)
@@ -122,20 +144,31 @@ function Gun.recoil(self: GunObject)
 	CameraRecoiler.recoil(recoil)
 end
 
+function Gun._shellEjection(self: GunObject)
+	--shell ejection (all client side)
+	local shell = pistolShell:Clone():: BasePart
+	shell.Anchored = false --temporary to check if the shell is being positioned properly
+	shell.CFrame = self.shellSpawnPart.CFrame * CFrame.Angles(math.rad(90), 0, 0)
+	shell.Parent = workspace
+	--later, incorporate character velocity to adjust force
+	local finalPosition = (shell.CFrame * CFrame.new(Vector3.new(-30, 0, 20))).Position  --seems to behave like this: Vector3.new(x, z, y)
+	local direction : Vector3 = shell.CFrame.Position - finalPosition
+	shell:ApplyImpulseAtPosition(direction * shell.AssemblyMass, shell.Position - Vector3.new(0, 0, -10))
+	Debris:AddItem(shell, 2)
+end
+
 function Gun.shoot(self: GunObject)
 	local spread = self.tool:GetAttribute(Constants.SPREAD_ATTRIBUTE)
 	local raysPerShot = self.tool:GetAttribute(Constants.RAYS_PER_SHOT_ATTRIBUTE)
 	local range = self.tool:GetAttribute(Constants.RANGE_ATTRIBUTE)
 	local rayRadius = self.tool:GetAttribute(Constants.RAY_RADIUS_ATTRIBUTE)
 
-
-	
 	if not self.isAiming then
 		References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].hipfire:Play()
         References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].hipfire:Play()
 	else
-		References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].ADS_fire:Play()
-        References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].hipfire:Play()
+		References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].ADS_viewmodelShoot:Play()
+        References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].ADS_shoot:Play()
 	end
 	Gun.recoil(self)
 
@@ -178,6 +211,7 @@ function Gun.shoot(self: GunObject)
 	gunRemotes.replicateItemSound:FireServer(self.tool, shootSound.Name)
 
 	local muzzlePosition = self.muzzle.Position -- remember that this is the muzzle position of the viewmodel tool
+	Gun._shellEjection(self)
 	drawRayResults(muzzlePosition, rayResults, self.tool)
 end
 
@@ -223,7 +257,7 @@ end
 
 function Gun.reload(self: GunObject)
 	local magSize = self.tool:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE)
-	if not (self.ammo < magSize and not self.isReloading) then
+	if not (self.ammo < magSize and not self.isReloading and not self.isAiming) then
 		return
 	end
 
@@ -340,44 +374,105 @@ function Gun.toggleReloadBind(self: GunObject, toggle : boolean)
     end
 end
 
--- function Gun.toggleADS(toggle: boolean)
--- 	if toggle then
+local RunService = References_ItemSystem.RunService
+local transitioningToAiming: RBXScriptConnection
+local detransitioningFromAiming: RBXScriptConnection
+local targetAimingCFrame: CFrame
+    local aimTransitionTimeAccumulated = 0
+local function disconnectAimingEventListeners()
+	if transitioningToAiming then
+		transitioningToAiming:Disconnect()
+	end
+	if detransitioningFromAiming then
+		detransitioningFromAiming:Disconnect()
+	end
+end
 
--- 	end
--- end
+function Gun.toggleAiming(self: GunObject, toggle: boolean)
+	if self.isReloading then return end
 
--- function Gun.toggleAimingBind(self: GunObject, toggle : boolean)
--- 	self.actionNames.aiming = "Aiming"
--- 	local actionName = self.actionNames.aiming
---     if toggle then
---         References_ItemSystem.ActionManager.bindAction(
---             actionName, 
---             function(): (() -> (), () -> (), () -> ())  
+	if toggle then
+		self.isAiming = true
+		References_ItemSystem.CrosshairGuiManager.toggleReticle(false)
+		References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].ADS_idle:Play(self.aimingSpeed)
+		References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].ADS_idle:Play(self.aimingSpeed)
+		self.soundObjects.ADS_in:Play()
 
---                 local function onActivated()
--- 					Gun.activate(self)
---                 end
 
---                 local function onDeactivated()
--- 					Gun.deactivate(self)
---                 end
+		local manualOffsetCorretion = CFrame.new(0, 0.02, -1)
 
---                 local function onUnbind()
--- 					Gun.deactivate(self)
---                 end
+		disconnectAimingEventListeners()
+		transitioningToAiming = RunService.Heartbeat:Connect(function(dt: number)  
+			local aimPartOffsetFromCamera = self.aimPart.CFrame:ToObjectSpace(workspace.CurrentCamera.CFrame)
+			targetAimingCFrame = aimPartOffsetFromCamera * manualOffsetCorretion
+			aimTransitionTimeAccumulated = math.clamp(aimTransitionTimeAccumulated + dt, 0, self.aimingSpeed)
+			local lerpAlpha = math.clamp(aimTransitionTimeAccumulated/self.aimingSpeed, 0, 1)
+			local vmHead = References_ItemSystem.viewmodelManagerObject.viewmodel:FindFirstChild("Head")
+			if vmHead then
+				vmHead.CFrame *= CFrame.new():Lerp(targetAimingCFrame, lerpAlpha)
+				-- if lerpAlpha == 1 then
+				-- 	if transitioningToAiming then
+				-- 		transitioningToAiming:Disconnect()
+				-- 	end
+				-- end
+			end
+		end)
+	else
+		References_ItemSystem.CrosshairGuiManager.toggleReticle(true)
+		References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].ADS_idle:Stop(self.aimingSpeed)
+		References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].ADS_idle:Stop(self.aimingSpeed)
+		self.soundObjects.ADS_out:Play()
 
---                 return onActivated, onDeactivated, onUnbind
---             end, 
---             Enum.UserInputType.MouseButton2,
---             Enum.KeyCode.ButtonL2, 
---             6, 
---             nil, 
---             nil,
---             "rbxassetid://137793533654676")
---     else
---         References_ItemSystem.ActionManager.unbindAction(actionName)
---     end
--- end
+		disconnectAimingEventListeners()
+		detransitioningFromAiming = RunService.Heartbeat:Connect(function(dt: number)  
+			aimTransitionTimeAccumulated = math.clamp(aimTransitionTimeAccumulated - dt, 0, self.aimingSpeed)
+			local lerpAlpha = math.clamp(aimTransitionTimeAccumulated/self.aimingSpeed, 0, 1)
+			local vmHead = References_ItemSystem.viewmodelManagerObject.viewmodel:FindFirstChild("Head")
+			if vmHead then
+				vmHead.CFrame *= CFrame.new():Lerp(targetAimingCFrame, lerpAlpha)
+				if lerpAlpha == 0 then
+					if transitioningToAiming then
+						transitioningToAiming:Disconnect()
+						self.isAiming = false
+					end
+				end
+			end
+		end)
+	end
+end
+
+function Gun.toggleAimingBind(self: GunObject, toggle : boolean)
+	self.actionNames.aiming = "Aiming"
+	local actionName = self.actionNames.aiming
+    if toggle then
+        References_ItemSystem.ActionManager.bindAction(
+            actionName, 
+            function(): (() -> (), () -> (), () -> ())  
+
+                local function onActivated()
+					Gun.toggleAiming(self, true)
+                end
+
+                local function onDeactivated()
+					Gun.toggleAiming(self, false)
+                end
+
+                local function onUnbind()
+					disconnectAimingEventListeners()
+                end
+
+                return onActivated, onDeactivated, onUnbind
+            end, 
+            Enum.UserInputType.MouseButton2,
+            Enum.KeyCode.ButtonL2, 
+            6, 
+            nil, 
+            nil,
+            "rbxassetid://137793533654676")
+    else
+        References_ItemSystem.ActionManager.unbindAction(actionName)
+    end
+end
 
 
 function Gun.Destroy(self: GunObject)

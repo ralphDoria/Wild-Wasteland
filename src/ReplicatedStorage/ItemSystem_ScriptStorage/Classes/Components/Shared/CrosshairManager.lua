@@ -11,6 +11,7 @@ export type CrosshairObject = {
 }
 
 local crosshairGui = PlayerGui:WaitForChild("CrosshairGui") :: ScreenGui
+    local reticle = crosshairGui:WaitForChild("Reticle")
 
 local CrosshairManager = {}
 
@@ -42,7 +43,7 @@ function CrosshairManager._initialize(self : CrosshairObject)
     table.insert(
         self.connections,
         UserInputService:GetPropertyChangedSignal("MouseBehavior"):Connect(function(...: any)
-            CrosshairManager.toggleEnable()
+            CrosshairManager.toggleEnabled(UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter)
         end)
     )
 end
@@ -92,12 +93,16 @@ local function disable()
 	UserInputService.MouseIconEnabled = true
 end
 
-function CrosshairManager.toggleEnable()
-    if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
+function CrosshairManager.toggleEnabled(toggle: boolean)
+    if toggle then
         enable()
     else
         disable()
     end
+end
+
+function CrosshairManager.toggleReticle(toggle: boolean)
+    reticle.Visible = toggle
 end
 
 function CrosshairManager.destroy(self: CrosshairObject)
