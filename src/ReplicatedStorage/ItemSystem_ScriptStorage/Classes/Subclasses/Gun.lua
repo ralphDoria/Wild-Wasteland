@@ -78,6 +78,16 @@ function Gun.new(tool: Tool): GunObject
 end
 
 function Gun.initialize(self: GunObject)
+	   
+	local function onUnequip()
+		-- Force deactivate the blaster when unequipping it
+		Gun.deactivate(self) -- for safety, may be dead code
+		Gun.toggleActivateBind(self, false)
+		Gun.toggleReloadBind(self, false)
+		Gun.toggleAimingBind(self, false)
+		player.CameraMode = Enum.CameraMode.Classic
+	end
+
     Item.initialize(
         self,
         function()  --onEquipping
@@ -97,19 +107,12 @@ function Gun.initialize(self: GunObject)
         function() --onEquipped
         end,
         function() --onUnequipping
-			-- Force deactivate the blaster when unequipping it
-			Gun.deactivate(self) -- for safety, may be dead code
-			Gun.toggleActivateBind(self, false)
-			Gun.toggleReloadBind(self, false)
-			Gun.toggleAimingBind(self, false)
-			player.CameraMode = Enum.CameraMode.Classic
+			onUnequip()
         end,
         function() --onUnequipped()
         end, 
         function() --onDropping()
-			Gun.deactivate(self) -- for safety, may be dead code
-			Gun.toggleActivateBind(self, false)
-			Gun.toggleReloadBind(self, false)
+			onUnequip()
         end,
         function() --onDropped()
         end
@@ -214,7 +217,7 @@ function Gun.shoot(self: GunObject)
 
 	local muzzlePosition = self.muzzle.Position -- remember that this is the muzzle position of the viewmodel tool
 	Gun._shellEjection(self)
-	drawRayResults(muzzlePosition, rayResults, self.tool)
+	drawRayResults(muzzlePosition, rayResults, self.tool, self.muzzle)
 end
 
 function Gun.startShooting(self: GunObject)

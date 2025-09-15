@@ -42,7 +42,7 @@ local function onReplicateShotEvent(gun: Tool, position: Vector3, rayResults: { 
 		end
 	end
 
-	drawRayResults(position, rayResults, gun)
+	drawRayResults(position, rayResults, gun, gun:FindFirstChild("Muzzle"))
 end
 
 local function onReplicateItemSound(gun: Tool, soundName: string)

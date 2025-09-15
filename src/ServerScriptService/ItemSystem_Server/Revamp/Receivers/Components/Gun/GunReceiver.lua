@@ -186,7 +186,6 @@ return function()
 
         local success = stackableBindables.subtractQuantityFromSum:Invoke(player, ammoType, ammoToLoad)
         if success then
-            print(currentAmmo, ammoToLoad, currentAmmo + ammoToLoad)
             gun:SetAttribute(Constants.AMMO_ATTRIBUTE, currentAmmo + ammoToLoad)
         else
             warn(`Reload failed`)

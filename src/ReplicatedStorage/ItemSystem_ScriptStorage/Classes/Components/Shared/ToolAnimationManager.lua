@@ -33,7 +33,7 @@ end
 --[[
     This method adds the tool to the tool tracker and loads only if the animations aren't already loaded.
 ]]
-function AnimationManager.LoadAnimations(self : AnimationManager, tool : Tool, animations : {[string] : Animation}, toggleBindSoundsToAnimationEvents)
+function AnimationManager.LoadAnimations(self : AnimationManager, tool : Tool, animations : {[string] : Animation}, toggleBindSoundsToAnimationEvents: boolean?)
     if self.toolTracker[tool.Name] == nil then
         self.toolTracker[tool.Name] = {tool}
     else

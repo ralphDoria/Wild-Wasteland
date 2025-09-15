@@ -196,6 +196,10 @@ local catalog : {[string] : ToolInfo} = {
                     m9.Sounds.bulletImpact.hardSurface.variant3,
                     m9.Sounds.bulletImpact.hardSurface.variant4,
                 }
+            },
+            drop = {
+                hard = healingInjection.Sounds.drop.hard,
+                soft = healingInjection.Sounds.drop.soft
             }
         }
     }
