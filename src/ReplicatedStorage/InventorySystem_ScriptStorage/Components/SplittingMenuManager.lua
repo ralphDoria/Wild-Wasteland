@@ -141,6 +141,7 @@ function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuMana
         
         local duplicateStackable: Tool? = remotes.RequestDuplicateStackable:InvokeServer(splitSlotMenu.operationId, stackableTool)
         if duplicateStackable then
+            duplicateStackable:AddTag("IgnoreInventorySlotAutofill")
             splitSlotMenu.duplicateStackable = duplicateStackable
             resolve(duplicateStackable)
         else

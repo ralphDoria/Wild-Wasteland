@@ -85,7 +85,7 @@ return function()
         local hasValidParent = parent and (parent:FindFirstChildOfClass("Humanoid") or parent:IsA("Backpack") or parent == LootItemsHolding)
         if hasValidParent  then
             local clone = stackableToSplit:Clone()
-            clone:AddTag("IgnoreInventorySlotAutofill")
+            -- clone:AddTag("IgnoreInventorySlotAutofill")
             clone.Parent = player.Backpack
             clone:SetAttribute("Quantity", 0)
             operations[player][operationId] = clone
