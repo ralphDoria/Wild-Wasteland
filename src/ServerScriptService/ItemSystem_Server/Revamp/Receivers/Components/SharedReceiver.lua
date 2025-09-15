@@ -48,12 +48,11 @@ return function()
     remotes.RequestPickUpTool.OnServerInvoke = function(player: Player, tool: Tool)
         local MAX_PICKUP_RANGE = 5
         local character = player.Character
-        local bodyAttach = tool.PrimaryPart
+        local bodyAttach = tool:FindFirstChild("BodyAttach")
         local isWithinRange: boolean = if character and bodyAttach and math.abs((character.PrimaryPart.Position - bodyAttach.Position).Magnitude) < MAX_PICKUP_RANGE then true else false
         local isInValidParent: boolean? = tool:FindFirstAncestorOfClass("Workspace") and (tool.Parent and not tool.Parent:FindFirstChildOfClass("Humanoid"))
         if isWithinRange and isInValidParent then
-            local BodyAttach = tool.PrimaryPart :: BasePart
-            PlaySoundUtil(pickUp, BodyAttach.Position) 
+            PlaySoundUtil(pickUp, bodyAttach.Position) 
             tool.Parent = player.Backpack
             return true
         else
