@@ -11,6 +11,11 @@ local remotes = {
     DestroyUnusedStackable = stackableRemotes.DestroyUnusedStackable:: RemoteEvent,
     CancelDuplicateRequest = stackableRemotes.CancelDuplicateRequest:: RemoteEvent,
 }
+local stackableBindablesFolder = ReplicatedStorage.ItemSystem_Storage.Stackable.Bindables
+local stackableBindables = {
+    subtractQuantityFromSum = stackableBindablesFolder.SubtractQuantityFromSum:: BindableFunction,
+    getAmmoReserve = stackableBindablesFolder.GetAmmoReserve:: BindableFunction
+}
 
 local function MergeQuantities(source: Tool, destination: Tool)
     assert(source.Name == destination.Name, "Error: not the same stackable type")
@@ -90,7 +95,87 @@ return function()
         end
     end
 
+    stackableBindables.getAmmoReserve.OnInvoke = function(player: Player, stackableName: string): number
+        local backpack = player.Backpack
+        local character = player.Character
+        local sum = 0
+        if backpack then
+            for _, v in backpack:GetChildren() do
+                if v:IsA("Tool") and v.Name == stackableName then
+                    local quantity = v:GetAttribute("Quantity")
+                    if not quantity then continue end
 
+                    sum += quantity
+                end
+            end
+        end
+
+        if character then
+            local equippedTool = character:FindFirstChildOfClass("Tool")
+            local quantity: number? = equippedTool:GetAttribute("Quantity")
+            if quantity then
+                sum += quantity
+            end
+        end
+
+        return sum
+    end
+
+    stackableBindables.subtractQuantityFromSum.OnInvoke = function(player: Player, stackableName: string, quantityToSubtract: number): boolean
+        warn(stackableName, quantityToSubtract)
+        assert(typeof(stackableName) == "string" and typeof(quantityToSubtract) == "number")
+
+        local backpack = player.Backpack
+        local character = player.Character
+
+       local validStackables = {} 
+        
+        local sum = 0
+        if backpack then
+            for _, v in backpack:GetChildren() do
+                if v:IsA("Tool") and v.Name == stackableName then
+                    local quantity = v:GetAttribute("Quantity")
+                    if not quantity then continue end
+
+                    sum += quantity
+                    table.insert(validStackables, {v, quantity})
+                end
+            end
+        end
+
+        if character then
+            local equippedTool = character:FindFirstChildOfClass("Tool")
+            local quantity: number? = equippedTool:GetAttribute("Quantity")
+            if quantity then
+                sum += quantity
+                table.insert(validStackables, {equippedTool, quantity})
+            end
+        end
+
+        if quantityToSubtract <= sum then
+            for _, v in validStackables do
+                local stackable = v[1]
+                local quantity = v[2]
+                local result = quantity - quantityToSubtract
+                if result > 0 then
+                    stackable:SetAttribute("Quantity", result)
+                    return true
+                elseif result == 0 then
+                    stackable:SetAttribute("Quantity", result)
+                    stackable:Destroy()
+                    return true
+                elseif result < 0 then
+                    stackable:SetAttribute("Quantity", 0)
+                    stackable:Destroy()
+                    quantityToSubtract = -1 * result
+                    continue
+                end
+            end
+            return false
+        else
+            return false
+        end
+    end
 
     remotes.CancelDuplicateRequest.OnServerEvent:Connect(function(player: Player, operationId: string)
         local playerOperations = operations[player]

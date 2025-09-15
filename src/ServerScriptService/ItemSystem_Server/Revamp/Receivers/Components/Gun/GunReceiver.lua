@@ -6,7 +6,12 @@ local gunRemotes = {
     shoot = gunRemotesFolder.Shoot:: RemoteEvent,
     reload = gunRemotesFolder.Reload:: RemoteEvent,
     replicateShot = gunRemotesFolder.ReplicateShot:: UnreliableRemoteEvent,
-	replicateItemSound = gunRemotesFolder.ReplicateItemSound:: UnreliableRemoteEvent,
+}
+local replicateItemSound: UnreliableRemoteEvent = ReplicatedStorage.ItemSystem_Storage.Shared.Remotes.ReplicateItemSound
+local stackableBindablesFolder = ReplicatedStorage.ItemSystem_Storage.Stackable.Bindables
+local stackableBindables = {
+    subtractQuantityFromSum = stackableBindablesFolder.SubtractQuantityFromSum:: BindableFunction,
+    getAmmoReserve = stackableBindablesFolder.GetAmmoReserve:: BindableFunction
 }
 
 local GunComponents = ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Components.Gun
@@ -172,12 +177,23 @@ return function()
             return
         end
 
+        local ammoType = gun:GetAttribute(Constants.AMMO_TYPE_ATTRIBUTE)
         local magazineSize = gun:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE)
+        local currentAmmo = gun:GetAttribute(Constants.AMMO_ATTRIBUTE)
+        local difference = magazineSize - currentAmmo
+        local ammoReserve: number = stackableBindables.getAmmoReserve:Invoke(player, ammoType)
+        local ammoToLoad = math.min(magazineSize, ammoReserve, difference)
 
-        gun:SetAttribute(Constants.AMMO_ATTRIBUTE, magazineSize)
+        local success = stackableBindables.subtractQuantityFromSum:Invoke(player, ammoType, ammoToLoad)
+        if success then
+            print(currentAmmo, ammoToLoad, currentAmmo + ammoToLoad)
+            gun:SetAttribute(Constants.AMMO_ATTRIBUTE, currentAmmo + ammoToLoad)
+        else
+            warn(`Reload failed`)
+        end
     end)
 
-    gunRemotes.replicateItemSound.OnServerEvent:Connect(function(player: Player, gun: Tool, soundName: string)
+    replicateItemSound.OnServerEvent:Connect(function(player: Player, gun: Tool, soundName: string)
         local character = player.Character
         assert(character)
         assert(gun.Parent == character)
@@ -187,7 +203,7 @@ return function()
                 continue 
             end
 
-            gunRemotes.replicateItemSound:FireClient(otherPlayer, gun, soundName)
+            replicateItemSound:FireClient(otherPlayer, gun, soundName)
         end
     end)
 end

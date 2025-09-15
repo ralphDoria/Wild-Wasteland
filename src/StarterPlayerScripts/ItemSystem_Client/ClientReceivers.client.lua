@@ -14,8 +14,8 @@ local playSound = require(ReplicatedStorage.RojoManaged_RS.Utility.PlaySoundUtil
 local gunRemotesFolder = ReplicatedStorage.ItemSystem_Storage.Gun.Remotes
 local gunRemotes = {
     replicateShot = gunRemotesFolder.ReplicateShot:: UnreliableRemoteEvent,
-	replicateItemSound = gunRemotesFolder.ReplicateItemSound:: UnreliableRemoteEvent,
 }
+local replicateItemSound = ReplicatedStorage.ItemSystem_Storage.Shared.Remotes.ReplicateItemSound
 
 local function onReplicateShotEvent(gun: Tool, position: Vector3, rayResults: { castRays.RayResult })
 	-- Make sure that the blaster is currently streamed in
@@ -46,15 +46,13 @@ local function onReplicateShotEvent(gun: Tool, position: Vector3, rayResults: { 
 end
 
 local function onReplicateItemSound(gun: Tool, soundName: string)
-	local x = ToolInfo.get(gun.Name)	
-	local sound = ToolInfo.soundSearch(x.soundObjects, soundName)
+	local sound = ToolInfo.getSound(gun.Name, soundName)
 	if sound then
-		local delayCorrection = sound:GetAttribute("DelayCorreciton")
-		playSound(sound, gun:FindFirstChild("BodyAttach"), if delayCorrection then delayCorrection else nil)
+		playSound(sound, gun:FindFirstChild("BodyAttach"))
 	else
 		warn(`{soundName} not found`)
 	end
 end
 
 gunRemotes.replicateShot.OnClientEvent:Connect(onReplicateShotEvent)
-gunRemotes.replicateItemSound.OnClientEvent:Connect(onReplicateItemSound)
+replicateItemSound.OnClientEvent:Connect(onReplicateItemSound)

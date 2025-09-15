@@ -10,7 +10,7 @@ local itemHudGui: ScreenGui = playerGui:WaitForChild("ItemHUD")
 local frame: Frame = itemHudGui:FindFirstChild("Frame"):: Frame
 local AmmoInfo: Frame = frame:FindFirstChild("AmmoInfo"):: Frame
 local loaded: TextLabel = AmmoInfo:FindFirstChild("Loaded"):: TextLabel
-local unloaded: TextLabel = AmmoInfo:FindFirstChild("Unloaded"):: TextLabel
+local magazineSize: TextLabel = AmmoInfo:FindFirstChild("MagazineSize"):: TextLabel
 local Toolinfo: Frame = frame:FindFirstChild("ToolInfo"):: Frame
 local name: TextLabel = Toolinfo:FindFirstChild("Name"):: TextLabel
 local image: ImageLabel = Toolinfo:FindFirstChild("Image"):: ImageLabel
@@ -27,9 +27,9 @@ local ItemHUD = {
 function ItemHUD.setTool(tool: Tool)
     name.Text = tool.Name
     image.Image = tool:GetAttribute("ToolGuiImageId"):: string
-    if tool:GetAttribute("_ammo") then
-        loaded.Text = tostring(tool:GetAttribute(Constants.AMMO_ATTRIBUTE))::string
-        unloaded.Text = tostring(tool:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE))::string
+    if tool:GetAttribute(Constants.AMMO_ATTRIBUTE) then
+        ItemHUD.setAmmo(tool:GetAttribute(Constants.AMMO_ATTRIBUTE):: number)
+        ItemHUD.setMagazineSize(tool:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE):: number)
         -- ammoReserveLabel.Text = 
         AmmoInfo.Visible = true
     else
@@ -38,15 +38,11 @@ function ItemHUD.setTool(tool: Tool)
 end
 
 function ItemHUD.setAmmo(num: number)
-    warn("NOT IMPLEMENTED YET")
+    loaded.Text = tostring(num)
 end
 
 function ItemHUD.setMagazineSize(num: number)
-    warn("NOT IMPLEMENTED YET")
-end
-
-function ItemHUD.setAmmoReserve(num: number)
-    warn("NOT IMPLEMENTED YET")
+    magazineSize.Text = tostring(num)
 end
 
 function ItemHUD.setReloading(toggle: boolean)

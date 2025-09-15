@@ -12,14 +12,14 @@ local CameraRecoiler = require(GunUtility.CameraRecoiler)
 local getRayDirections = require(GunUtility.getRayDirections)
 local castRays = require(GunUtility.castRays)
 local drawRayResults = require(GunUtility.drawRayResults)
-local bindSoundsToAnimationEvents = require(GunUtility.bindSoundsToAnimationEvents)
+local StackableSlotFinder = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.Slot.StackableSlotFinder)
 
 local gunRemotesFolder = References_ItemSystem.ItemSystem_Storage.Gun.Remotes
 local gunRemotes = {
     shoot = gunRemotesFolder.Shoot:: RemoteEvent,
     reload = gunRemotesFolder.Reload:: RemoteEvent,
-	replicateItemSound = gunRemotesFolder.ReplicateItemSound:: UnreliableRemoteEvent,
 }
+local replicateItemSound: UnreliableRemoteEvent = References_ItemSystem.ItemSystem_Storage.Shared.Remotes.ReplicateItemSound
 
 -- Gun Item specific modules
 local camera = workspace.CurrentCamera
@@ -67,6 +67,7 @@ function Gun.new(tool: Tool): GunObject
 	self.aimingSpeed = tool:GetAttribute(Constants.AIMING_SPEED_ATTRIBUTE)
 	-- boolean states
 	self.isAiming = false
+	References_ItemSystem.viewmodelManagerObject.viewmodel:SetAttribute("isAiming", self.isAiming) -- for viewbobing calculations
 	self.isSprinting = false
 	self.isReloading = false
 	self.isShooting = false
@@ -128,6 +129,7 @@ function Gun.initialize(self: GunObject)
 		local transition_ads_recoil_offset = CFrame.new():Lerp(aiming_recoil_offset, alpha)
 		vmHead.CFrame *= transition_ads_recoil_offset
 	end)
+
 end
 
 function Gun.recoil(self: GunObject)
@@ -208,7 +210,7 @@ function Gun.shoot(self: GunObject)
 	gunRemotes.shoot:FireServer(now, self.tool, origin, tagged)
 	local shootSound = self.soundObjects.shoot
 	playSound(shootSound, self.tool:FindFirstChild("BodyAttach"))
-	gunRemotes.replicateItemSound:FireServer(self.tool, shootSound.Name)
+	replicateItemSound:FireServer(self.tool, shootSound.Name)
 
 	local muzzlePosition = self.muzzle.Position -- remember that this is the muzzle position of the viewmodel tool
 	Gun._shellEjection(self)
@@ -220,7 +222,7 @@ function Gun.startShooting(self: GunObject)
 	if self.ammo <= 0 then
 		local dryFireSound = self.soundObjects.dryFire
 		playSound(dryFireSound, self.tool:FindFirstChild("BodyAttach"))
-		gunRemotes.replicateItemSound:FireServer(self.tool, dryFireSound.Name)
+		replicateItemSound:FireServer(self.tool, dryFireSound.Name)
 		return
 	end
 
@@ -249,7 +251,7 @@ function Gun.startShooting(self: GunObject)
 			if self.ammo == 0 then
 				local dryFireSound = self.soundObjects.dryFire
 				playSound(dryFireSound, self.tool:FindFirstChild("BodyAttach"))
-				gunRemotes.replicateItemSound:FireServer(self.tool, dryFireSound.Name)
+				replicateItemSound:FireServer(self.tool, dryFireSound.Name)
 			end
 		end)
 	end
@@ -257,14 +259,16 @@ end
 
 function Gun.reload(self: GunObject)
 	local magSize = self.tool:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE)
-	if not (self.ammo < magSize and not self.isReloading and not self.isAiming) then
+	local ammoReserve = StackableSlotFinder.getSum(self.tool:GetAttribute(Constants.AMMO_TYPE_ATTRIBUTE):: string)
+	print(ammoReserve)
+	if not (self.ammo < magSize and not self.isReloading and not self.isAiming and ammoReserve > 0) then
 		return
 	end
 
 	local magazineSize = self.tool:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE)
+	local difference = magazineSize - self.ammo
+	local ammoToLoad = math.min(magazineSize, ammoReserve, difference)
 
-	-- self.viewModelController:playReloadAnimation(reloadTime)
-	-- self.characterAnimationController:playReloadAnimation(reloadTime)
 	local reloadTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].reload
 	local vmReloadTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].reload
 	reloadTrack:Play()
@@ -272,25 +276,13 @@ function Gun.reload(self: GunObject)
 
 	self.isReloading = true
 	References_ItemSystem.ItemHUD.setReloading(self.isReloading)
-	local reloadSounds = self.soundObjects.reload
-	local soundBinding = self.trove:Connect(vmReloadTrack:GetMarkerReachedSignal("Sound"), function(param)  
-		local sound = reloadSounds[param]
-		if not sound then return end
-		playSound(sound, self.tool:FindFirstChild("BodyAttach"))
-		gunRemotes.replicateItemSound:FireServer(self.tool, sound.Name)
-		if param == "magIn" then
-			gunRemotes.reload:FireServer(self.tool)
-			self.ammo = magazineSize
-			self.isReloading = false
-			References_ItemSystem.ItemHUD.setAmmo(self.ammo)
-			References_ItemSystem.ItemHUD.setReloading(self.isReloading)
-		end
-	end)
 
 	vmReloadTrack.Stopped:Once(function()  
-		if soundBinding then
-			soundBinding:Disconnect()	
-		end
+		gunRemotes.reload:FireServer(self.tool)
+		self.isReloading = false
+		self.ammo += ammoToLoad
+		References_ItemSystem.ItemHUD.setAmmo(self.ammo)
+		References_ItemSystem.ItemHUD.setReloading(self.isReloading)
 	end)
 end
 
@@ -393,6 +385,7 @@ function Gun.toggleAiming(self: GunObject, toggle: boolean)
 
 	if toggle then
 		self.isAiming = true
+		References_ItemSystem.viewmodelManagerObject.viewmodel:SetAttribute("isAiming", self.isAiming)
 		References_ItemSystem.CrosshairGuiManager.toggleReticle(false)
 		References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].ADS_idle:Play(self.aimingSpeed)
 		References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].ADS_idle:Play(self.aimingSpeed)
@@ -402,7 +395,7 @@ function Gun.toggleAiming(self: GunObject, toggle: boolean)
 		local manualOffsetCorretion = CFrame.new(0, 0.02, -1)
 
 		disconnectAimingEventListeners()
-		transitioningToAiming = RunService.Heartbeat:Connect(function(dt: number)  
+		transitioningToAiming = RunService.RenderStepped:Connect(function(dt: number)  
 			local aimPartOffsetFromCamera = self.aimPart.CFrame:ToObjectSpace(workspace.CurrentCamera.CFrame)
 			targetAimingCFrame = aimPartOffsetFromCamera * manualOffsetCorretion
 			aimTransitionTimeAccumulated = math.clamp(aimTransitionTimeAccumulated + dt, 0, self.aimingSpeed)
@@ -424,7 +417,7 @@ function Gun.toggleAiming(self: GunObject, toggle: boolean)
 		self.soundObjects.ADS_out:Play()
 
 		disconnectAimingEventListeners()
-		detransitioningFromAiming = RunService.Heartbeat:Connect(function(dt: number)  
+		detransitioningFromAiming = RunService.RenderStepped:Connect(function(dt: number)  
 			aimTransitionTimeAccumulated = math.clamp(aimTransitionTimeAccumulated - dt, 0, self.aimingSpeed)
 			local lerpAlpha = math.clamp(aimTransitionTimeAccumulated/self.aimingSpeed, 0, 1)
 			local vmHead = References_ItemSystem.viewmodelManagerObject.viewmodel:FindFirstChild("Head")
@@ -434,6 +427,7 @@ function Gun.toggleAiming(self: GunObject, toggle: boolean)
 					if transitioningToAiming then
 						transitioningToAiming:Disconnect()
 						self.isAiming = false
+						References_ItemSystem.viewmodelManagerObject.viewmodel:SetAttribute("isAiming", self.isAiming)
 					end
 				end
 			end

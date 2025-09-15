@@ -52,7 +52,7 @@ function ViewmodelManager.AddTool(self: ViewmodelManager, tool: Tool, animations
     end
     vmTool.Parent = nil
     self.ToolToVMToolMapping[tool] = vmTool
-    ToolAnimationManager.LoadAnimations(self.toolAnimationManagerObject, tool, animations)
+    ToolAnimationManager.LoadAnimations(self.toolAnimationManagerObject, tool, animations, true)
     self.connections[tool] = {}
     self.connections[tool].equipped = tool.Equipped:Connect(function()
         ViewmodelManager.toggleViewmodelToolVisibility(self, tool)
@@ -156,7 +156,8 @@ function ViewmodelManager._viewmodelBobAndSwayCalculation(self: ViewmodelManager
 
     --actually setting the cframe
     local vmHead = self.viewmodel:FindFirstChild("Head") :: BasePart
-    vmHead.CFrame = workspace.CurrentCamera.CFrame * bobbingCFrame * swayCFrame
+    local isAiming = self.viewmodel:GetAttribute("isAiming")
+    vmHead.CFrame = workspace.CurrentCamera.CFrame * if not isAiming then bobbingCFrame * swayCFrame else CFrame.new() 
 end
 
 function ViewmodelManager._toggleBobAndSway(self: ViewmodelManager, toggle: boolean)

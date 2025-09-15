@@ -125,7 +125,9 @@ function Item.equip(self: ItemObject, equipping: () -> ()?, equipped: () -> ()?,
     References_ItemSystem.ItemHUD.setTool(self.tool)
     References_ItemSystem.ItemHUD.show()
     References_ItemSystem.humanoid:EquipTool(self.tool)
-    References_ItemSystem.remotes.PlaySound:FireServer(self.soundObjects.equip :: Sound, self.bodyAttach, 0)
+    if self.soundObjects.equip then -- if this doesn't exist, then equip sounds will be controlled by animation events
+        References_ItemSystem.remotes.PlaySound:FireServer(self.soundObjects.equip :: Sound, self.bodyAttach, 0)
+    end
     local equipTrack : AnimationTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].equip
     equipTrack.Priority = Enum.AnimationPriority.Action2
     local vmEquipTrack : AnimationTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].equip
@@ -157,8 +159,14 @@ function Item.unequip(self: ItemObject, unequipping: () -> ()?, unequipped: () -
     References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].idle:Stop()
     References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].idle:Stop()
     local unequipSFX: Sound? = self.soundObjects.unequip:: Sound
-    print("Firing to play unequip sfx")
-    References_ItemSystem.remotes.PlaySound:FireServer(if unequipSFX then unequipSFX else self.soundObjects.equip :: Sound, self.bodyAttach, 0)
+    if unequipSFX then
+        References_ItemSystem.remotes.PlaySound:FireServer(unequipSFX, self.bodyAttach, 0)
+    else
+        local equipSFX = self.soundObjects.equip
+        if equipSFX then
+            References_ItemSystem.remotes.PlaySound:FireServer(equipSFX, self.bodyAttach, 0)
+        end
+    end
     local equipTrack : AnimationTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].equip
     equipTrack.Priority = Enum.AnimationPriority.Action
     local vmEquipTrack : AnimationTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].equip

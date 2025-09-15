@@ -171,7 +171,6 @@ local catalog : {[string] : ToolInfo} = {
             ADS_viewmodelShoot = m9.Anims.ADS_viewmodelShoot,
         },
         soundObjects = {
-            equip = m9.Sounds.equip,
             unequip = m9.Sounds.unequip,
             shoot = m9.Sounds.shoot,
             dryFire = m9.Sounds.dryFire,
@@ -225,6 +224,23 @@ function ToolInfo.soundSearch(soundTable: {any}, targetSoundName: string): Sound
         end
     end
     return nil
+end
+
+function ToolInfo.getSound(toolName: string, soundName: string): Sound?
+    local toolFolder = ToolCatalog:FindFirstChild(toolName)
+    if toolFolder then
+        local soundsFolder = toolFolder:FindFirstChild("Sounds")
+        if soundsFolder then
+            local targetSound = soundsFolder:FindFirstChild(soundName, true)
+            return targetSound
+        else
+            warn(`Couldn't find {soundName} of {toolName}: soundsFolder not found.`)
+            return nil
+        end
+    else
+        warn(`Couldn't find {soundName} of {toolName}: {toolName} not found in ToolCatalog.`)
+        return nil
+    end
 end
 
 return ToolInfo
