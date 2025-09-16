@@ -189,6 +189,10 @@ function Item.unequip(self: ItemObject, unequipping: () -> ()?, unequipped: () -
 end
 
 function Item.immediateUnequip(self: ItemObject)
+    print(self.State)
+    if self.State ~= "Unequipped" and self.State ~= "Dropped" then
+        References_ItemSystem.ItemHUD.hide()
+    end
     if self.State == "Unequipped" then return end
     
     for _, v in self.actionNames do
@@ -199,7 +203,6 @@ function Item.immediateUnequip(self: ItemObject)
     References_ItemSystem.ToolAnimationManager.StopAllAnimsForTool(References_ItemSystem.animationManagerObject, self.tool)
     References_ItemSystem.ToolAnimationManager.StopAllAnimsForTool(References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject, self.tool)
     Item.ChangeState(self, "Unequipped")
-    References_ItemSystem.ItemHUD.hide()
 end
 
 function Item.ChangeState(self: ItemObject, state: State)
@@ -235,7 +238,10 @@ function Item.drop(self : ItemObject, onDropping: () -> ()?, onDropped : () -> (
         if onDropped then
             onDropped()
         end
-        References_ItemSystem.ItemHUD.hide()
+        print(self.State)
+        if self.State ~= "Unequipped" and self.State ~= "Dropped" then
+            References_ItemSystem.ItemHUD.hide()
+        end
         -- warn(`DROPPED ITEM`)
     end
 end
