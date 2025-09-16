@@ -160,6 +160,7 @@ local catalog : {[string] : ToolInfo} = {
     [m9.Name] = {
         animObjects = {
             equip = m9.Anims.equip,
+            unequip = m9.Anims.unequip,
             idle = m9.Anims.idle,
             sprint = m9.Anims.sprint,
             reload = m9.Anims.reload,

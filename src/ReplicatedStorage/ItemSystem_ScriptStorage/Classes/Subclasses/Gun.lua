@@ -1,3 +1,4 @@
+--!strict
 -- local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Debris = game:GetService("Debris")
@@ -33,6 +34,8 @@ local random = Random.new()
 -- Parent Class
 local Item = require("../Superclasses/Item")
 
+export type GunState = Item.State | "Shooting" | "Reloading"
+
 export type GunObject = Item.ItemObject & {
 	muzzle: Part,
 	aimPart: Part,
@@ -43,8 +46,6 @@ export type GunObject = Item.ItemObject & {
 	-- boolean states
 	isAiming: boolean,
 	isSprinting: boolean,
-	isReloading: boolean,
-	isShooting: boolean,
 	isActivated: boolean
 }
 
@@ -59,18 +60,20 @@ function Gun.new(tool: Tool): GunObject
 	local muzzle = vmTool:WaitForChild("Muzzle"):: Part
 	local aimPart = vmTool:WaitForChild("AimPart"):: Part
 	local shellSpawnPart = vmTool:WaitForChild("ShellSpawnPart"):: Part
+	local ammo = tool:GetAttribute(Constants.AMMO_ATTRIBUTE)
+	assert(typeof(ammo) == "number", `{ammo} is not a number`)
+	local aimingSpeed = tool:GetAttribute(Constants.AIMING_SPEED_ATTRIBUTE)
+	assert(typeof(aimingSpeed) == "number", `{aimingSpeed} is not a number`)
 
 	self.muzzle = muzzle
 	self.aimPart = aimPart
 	self.shellSpawnPart = shellSpawnPart
-    self.ammo = tool:GetAttribute(Constants.AMMO_ATTRIBUTE)
-	self.aimingSpeed = tool:GetAttribute(Constants.AIMING_SPEED_ATTRIBUTE)
+    self.ammo = ammo
+	self.aimingSpeed = aimingSpeed
 	-- boolean states
 	self.isAiming = false
 	References_ItemSystem.viewmodelManagerObject.viewmodel:SetAttribute("isAiming", self.isAiming) -- for viewbobing calculations
 	self.isSprinting = false
-	self.isReloading = false
-	self.isShooting = false
 	self.isActivated = false
 
     Gun.initialize(self)
@@ -94,19 +97,18 @@ function Gun.initialize(self: GunObject)
 			player.CameraMode = Enum.CameraMode.LockFirstPerson
 			-- Resync ammo and reloading values
 			self.ammo = self.tool:GetAttribute(Constants.AMMO_ATTRIBUTE):: number
-			self.isReloading = false
 
 			-- Enable GUI
 			References_ItemSystem.ItemHUD.setAmmo(self.ammo)
-			References_ItemSystem.ItemHUD.setReloading(self.isReloading)
-
+			References_ItemSystem.ItemHUD.setReloading(self.State:: GunState == "Reloading")
+        end, 
+        function() --onEquipped
 			Gun.toggleActivateBind(self, true)
 			Gun.toggleReloadBind(self, true)
 			Gun.toggleAimingBind(self, true)
-        end, 
-        function() --onEquipped
         end,
         function() --onUnequipping
+			warn("unequipping gun")
 			onUnequip()
         end,
         function() --onUnequipped()
@@ -123,7 +125,7 @@ function Gun.initialize(self: GunObject)
 		local vmAimingShootTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].ADS_shoot
 		if not vmAimingShootTrack.IsPlaying then return end
 
-		local vmHead = References_ItemSystem.viewmodelManagerObject.viewmodel:FindFirstChild("Head")
+		local vmHead: BasePart = References_ItemSystem.viewmodelManagerObject.viewmodel:FindFirstChild("Head"):: BasePart
 		if not vmHead then return end
 
 		local aiming_recoil_offset = CFrame.new(0, 0, 0.3) * CFrame.Angles(math.rad(5), 0, 0)
@@ -136,8 +138,8 @@ function Gun.initialize(self: GunObject)
 end
 
 function Gun.recoil(self: GunObject)
-	local recoilMin = self.tool:GetAttribute(Constants.RECOIL_MIN_ATTRIBUTE)
-	local recoilMax = self.tool:GetAttribute(Constants.RECOIL_MAX_ATTRIBUTE)
+	local recoilMin: Vector2 = self.tool:GetAttribute(Constants.RECOIL_MIN_ATTRIBUTE):: Vector2
+	local recoilMax: Vector2 = self.tool:GetAttribute(Constants.RECOIL_MAX_ATTRIBUTE):: Vector2
 
 	local xDif = recoilMax.X - recoilMin.X
 	local yDif = recoilMax.Y - recoilMin.Y
@@ -163,10 +165,10 @@ function Gun._shellEjection(self: GunObject)
 end
 
 function Gun.shoot(self: GunObject)
-	local spread = self.tool:GetAttribute(Constants.SPREAD_ATTRIBUTE)
-	local raysPerShot = self.tool:GetAttribute(Constants.RAYS_PER_SHOT_ATTRIBUTE)
-	local range = self.tool:GetAttribute(Constants.RANGE_ATTRIBUTE)
-	local rayRadius = self.tool:GetAttribute(Constants.RAY_RADIUS_ATTRIBUTE)
+	local spread = self.tool:GetAttribute(Constants.SPREAD_ATTRIBUTE):: number
+	local raysPerShot = self.tool:GetAttribute(Constants.RAYS_PER_SHOT_ATTRIBUTE):: number
+	local range = self.tool:GetAttribute(Constants.RANGE_ATTRIBUTE):: number
+	local rayRadius = self.tool:GetAttribute(Constants.RAY_RADIUS_ATTRIBUTE):: number
 
 	if not self.isAiming then
 		References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].hipfire:Play()
@@ -229,27 +231,28 @@ function Gun.startShooting(self: GunObject)
 		return
 	end
 
-	if self.isShooting or self.isReloading then
+	local gunState: GunState = self.State
+	if gunState == "Shooting" or gunState == "Reloading" then
 		return
 	end
 
 	local fireMode = self.tool:GetAttribute(Constants.FIRE_MODE_ATTRIBUTE)
-	local rateOfFire = self.tool:GetAttribute(Constants.RATE_OF_FIRE_ATTRIBUTE)
+	local rateOfFire = self.tool:GetAttribute(Constants.RATE_OF_FIRE_ATTRIBUTE):: number
 
 	if fireMode == Constants.FIRE_MODE.SEMI then
-		self.isShooting = true
+		Gun.ChangeState(self, "Shooting")
 		Gun.shoot(self)
 		task.delay(60 / rateOfFire, function()
-			self.isShooting = false
+			Gun.ChangeState(self, "Idle")
 		end)
 	elseif fireMode == Constants.FIRE_MODE.AUTO then
 		task.spawn(function()
-			self.isShooting = true
-			while self.isActivated and self.ammo > 0 and not self.isReloading do
+			Gun.ChangeState(self, "Shooting")
+			while self.isActivated and self.ammo > 0 do
 				Gun.shoot(self)
 				task.wait(60 / rateOfFire)
 			end
-			self.isShooting = false
+			Gun.ChangeState(self, "Idle")
 
 			if self.ammo == 0 then
 				local dryFireSound = self.soundObjects.dryFire
@@ -261,31 +264,29 @@ function Gun.startShooting(self: GunObject)
 end
 
 function Gun.reload(self: GunObject)
-	local magSize = self.tool:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE)
-	local ammoReserve = StackableSlotFinder.getSum(self.tool:GetAttribute(Constants.AMMO_TYPE_ATTRIBUTE):: string)
-	print(ammoReserve)
-	if not (self.ammo < magSize and not self.isReloading and not self.isAiming and ammoReserve > 0) then
+	local magSize = self.tool:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE):: number
+	local ammoReserve = StackableSlotFinder.getSum(self.tool:GetAttribute(Constants.AMMO_TYPE_ATTRIBUTE):: string):: number
+	if not (self.ammo < magSize and not (self.State:: GunState == "Reloading") and not self.isAiming and ammoReserve > 0) then
 		return
 	end
 
-	local magazineSize = self.tool:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE)
-	local difference = magazineSize - self.ammo
-	local ammoToLoad = math.min(magazineSize, ammoReserve, difference)
+	local difference = magSize - self.ammo
+	local ammoToLoad = math.min(magSize, ammoReserve, difference)
 
 	local reloadTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].reload
 	local vmReloadTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].reload
 	reloadTrack:Play()
 	vmReloadTrack:Play()
 
-	self.isReloading = true
-	References_ItemSystem.ItemHUD.setReloading(self.isReloading)
+	Gun.ChangeState(self, "Reloading")
+	References_ItemSystem.ItemHUD.setReloading(self.State:: GunState == "Reloading")
 
 	vmReloadTrack.Stopped:Once(function()  
 		gunRemotes.reload:FireServer(self.tool)
-		self.isReloading = false
+		Gun.ChangeState(self, "Idle")
 		self.ammo += ammoToLoad
 		References_ItemSystem.ItemHUD.setAmmo(self.ammo)
-		References_ItemSystem.ItemHUD.setReloading(self.isReloading)
+		References_ItemSystem.ItemHUD.setReloading(false)
 	end)
 end
 
@@ -338,6 +339,15 @@ function Gun.toggleActivateBind(self: GunObject, toggle : boolean)
     end
 end
 
+function Gun.ChangeState(self: GunObject, state: GunState)
+    if self.tool then
+        self.tool:SetAttribute("State", state)
+    else
+        warn("Tool seems to already have been destroyed, cannot change its state")
+    end
+    self.State = state:: Item.State -- just casting to to Item.State to remove type check errors
+end
+
 function Gun.toggleReloadBind(self: GunObject, toggle : boolean)
 	self.actionNames.reload = "Reload"
 	local actionName = self.actionNames.reload
@@ -384,7 +394,7 @@ local function disconnectAimingEventListeners()
 end
 
 function Gun.toggleAiming(self: GunObject, toggle: boolean)
-	if self.isReloading then return end
+	if self.State:: GunState == "Reloading" then return end
 
 	if toggle then
 		self.isAiming = true
@@ -403,7 +413,7 @@ function Gun.toggleAiming(self: GunObject, toggle: boolean)
 			targetAimingCFrame = aimPartOffsetFromCamera * manualOffsetCorretion
 			aimTransitionTimeAccumulated = math.clamp(aimTransitionTimeAccumulated + dt, 0, self.aimingSpeed)
 			local lerpAlpha = math.clamp(aimTransitionTimeAccumulated/self.aimingSpeed, 0, 1)
-			local vmHead = References_ItemSystem.viewmodelManagerObject.viewmodel:FindFirstChild("Head")
+			local vmHead = References_ItemSystem.viewmodelManagerObject.viewmodel:FindFirstChild("Head"):: BasePart?
 			if vmHead then
 				vmHead.CFrame *= CFrame.new():Lerp(targetAimingCFrame, lerpAlpha)
 				-- if lerpAlpha == 1 then
@@ -423,7 +433,7 @@ function Gun.toggleAiming(self: GunObject, toggle: boolean)
 		detransitioningFromAiming = RunService.RenderStepped:Connect(function(dt: number)  
 			aimTransitionTimeAccumulated = math.clamp(aimTransitionTimeAccumulated - dt, 0, self.aimingSpeed)
 			local lerpAlpha = math.clamp(aimTransitionTimeAccumulated/self.aimingSpeed, 0, 1)
-			local vmHead = References_ItemSystem.viewmodelManagerObject.viewmodel:FindFirstChild("Head")
+			local vmHead = References_ItemSystem.viewmodelManagerObject.viewmodel:FindFirstChild("Head"):: BasePart?
 			if vmHead then
 				vmHead.CFrame *= CFrame.new():Lerp(targetAimingCFrame, lerpAlpha)
 				if lerpAlpha == 0 then
