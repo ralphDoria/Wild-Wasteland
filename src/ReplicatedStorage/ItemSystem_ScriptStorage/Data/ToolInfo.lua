@@ -162,6 +162,7 @@ local catalog : {[string] : ToolInfo} = {
             equip = m9.Anims.equip,
             unequip = m9.Anims.unequip,
             idle = m9.Anims.idle,
+            inspect = m9.Anims.inspect,
             sprint = m9.Anims.sprint,
             reload = m9.Anims.reload,
             hipfire = m9.Anims.hipfire,

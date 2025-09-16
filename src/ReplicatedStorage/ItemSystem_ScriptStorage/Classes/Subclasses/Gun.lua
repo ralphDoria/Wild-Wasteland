@@ -34,7 +34,7 @@ local random = Random.new()
 -- Parent Class
 local Item = require("../Superclasses/Item")
 
-export type GunState = Item.State | "Shooting" | "Reloading"
+export type GunState = Item.State | "Shooting" | "Reloading" | "Inspecting"
 
 export type GunObject = Item.ItemObject & {
 	muzzle: Part,
@@ -88,6 +88,8 @@ function Gun.initialize(self: GunObject)
 		Gun.toggleActivateBind(self, false)
 		Gun.toggleReloadBind(self, false)
 		Gun.toggleAimingBind(self, false)
+		Gun.toggleInspectBind(self, false)
+		Gun.toggleAiming(self, false)
 		player.CameraMode = Enum.CameraMode.Classic
 	end
 
@@ -106,6 +108,7 @@ function Gun.initialize(self: GunObject)
 			Gun.toggleActivateBind(self, true)
 			Gun.toggleReloadBind(self, true)
 			Gun.toggleAimingBind(self, true)
+			Gun.toggleInspectBind(self, true)
         end,
         function() --onUnequipping
 			warn("unequipping gun")
@@ -398,6 +401,7 @@ function Gun.toggleAiming(self: GunObject, toggle: boolean)
 
 	if toggle then
 		self.isAiming = true
+		References_ItemSystem.ActionManager.forceToggle("Inspect", false)
 		References_ItemSystem.viewmodelManagerObject.viewmodel:SetAttribute("isAiming", self.isAiming)
 		References_ItemSystem.CrosshairGuiManager.toggleReticle(false)
 		References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].ADS_idle:Play(self.aimingSpeed)
@@ -473,7 +477,7 @@ function Gun.toggleAimingBind(self: GunObject, toggle : boolean)
             Enum.UserInputType.MouseButton2,
             Enum.KeyCode.ButtonL2, 
             6, 
-            nil, 
+            true, 
             nil,
             "rbxassetid://137793533654676")
     else
@@ -481,6 +485,78 @@ function Gun.toggleAimingBind(self: GunObject, toggle : boolean)
     end
 end
 
+function Gun.toggleInspect(self: GunObject, toggle: boolean)
+	local inspectTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].inspect
+	local vmInspectTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].inspect
+	local gunState: GunState = self.State
+	if toggle then
+
+		inspectTrack:Play()
+		vmInspectTrack:Play()
+		Gun.ChangeState(self, "Inspecting")
+		self.tool:GetAttributeChangedSignal("State"):Once(function()  
+			if inspectTrack.IsPlaying then
+				inspectTrack:Stop()
+				vmInspectTrack:Stop()
+			end
+		end)
+		inspectTrack.Stopped:Once(function(...: any)  
+			if self.State:: GunState == "Inspecting" then
+				Gun.ChangeState(self, "Idle")
+			end
+		end)
+	else
+		if gunState == "Inspecting" then
+			inspectTrack:Stop()
+			vmInspectTrack:Stop()
+			Gun.ChangeState(self, "Idle")
+		end
+	end
+end
+
+function Gun.toggleInspectBind(self: GunObject, toggle : boolean)
+	self.actionNames.aiming = "Inspect"
+	local actionName = self.actionNames.aiming
+    if toggle then
+        References_ItemSystem.ActionManager.bindAction(
+            actionName, 
+            function(): (() -> (), () -> (), () -> ())  
+
+                local function onActivated()
+					Gun.toggleInspect(self, true)
+                end
+
+                local function onDeactivated()
+					Gun.toggleInspect(self, false)
+				end
+
+                local function onUnbind()
+                end
+
+                return onActivated, onDeactivated, onUnbind
+            end, 
+            Enum.KeyCode.G,
+            Enum.KeyCode.DPadLeft, 
+            7, 
+            true, 
+            nil,
+            "rbxassetid://137793533654676",
+            function(): boolean
+                if not (self.State == "Idle") then
+                    return false
+                end
+
+                if self.isAiming then
+                    return false
+                end
+
+                return true
+            end
+		)
+    else
+        References_ItemSystem.ActionManager.unbindAction(actionName)
+    end
+end
 
 function Gun.Destroy(self: GunObject)
 	Item.Destroy(self, function()  

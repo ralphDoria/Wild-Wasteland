@@ -52,7 +52,8 @@ function ActionManager.bindAction(
 	displayOrder: number,
 	initialToggleData: boolean?,
     cooldownTime: number?,
-	touchButtonImageId: string
+	touchButtonImageId: string,
+	activationConditions: ( () -> boolean )? -- if true, then button will be activated
 )
 	-- Make sure action binds aren't overwritten
 	if ActionManager._bindings[actionName] then
@@ -146,7 +147,15 @@ function ActionManager.bindAction(
 	end
 
 	-- Create a wrapper for the callback function so the UI can be updated in sync with the action
-	binding.onActivated, binding.onDeactivated, binding.onUnbind = getCallbacks()
+	local onActivated
+	onActivated, binding.onDeactivated, binding.onUnbind = getCallbacks()
+	function binding.onActivated()
+		if activationConditions and activationConditions() == false then
+			return
+		end
+
+		onActivated()
+	end
 	local callbackWrapper = function(...)
 		local action, inputState = ...
 		if action == actionName then
@@ -155,6 +164,9 @@ function ActionManager.bindAction(
 
 			if binding.toggleData == nil then
 				if inputState == Enum.UserInputState.Begin then
+					if activationConditions and activationConditions() == false then
+						return
+					end
 					if cooldownTime then
 						if binding.onCooldown then
 							--warn("still on cooldown")
@@ -184,6 +196,9 @@ function ActionManager.bindAction(
 							else
 								binding.startCooldown()
 							end
+						end
+						if activationConditions and activationConditions() == false then
+							return
 						end
 						binding.toggleData = true
 						binding.onActivated()
