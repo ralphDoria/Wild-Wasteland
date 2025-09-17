@@ -1,3 +1,4 @@
+--!strict
 -- local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local References_ItemSystem = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ItemSystem_ScriptStorage.References_ItemSystem)
@@ -39,13 +40,14 @@ export type MeleeObject = Item.ItemObject & {
 local Melee =  {}
 
 function Melee.new(tool : Tool) : MeleeObject
-    local self = Item.new(tool)
+    local self: MeleeObject = Item.new(tool):: MeleeObject
     self.damage = 50
     self.staminaCost = 10
     self.swingSpeed = 1
     self.HitboxManager = HitboxManager.new(tool, {References_ItemSystem.character, References_ItemSystem.viewmodelManagerObject.viewmodel})
-    print(HitboxManager)
-    self.trail = tool:FindFirstChildWhichIsA("Trail", true)
+    print("HitboxManager")
+    print(self.HitboxManager)
+    self.trail = tool:FindFirstChildWhichIsA("Trail", true):: Trail
     self.staminaObject = StaminaManager.waitForStaminaObject(References_ItemSystem.character)
 
     self.actionNames.swing = "Swing" 
@@ -116,6 +118,8 @@ function Melee.initialize(self : MeleeObject)
             if status == "start" then
 
                 References_ItemSystem.remotes.PlaySound:FireServer(self.soundObjects.swing, self.bodyAttach, 0)
+                print(self.HitboxManager)
+                print(self)
                 self.HitboxManager.RaycastHitbox:HitStart()
                 Melee.toggleSwingTrail(self, true)
             elseif status == "end" then
@@ -179,6 +183,7 @@ function Melee.toggleSwingTrail(self : MeleeObject, toggle : boolean)
 end
 
 function Melee.Destroy(self: MeleeObject)
+    print(self)
     Item.Destroy(self, function()  
         self.trailsTransparencyUpdater:Disconnect()
         HitboxManager.Destroy(self.HitboxManager)
