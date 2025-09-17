@@ -1,5 +1,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local References_Inventory = require(ReplicatedStorage.RojoManaged_RS.InventorySystem_ScriptStorage.Components.References_Inventory_Client)
+local templateSlotUIStroke: UIStroke = References_Inventory.TemplateSlot:FindFirstChild("UIStroke", true)
+while templateSlotUIStroke == nil do
+    templateSlotUIStroke = References_Inventory.TemplateSlot:FindFirstChild("UIStroke", true)
+    task.wait()
+end
+local defaultSlotColor = templateSlotUIStroke.Color
 
 local ScriptStorage = game:GetService("ReplicatedStorage").RojoManaged_RS.InventorySystem_ScriptStorage
 local Type_Slot = require(ScriptStorage.Components.Slot.Type_Slot)
@@ -81,6 +87,11 @@ function Hover.applyEffect(slot: Type_Slot.SlotObject)
         -- print("Hover.currentSlot: ", if Hover.currentSlot then Hover.currentSlot.HotbarNumber.Text else nil)
     end
 
+    local uiStroke = slot.InnerFrame:FindFirstChildOfClass("UIStroke"):: UIStroke?
+    if uiStroke then
+        uiStroke.Color = Color3.new(1, 0.615686, 0.043137)
+    end
+
     if not slot._isEmpty then
         -- for creating a delay before possibly showing info display
         local delayTime = 0
@@ -95,14 +106,17 @@ function Hover.applyEffect(slot: Type_Slot.SlotObject)
             end
         end)
 
-        if slot.WearableCategory == nil then 
-            References_Inventory.TweenService:Create(
-                slot.ImageButton, 
-                TweenInfo.new(10, Enum.EasingStyle.Linear, Enum.EasingDirection.In, math.huge), 
-                {Rotation = 180}
-            ):Play()
-            slot.ImageButton.Size = UDim2.fromScale(0.8, 0.8)
-        end
+        -- spinning animation
+        -- if slot.WearableCategory == nil then
+        --     References_Inventory.TweenService:Create(
+        --         slot.ImageButton, 
+        --         TweenInfo.new(10, Enum.EasingStyle.Linear, Enum.EasingDirection.In, math.huge), 
+        --         {Rotation = 180}
+        --     ):Play()
+        --     slot.ImageButton.Size = UDim2.fromScale(0.8, 0.8)
+        -- end
+
+
     end
 end
 
@@ -117,17 +131,22 @@ function Hover.removeEffect(slot: Type_Slot.SlotObject)
         v:Destroy()
     end 
 
-    if not slot._isEmpty then
-
-        if slot.WearableCategory == nil then 
-            References_Inventory.TweenService:Create(
-                slot.ImageButton, 
-                TweenInfo.new(0.2), 
-                {Rotation = -180}
-            ):Play()
-            slot.ImageButton.Size = UDim2.fromScale(1, 1)
-        end
+    local uiStroke = slot.InnerFrame:FindFirstChildOfClass("UIStroke"):: UIStroke?
+    if uiStroke then
+        uiStroke.Color = defaultSlotColor
     end
+
+    -- spinning animation
+    -- if not slot._isEmpty then
+    --     if slot.WearableCategory == nil then 
+    --         References_Inventory.TweenService:Create(
+    --             slot.ImageButton, 
+    --             TweenInfo.new(0.2), 
+    --             {Rotation = -180}
+    --         ):Play()
+    --         slot.ImageButton.Size = UDim2.fromScale(1, 1)
+    --     end
+    -- end
 end
 
 return Hover
