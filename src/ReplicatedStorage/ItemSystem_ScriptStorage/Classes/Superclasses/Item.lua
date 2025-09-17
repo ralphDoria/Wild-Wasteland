@@ -191,6 +191,7 @@ function Item.unequip(self: ItemObject, unequipping: () -> ()?, unequipped: () -
         end
         equipTrack.Stopped:Wait()
         equipTrack:Stop(0)
+        vmEquipTrack:Stop(0)
     end
     if self.State == "Unequipping" or self.State == "Dropping" then
         References_ItemSystem.humanoid:UnequipTools()

@@ -16,6 +16,8 @@ local bloxyColaCaps = ToolCatalog["Bloxy Cola Caps"]
 local backpack = ToolCatalog["Backpack"]
 local lightBullets = ToolCatalog["Light Bullets"]
 local m9 = ToolCatalog["M9"]
+local ak47 = ToolCatalog["AK47"]
+print(ak47)
 
 local ToolInfo = {}
 
@@ -166,8 +168,6 @@ local catalog : {[string] : ToolInfo} = {
             sprint = m9.Anims.sprint,
             reload = m9.Anims.reload,
             hipfire = m9.Anims.hipfire,
-            viewmodelFire = m9.Anims.viewmodelFire,
-            ADS_transition = m9.Anims.ADS_transition,
             ADS_idle = m9.Anims.ADS_idle,
             ADS_shoot = m9.Anims.ADS_shoot,
             ADS_viewmodelShoot = m9.Anims.ADS_viewmodelShoot,
@@ -204,16 +204,42 @@ local catalog : {[string] : ToolInfo} = {
                 soft = healingInjection.Sounds.drop.soft
             }
         }
+    },
+    [ak47.Name] = {
+        animObjects = {
+            equip = ak47.Anims.equip,
+            idle = ak47.Anims.idle,
+            unequip = ak47.Anims.unequip,
+            inspect = ak47.Anims.inspect,
+            -- sprint = ak47.Anims.sprint,
+            reload = ak47.Anims.reload,
+            hipfire = ak47.Anims.hipfire,
+            ADS_idle = ak47.Anims.ADS_idle,
+            ADS_shoot = ak47.Anims.ADS_shoot,
+            ADS_viewmodelShoot = ak47.Anims.ADS_viewmodelShoot,
+        },
+        soundObjects = {
+            magIn = ak47.Sounds.magIn,
+            magOut = ak47.Sounds.magOut,
+            dryFire = ak47.Sounds.dryFire,
+            shoot = ak47.Sounds.shoot,
+            -- just for testing, using m9 sounds below
+            ADS_in = ak47.Sounds.ADS_in,
+            ADS_out = ak47.Sounds.ADS_out,
+            handling1 = ak47.Sounds.handling1,
+            handling2 = ak47.Sounds.handling2,
+        }
     }
 }
 
-function ToolInfo.get(toolName : string) : ToolInfo
-    for key, v in catalog do
-        if key == toolName then
-            return v
-        end
+function ToolInfo.get(toolName : string) : ToolInfo?
+    local entry = catalog[toolName]
+    if entry then
+        return entry
+    else
+        error(toolName .. " not found in ToolInfo catalog")
+        return nil
     end
-    error(toolName .. " not found in ToolInfo catalog")
 end
 
 function ToolInfo.soundSearch(soundTable: {any}, targetSoundName: string): Sound?

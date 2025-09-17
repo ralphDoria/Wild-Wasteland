@@ -126,7 +126,7 @@ function Gun.initialize(self: GunObject)
 	--CFrame recoil for when aiming because viewmodel aiming animation only animates blowback, movement recoil
 	self.trove:Connect(References_ItemSystem.RunService.RenderStepped, function(deltaTime: number)
 		local vmAimingShootTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].ADS_shoot
-		if not vmAimingShootTrack.IsPlaying then return end
+		if not vmAimingShootTrack or not vmAimingShootTrack.IsPlaying then return end
 
 		local vmHead: BasePart = References_ItemSystem.viewmodelManagerObject.viewmodel:FindFirstChild("Head"):: BasePart
 		if not vmHead then return end
@@ -269,9 +269,25 @@ end
 function Gun.reload(self: GunObject)
 	local magSize = self.tool:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE):: number
 	local ammoReserve = StackableSlotFinder.getSum(self.tool:GetAttribute(Constants.AMMO_TYPE_ATTRIBUTE):: string):: number
-	if not (self.ammo < magSize and not (self.State:: GunState == "Reloading") and not self.isAiming and ammoReserve > 0) then
-		return
+	print(ammoReserve)
+
+	if self.ammo >= magSize then 
+		warn("Gun is already fully loaded.")
+		return 
 	end
+	if self.State:: GunState == "Reloading" then 
+		warn("Already reloading.")
+		return 
+	end
+	if self.isAiming then 
+		warn("Can't reloading while aiming.") 
+		return 
+	end
+	if ammoReserve <= 0 then 
+		warn("Not enough ammo") 
+		return 
+	end
+
 
 	local difference = magSize - self.ammo
 	local ammoToLoad = math.min(magSize, ammoReserve, difference)
@@ -385,8 +401,8 @@ end
 local RunService = References_ItemSystem.RunService
 local transitioningToAiming: RBXScriptConnection
 local detransitioningFromAiming: RBXScriptConnection
-local targetAimingCFrame: CFrame
-    local aimTransitionTimeAccumulated = 0
+local targetAimingCFrame: CFrame = CFrame.new()
+local aimTransitionTimeAccumulated = 0
 local function disconnectAimingEventListeners()
 	if transitioningToAiming then
 		transitioningToAiming:Disconnect()
@@ -401,7 +417,10 @@ function Gun.toggleAiming(self: GunObject, toggle: boolean)
 
 	if toggle then
 		self.isAiming = true
-		References_ItemSystem.ActionManager.forceToggle("Inspect", false)
+		local inspectTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].inspect
+		if inspectTrack then
+			References_ItemSystem.ActionManager.forceToggle("Inspect", false)
+		end
 		References_ItemSystem.viewmodelManagerObject.viewmodel:SetAttribute("isAiming", self.isAiming)
 		References_ItemSystem.CrosshairGuiManager.toggleReticle(false)
 		References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].ADS_idle:Play(self.aimingSpeed)
@@ -409,12 +428,12 @@ function Gun.toggleAiming(self: GunObject, toggle: boolean)
 		self.soundObjects.ADS_in:Play()
 
 
-		local manualOffsetCorretion = CFrame.new(0, 0.02, -1)
+		local aimingOffsetCorrection = CFrame.new(self.tool:GetAttribute(Constants.AIMING_OFFSET_CORRECTION_ATTRIBUTE):: Vector3)
 
 		disconnectAimingEventListeners()
 		transitioningToAiming = RunService.RenderStepped:Connect(function(dt: number)  
 			local aimPartOffsetFromCamera = self.aimPart.CFrame:ToObjectSpace(workspace.CurrentCamera.CFrame)
-			targetAimingCFrame = aimPartOffsetFromCamera * manualOffsetCorretion
+			targetAimingCFrame = aimingOffsetCorrection * aimPartOffsetFromCamera 
 			aimTransitionTimeAccumulated = math.clamp(aimTransitionTimeAccumulated + dt, 0, self.aimingSpeed)
 			local lerpAlpha = math.clamp(aimTransitionTimeAccumulated/self.aimingSpeed, 0, 1)
 			local vmHead = References_ItemSystem.viewmodelManagerObject.viewmodel:FindFirstChild("Head"):: BasePart?
@@ -435,14 +454,18 @@ function Gun.toggleAiming(self: GunObject, toggle: boolean)
 
 		disconnectAimingEventListeners()
 		detransitioningFromAiming = RunService.RenderStepped:Connect(function(dt: number)  
+			if not self.aimingSpeed then 
+				detransitioningFromAiming:Disconnect()
+				return 
+			end -- Need to check after connecting because it seems to run deferred. This needed for calculations below and would cause an error if it's nil
 			aimTransitionTimeAccumulated = math.clamp(aimTransitionTimeAccumulated - dt, 0, self.aimingSpeed)
 			local lerpAlpha = math.clamp(aimTransitionTimeAccumulated/self.aimingSpeed, 0, 1)
 			local vmHead = References_ItemSystem.viewmodelManagerObject.viewmodel:FindFirstChild("Head"):: BasePart?
 			if vmHead then
 				vmHead.CFrame *= CFrame.new():Lerp(targetAimingCFrame, lerpAlpha)
 				if lerpAlpha == 0 then
-					if transitioningToAiming then
-						transitioningToAiming:Disconnect()
+					if detransitioningFromAiming then
+						detransitioningFromAiming:Disconnect()
 						self.isAiming = false
 						References_ItemSystem.viewmodelManagerObject.viewmodel:SetAttribute("isAiming", self.isAiming)
 					end
@@ -477,7 +500,7 @@ function Gun.toggleAimingBind(self: GunObject, toggle : boolean)
             Enum.UserInputType.MouseButton2,
             Enum.KeyCode.ButtonL2, 
             6, 
-            true, 
+            false, 
             nil,
             "rbxassetid://137793533654676")
     else
@@ -488,6 +511,7 @@ end
 function Gun.toggleInspect(self: GunObject, toggle: boolean)
 	local inspectTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].inspect
 	local vmInspectTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].inspect
+	if not inspectTrack then return end
 	local gunState: GunState = self.State
 	if toggle then
 
@@ -517,6 +541,7 @@ end
 function Gun.toggleInspectBind(self: GunObject, toggle : boolean)
 	self.actionNames.aiming = "Inspect"
 	local actionName = self.actionNames.aiming
+	if not References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].inspect then return end
     if toggle then
         References_ItemSystem.ActionManager.bindAction(
             actionName, 
@@ -538,7 +563,7 @@ function Gun.toggleInspectBind(self: GunObject, toggle : boolean)
             Enum.KeyCode.G,
             Enum.KeyCode.DPadLeft, 
             7, 
-            true, 
+            false, 
             nil,
             "rbxassetid://137793533654676",
             function(): boolean
