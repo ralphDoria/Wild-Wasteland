@@ -3,10 +3,11 @@ local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage"
 local remotes: {[string] : RemoteEvent} = {
     ImpactEffects = ItemSystem_Storage.Melee.Remotes.ImpactEffects
 }
-local CreateImpactEffects = require("./CreateImpactEffects")
+local impactEffect = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Components.Gun.Utility.Effects.impactEffect)
 
 return function()
     remotes.ImpactEffects.OnClientEvent:Connect(function(particles: ParticleEmitter, position: Vector3, normal: Vector3)  
-        CreateImpactEffects(particles, position, normal)
+        -- CreateImpactEffects(particles, position, normal)
+        impactEffect(position, normal, isCharacter, hitMaterial, tool)
     end)
 end

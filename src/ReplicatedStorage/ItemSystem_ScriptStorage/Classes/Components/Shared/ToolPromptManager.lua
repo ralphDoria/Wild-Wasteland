@@ -59,7 +59,7 @@ end
 function ToolPromptManager._initialize(self : ToolPromptManager)
     
     --Initial check (maybe use observer pattern in the future)
-    if self.tool:FindFirstAncestor("Workspace") and self.tool.Parent and not self.tool.Parent:IsA("Model") then
+    if self.tool:FindFirstAncestor("Workspace") and self.tool.Parent and not self.tool.Parent:FindFirstChild("Humanoid") then
         self.pp.Enabled = true
     else
         self.pp.Enabled = false

@@ -1,12 +1,14 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local References_ItemSystem = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.References_ItemSystem)
 
+local Classes = ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes
 local toolTags = {
-     ["Melee"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Subclasses.Melee),--the tool tag is just going to be the name of the tool
-     ["HealingInjection"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Items.Consumables.HealingInjection),
-     ["NV Goggles"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Items.Wearables.NVGoggles),
-     ["StorageWearable"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Subclasses.StorageWearable),
-     ["Stackable"] = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Subclasses.Stackable)
+    ["Melee"] = require(Classes.Subclasses.Melee),--the tool tag is just going to be the name of the tool
+    ["HealingInjection"] = require(Classes.Items.Consumables.HealingInjection),
+    ["NV Goggles"] = require(Classes.Items.Wearables.NVGoggles),
+    ["StorageWearable"] = require(Classes.Subclasses.StorageWearable),
+    ["Stackable"] = require(Classes.Subclasses.Stackable),
+    ["Gun"] = require(Classes.Subclasses.Gun)
 }
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local handleTaggedInstance = require(ReplicatedStorage.RojoManaged_RS.Utility.handleTaggedInstances)
@@ -48,6 +50,10 @@ function ItemInstantiator.initToolPrompts()
             end
         )
     end
+end
+
+function ItemInstantiator.initClientReceivers()
+
 end
 
 function ItemInstantiator.instantiateTool(tool: Tool): (any?, ((any) -> ())?)

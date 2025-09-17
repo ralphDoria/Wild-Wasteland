@@ -49,6 +49,7 @@ function InventoryManager.new(onToolAdded: (tool: Tool) -> (), onToolRemoved: (t
 				if tool:HasTag("IgnoreInventorySlotAutofill") then
 					-- warn("has loot tag, not filling slot here")
 					LootedTagReplicatedToClient:FireServer(tool)
+					tool:RemoveTag("IgnoreInventorySlotAutofill") -- for in cases when this tag was added on the client
 					return
 				end
 

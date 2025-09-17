@@ -9,10 +9,14 @@ export type HitboxManager = {
 local HitboxManager = {}
 
 function HitboxManager.new(tool: Tool, descendantsToIgnore: {Instance}) : HitboxManager
+    local bodyAttach = tool:FindFirstChild("BodyAttach", true)
+    print(bodyAttach)
+    assert(bodyAttach)
     local self : HitboxManager = {
-        RaycastHitbox = RaycastHitbox.new(tool:FindFirstChild("BodyAttach", true)),
+        RaycastHitbox = RaycastHitbox.new(bodyAttach),
         connections = {}
     }
+    print(self.RaycastHitbox)
 
     local params = RaycastParams.new()
     params.FilterDescendantsInstances = descendantsToIgnore

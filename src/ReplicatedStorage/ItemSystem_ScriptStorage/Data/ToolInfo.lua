@@ -2,7 +2,7 @@
 
 export type ToolInfo = {
     animObjects : {[string] : Animation},
-    soundObjects : {[string] : (Sound | {[string] : Sound})}
+    soundObjects : {any}
 }
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +15,9 @@ local raiderAxe = ToolCatalog["Raider Axe"]
 local bloxyColaCaps = ToolCatalog["Bloxy Cola Caps"]
 local backpack = ToolCatalog["Backpack"]
 local lightBullets = ToolCatalog["Light Bullets"]
+local m9 = ToolCatalog["M9"]
+local ak47 = ToolCatalog["AK47"]
+print(ak47)
 
 local ToolInfo = {}
 
@@ -155,16 +158,121 @@ local catalog : {[string] : ToolInfo} = {
                 soft = bloxyColaCaps.Sounds.unequip
             },
         }
+    },
+    [m9.Name] = {
+        animObjects = {
+            equip = m9.Anims.equip,
+            unequip = m9.Anims.unequip,
+            idle = m9.Anims.idle,
+            inspect = m9.Anims.inspect,
+            sprint = m9.Anims.sprint,
+            reload = m9.Anims.reload,
+            hipfire = m9.Anims.hipfire,
+            ADS_idle = m9.Anims.ADS_idle,
+            ADS_shoot = m9.Anims.ADS_shoot,
+            ADS_viewmodelShoot = m9.Anims.ADS_viewmodelShoot,
+        },
+        soundObjects = {
+            unequip = m9.Sounds.unequip,
+            shoot = m9.Sounds.shoot,
+            dryFire = m9.Sounds.dryFire,
+            ADS_in = m9.Sounds.ADS_in,
+            ADS_out = m9.Sounds.ADS_out,
+            reload = {
+                magIn = m9.Sounds.reload.magIn,
+                magOut = m9.Sounds.reload.magIn,
+                magTap = m9.Sounds.reload.magTap,
+                slideBack = m9.Sounds.reload.slideBack,
+                slideRelease = m9.Sounds.reload.slideRelease,
+            },
+            bulletImpact = {
+                flesh = { -- array
+                    m9.Sounds.bulletImpact.flesh.variant1,
+                    m9.Sounds.bulletImpact.flesh.variant2,
+                    m9.Sounds.bulletImpact.flesh.variant3,
+                    m9.Sounds.bulletImpact.flesh.variant4,
+                },
+                hardSurface = {
+                    m9.Sounds.bulletImpact.hardSurface.variant1,
+                    m9.Sounds.bulletImpact.hardSurface.variant2,
+                    m9.Sounds.bulletImpact.hardSurface.variant3,
+                    m9.Sounds.bulletImpact.hardSurface.variant4,
+                }
+            },
+            drop = {
+                hard = healingInjection.Sounds.drop.hard,
+                soft = healingInjection.Sounds.drop.soft
+            }
+        }
+    },
+    [ak47.Name] = {
+        animObjects = {
+            equip = ak47.Anims.equip,
+            idle = ak47.Anims.idle,
+            unequip = ak47.Anims.unequip,
+            inspect = ak47.Anims.inspect,
+            -- sprint = ak47.Anims.sprint,
+            reload = ak47.Anims.reload,
+            hipfire = ak47.Anims.hipfire,
+            ADS_idle = ak47.Anims.ADS_idle,
+            ADS_shoot = ak47.Anims.ADS_shoot,
+            ADS_viewmodelShoot = ak47.Anims.ADS_viewmodelShoot,
+        },
+        soundObjects = {
+            magIn = ak47.Sounds.magIn,
+            magOut = ak47.Sounds.magOut,
+            dryFire = ak47.Sounds.dryFire,
+            shoot = ak47.Sounds.shoot,
+            -- just for testing, using m9 sounds below
+            ADS_in = ak47.Sounds.ADS_in,
+            ADS_out = ak47.Sounds.ADS_out,
+            handling1 = ak47.Sounds.handling1,
+            handling2 = ak47.Sounds.handling2,
+        }
     }
 }
 
-function ToolInfo.get(toolName : string) : ToolInfo
-    for key, v in catalog do
-        if key == toolName then
+function ToolInfo.get(toolName : string) : ToolInfo?
+    local entry = catalog[toolName]
+    if entry then
+        return entry
+    else
+        error(toolName .. " not found in ToolInfo catalog")
+        return nil
+    end
+end
+
+function ToolInfo.soundSearch(soundTable: {any}, targetSoundName: string): Sound?
+    for index, v in soundTable do
+        if typeof(v) == "Instance" and v:IsA("Sound") and v.Name == targetSoundName then
             return v
+        elseif typeof(v) == "table" then
+            local found = ToolInfo.soundSearch(v, targetSoundName)
+            if found then
+                return found
+            else
+                continue
+            end
         end
     end
-    error(toolName .. " not found in ToolInfo catalog")
+    return nil
+end
+
+function ToolInfo.getSound(toolName: string, soundName: string): Sound?
+    local toolFolder = ToolCatalog:FindFirstChild(toolName)
+    if toolFolder then
+        local soundsFolder = toolFolder:FindFirstChild("Sounds")
+        if soundsFolder then
+            local targetSound = soundsFolder:FindFirstChild(soundName, true)
+            return targetSound
+        else
+            warn(`Couldn't find {soundName} of {toolName}: soundsFolder not found.`)
+            return nil
+        end
+    else
+        warn(`Couldn't find {soundName} of {toolName}: {toolName} not found in ToolCatalog.`)
+        return nil
+    end
 end
 
 return ToolInfo

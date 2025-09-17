@@ -1,8 +1,16 @@
 --!strict
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ToolInfo = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Data.ToolInfo)
+local playSound = require(ReplicatedStorage.RojoManaged_RS.Utility.PlaySoundUtil)
+
+local replicateItemSound: UnreliableRemoteEvent = ReplicatedStorage.ItemSystem_Storage.Shared.Remotes.ReplicateItemSound
+
 export type AnimationManager = {
     toolTracker: {[string]: {Tool}},
     ["animator"] : Animator,
-    ["animationTracks"] : {[string] : {[string] : AnimationTrack}}
+    ["animationTracks"] : {[string] : {[string] : AnimationTrack}},
+    animationEventConnections: {[string]: {RBXScriptConnection}}
 }
 
 local AnimationManager = {}
@@ -15,7 +23,8 @@ function AnimationManager.new(character : Model?) : AnimationManager
     local self = {
         toolTracker = {},
         animator = humanoid:FindFirstChildOfClass("Animator"),
-        animationTracks = {}    
+        animationTracks = {},
+        animationEventConnections = {}
     }
 
     return self :: AnimationManager
@@ -24,7 +33,7 @@ end
 --[[
     This method adds the tool to the tool tracker and loads only if the animations aren't already loaded.
 ]]
-function AnimationManager.LoadAnimations(self : AnimationManager, tool : Tool, animations : {[string] : Animation})
+function AnimationManager.LoadAnimations(self : AnimationManager, tool : Tool, animations : {[string] : Animation}, toggleBindSoundsToAnimationEvents: boolean?)
     if self.toolTracker[tool.Name] == nil then
         self.toolTracker[tool.Name] = {tool}
     else
@@ -35,6 +44,20 @@ function AnimationManager.LoadAnimations(self : AnimationManager, tool : Tool, a
         for key, animObject in animations do
             local loadedTrack = self.animator:LoadAnimation(animObject)
             self.animationTracks[tool.Name][animObject.Name] = loadedTrack
+            if toggleBindSoundsToAnimationEvents then
+                if self.animationEventConnections[tool.Name] == nil then
+                    self.animationEventConnections[tool.Name] = {}
+                end
+                table.insert(
+                    self.animationEventConnections[tool.Name], 
+                    loadedTrack:GetMarkerReachedSignal("Sound"):Connect(function(param: string)
+                        local sound = ToolInfo.getSound(tool.Name, param)
+                        if not sound then return end
+                        playSound(sound, tool:FindFirstChild("BodyAttach"))
+                        replicateItemSound:FireServer(tool, sound.Name)
+                    end)
+                )
+            end
         end
     end
 end
@@ -56,6 +79,13 @@ function AnimationManager.RemoveTool(self: AnimationManager, tool: Tool)
                 self.animationTracks[tool.Name][trackName] = nil
             end
             self.animationTracks[tool.Name] = nil
+            local toolAnimEvents = self.animationEventConnections[tool.Name]
+            if toolAnimEvents then
+                for _, v in toolAnimEvents do
+                    v:Disconnect()
+                end
+            end
+            self.animationEventConnections[tool.Name] = nil
         end
     end
 end

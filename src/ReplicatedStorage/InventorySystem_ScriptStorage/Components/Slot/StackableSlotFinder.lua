@@ -63,6 +63,33 @@ function StackableSlotFinder.inventory(stackableName: string): Type_Slot.SlotObj
     return currentSlot
 end
 
+function StackableSlotFinder.getSum(stackableName: string): number
+    local sum = 0
+    local function addStackableQuantityToSum(tool: Tool)
+            local quantity = tool:GetAttribute("Quantity")
+            if typeof(quantity) == "number" then
+                sum += quantity
+            end
+    end
+    for _, v in HotbarSlotsRegistry.instanceToObjectMap do
+        if v.tool and v.tool.Name == stackableName then
+            print("found stackable to add its quantity to sum")
+            addStackableQuantityToSum(v.tool)
+        end
+    end
+    for _, slotGroupObject in SlotGroupRegistry.instanceToObjectMap do
+        if slotGroupObject._itself:FindFirstAncestor(References_Inventory.LootingScrollingFrame.Name) then continue end
+
+        for instance, object in slotGroupObject.slotInstanceToObjectMap do
+            if object.tool and object.tool.Name == stackableName then
+                addStackableQuantityToSum(object.tool)
+            end
+        end
+    end
+
+    return sum
+end
+
 function StackableSlotFinder.any(stackableName: string): Type_Slot.SlotObject?
 	local slotObject: Type_Slot.SlotObject?
 	slotObject = StackableSlotFinder.hotbar(stackableName)

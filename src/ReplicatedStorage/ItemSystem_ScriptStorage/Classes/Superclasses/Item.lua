@@ -51,6 +51,7 @@ function Item.initialize(self : ItemObject, equipping: () -> ()?, equipped: () -
             if toggle then
                 Item.equip(self, equipping, equipped, onDropping, onDropped)
             else
+                print("unequipping")
                 Item.unequip(self, unequipping, unequipped) 
             end 
         end
@@ -125,7 +126,9 @@ function Item.equip(self: ItemObject, equipping: () -> ()?, equipped: () -> ()?,
     References_ItemSystem.ItemHUD.setTool(self.tool)
     References_ItemSystem.ItemHUD.show()
     References_ItemSystem.humanoid:EquipTool(self.tool)
-    References_ItemSystem.remotes.PlaySound:FireServer(self.soundObjects.equip :: Sound, self.bodyAttach, 0)
+    if self.soundObjects.equip then -- if this doesn't exist, then equip sounds will be controlled by animation events
+        References_ItemSystem.remotes.PlaySound:FireServer(self.soundObjects.equip :: Sound, self.bodyAttach, 0)
+    end
     local equipTrack : AnimationTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].equip
     equipTrack.Priority = Enum.AnimationPriority.Action2
     local vmEquipTrack : AnimationTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].equip
@@ -157,21 +160,39 @@ function Item.unequip(self: ItemObject, unequipping: () -> ()?, unequipped: () -
     References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].idle:Stop()
     References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].idle:Stop()
     local unequipSFX: Sound? = self.soundObjects.unequip:: Sound
-    print("Firing to play unequip sfx")
-    References_ItemSystem.remotes.PlaySound:FireServer(if unequipSFX then unequipSFX else self.soundObjects.equip :: Sound, self.bodyAttach, 0)
-    local equipTrack : AnimationTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].equip
-    equipTrack.Priority = Enum.AnimationPriority.Action
-    local vmEquipTrack : AnimationTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].equip
-    if unequipping then unequipping() end
-    if equipTrack.IsPlaying then
-        equipTrack:AdjustSpeed(-1)
-        vmEquipTrack:AdjustSpeed(-1)
+    if unequipSFX then
+        References_ItemSystem.remotes.PlaySound:FireServer(unequipSFX, self.bodyAttach, 0)
     else
-        equipTrack:Play(0, 1, -1)
-        vmEquipTrack:Play(0, 1, -1)
+        local equipSFX = self.soundObjects.equip
+        if equipSFX then
+            References_ItemSystem.remotes.PlaySound:FireServer(equipSFX, self.bodyAttach, 0)
+        end
     end
-    equipTrack.Stopped:Wait()
-    equipTrack:Stop(0)
+    if unequipping then unequipping() end
+    local unequipTrack: AnimationTrack? = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].unequip
+    local equipTrack : AnimationTrack = References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].equip
+    local vmEquipTrack : AnimationTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].equip
+    if unequipTrack then
+        local vmUnequipTrack: AnimationTrack = References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject.animationTracks[self.tool.Name].unequip
+        equipTrack:Stop()
+        vmEquipTrack:Stop()
+        unequipTrack:Play()
+        vmUnequipTrack:Play()
+        unequipTrack.Stopped:Wait()
+        unequipTrack:Stop(0)
+    else
+        equipTrack.Priority = Enum.AnimationPriority.Action
+        if equipTrack.IsPlaying then
+            equipTrack:AdjustSpeed(-1)
+            vmEquipTrack:AdjustSpeed(-1)
+        else
+            equipTrack:Play(0, 1, -1)
+            vmEquipTrack:Play(0, 1, -1)
+        end
+        equipTrack.Stopped:Wait()
+        equipTrack:Stop(0)
+        vmEquipTrack:Stop(0)
+    end
     if self.State == "Unequipping" or self.State == "Dropping" then
         References_ItemSystem.humanoid:UnequipTools()
         Item.toggleDropBind(self, false)
@@ -181,6 +202,10 @@ function Item.unequip(self: ItemObject, unequipping: () -> ()?, unequipped: () -
 end
 
 function Item.immediateUnequip(self: ItemObject)
+    print(self.State)
+    if self.State ~= "Unequipped" and self.State ~= "Dropped" then
+        References_ItemSystem.ItemHUD.hide()
+    end
     if self.State == "Unequipped" then return end
     
     for _, v in self.actionNames do
@@ -191,7 +216,6 @@ function Item.immediateUnequip(self: ItemObject)
     References_ItemSystem.ToolAnimationManager.StopAllAnimsForTool(References_ItemSystem.animationManagerObject, self.tool)
     References_ItemSystem.ToolAnimationManager.StopAllAnimsForTool(References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject, self.tool)
     Item.ChangeState(self, "Unequipped")
-    References_ItemSystem.ItemHUD.hide()
 end
 
 function Item.ChangeState(self: ItemObject, state: State)
@@ -227,7 +251,10 @@ function Item.drop(self : ItemObject, onDropping: () -> ()?, onDropped : () -> (
         if onDropped then
             onDropped()
         end
-        References_ItemSystem.ItemHUD.hide()
+        print(self.State)
+        if self.State ~= "Unequipped" then
+            References_ItemSystem.ItemHUD.hide()
+        end
         -- warn(`DROPPED ITEM`)
     end
 end

@@ -9,6 +9,8 @@ local function playSound(soundObject : Sound, soundParent : any, delayCorrection
         if numValue then
             warn("num value found")
             delayCorrection = numValue.Value
+        else
+            delayCorrection = soundObject:GetAttribute("DelayCorrection"):: number?
         end
     end
     if delayCorrection then

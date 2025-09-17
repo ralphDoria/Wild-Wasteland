@@ -105,7 +105,8 @@ function ViewModelController:enable()
             -- workspace.CurrentCamera.FieldOfView = 60 | FOV changed sensitivity, so I don't know if I want to do this until I find a way to keep sensitivity consistent regardless of FOV (which is probably just going to take some simple math that I don't care to look up right now)
             if self.aimPart then
                 local manualOffsetCorretion = CFrame.new(0, 0.02, -1)
-                local aimPartOffsetFromCamera = (workspace.CurrentCamera.CFrame:Inverse() * self.aimPart.CFrame):Inverse()
+                -- local aimPartOffsetFromCamera = (workspace.CurrentCamera.CFrame:Inverse() * self.aimPart.CFrame):Inverse()
+                local aimPartOffsetFromCamera = self.aimPart.CFrame:ToObjectSpace(workspace.CurrentCamera.CFrame)
                 ads_CFrame = aimPartOffsetFromCamera * manualOffsetCorretion
                 --[[
                 wtffffff I got this CFrame calculation with educated guessing & checking, so surprised it worked

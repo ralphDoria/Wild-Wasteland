@@ -1,13 +1,16 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player.PlayerGui
-local InputCategorizer = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ActionManagerSystem.Components.InputCategorizer)
+local InputCategorizer = require(ReplicatedStorage.RojoManaged_RS.ActionManagerSystem.Components.InputCategorizer)
+local Constants = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Components.Gun.Constants)
+
 
 local itemHudGui: ScreenGui = playerGui:WaitForChild("ItemHUD")
 local frame: Frame = itemHudGui:FindFirstChild("Frame"):: Frame
 local AmmoInfo: Frame = frame:FindFirstChild("AmmoInfo"):: Frame
 local loaded: TextLabel = AmmoInfo:FindFirstChild("Loaded"):: TextLabel
-local unloaded: TextLabel = AmmoInfo:FindFirstChild("Unloaded"):: TextLabel
+local magazineSize: TextLabel = AmmoInfo:FindFirstChild("MagazineSize"):: TextLabel
 local Toolinfo: Frame = frame:FindFirstChild("ToolInfo"):: Frame
 local name: TextLabel = Toolinfo:FindFirstChild("Name"):: TextLabel
 local image: ImageLabel = Toolinfo:FindFirstChild("Image"):: ImageLabel
@@ -24,14 +27,26 @@ local ItemHUD = {
 function ItemHUD.setTool(tool: Tool)
     name.Text = tool.Name
     image.Image = tool:GetAttribute("ToolGuiImageId"):: string
-    if tool:HasTag("Gun") then
+    if tool:GetAttribute(Constants.AMMO_ATTRIBUTE) then
+        ItemHUD.setAmmo(tool:GetAttribute(Constants.AMMO_ATTRIBUTE):: number)
+        ItemHUD.setMagazineSize(tool:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE):: number)
+        -- ammoReserveLabel.Text = 
         AmmoInfo.Visible = true
-        loaded.Text = tostring(tool:GetAttribute("Loaded"))::string
-        unloaded.Text = tostring(tool:GetAttribute("Unloaded"))::string
-        -- Set loaded and unloaded labels here
     else
         AmmoInfo.Visible = false
     end
+end
+
+function ItemHUD.setAmmo(num: number)
+    loaded.Text = tostring(num)
+end
+
+function ItemHUD.setMagazineSize(num: number)
+    magazineSize.Text = tostring(num)
+end
+
+function ItemHUD.setReloading(toggle: boolean)
+    warn("NOT IMPLEMENTED YET")
 end
 
 --[[
