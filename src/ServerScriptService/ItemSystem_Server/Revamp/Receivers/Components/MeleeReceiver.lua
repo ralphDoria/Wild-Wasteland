@@ -1,19 +1,55 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
-local remotes: {[string] : RemoteEvent} = {
-    Hit = ItemSystem_Storage.Melee.Remotes.Hit,
-    ImpactEffects = ItemSystem_Storage.Melee.Remotes.ImpactEffects,
-    ToggleSwingTrail = ItemSystem_Storage.Melee.Remotes.ToggleSwingTrail
+local remotes = {
+    Hit = ItemSystem_Storage.Melee.Remotes.Hit:: RemoteEvent,
+    Swing = ItemSystem_Storage.Melee.Remotes.Swing:: RemoteEvent,
+    ReplicateHit = ItemSystem_Storage.Melee.Remotes.ReplicateHit:: UnreliableRemoteEvent,
+    ReplicateSwing = ItemSystem_Storage.Melee.Remotes.ReplicateSwing:: UnreliableRemoteEvent,
 }
 
 return function()
+    local _maxHitRange = 10
     remotes.Hit.OnServerEvent:Connect(function(player: Player, humanoid: Humanoid, damage: number, particles: ParticleEmitter, position: Vector3, normal: Vector3)
-        --Maybe add server side sanity checks here later.
-        remotes.ImpactEffects:FireAllClients(particles, position, normal)
+        local playerChar = player.Character:: Model?
+		if not playerChar then
+			warn("[MeleeReceiver] Rejecting Hit: missing player character", player)
+			return
+		end
+        local targetChar = humanoid.Parent:: Model?
+		if not targetChar then
+			warn("[MeleeReceiver] Rejecting Hit: missing target character", humanoid)
+			return
+		end
+        local distance = (playerChar:GetPivot().Position - targetChar:GetPivot().Position).Magnitude
+		if distance > _maxHitRange then
+			warn("[MeleeReceiver] Rejecting Hit: distance too large", distance)
+			return
+		end
+
+        for _, v in Players:GetPlayers() do
+            if v ~= player then
+                remotes.ReplicateHit:FireClient(particles, position, normal)
+            end
+        end
         humanoid:TakeDamage(damage)  
     end)
-    remotes.ToggleSwingTrail.OnServerEvent:Connect(function(player: Player, trail : Trail, toggle : boolean)
-        trail.Enabled = toggle
+    remotes.Swing.OnServerEvent:Connect(function(player: Player, tool: Tool, trail : Trail, toggle : boolean)
+        local character = player.Character
+		if not character then
+			warn("[MeleeReceiver] Rejecting Swing: missing player character", player)
+			return
+		end
+        if tool.Parent ~= character then
+            warn("[MeleeReceiver] Rejecting Swing: tool not equipped by character", tool, character)
+            return
+        end
+
+        for _, v in Players:GetPlayers() do
+            if v ~= player then
+                remotes.ReplicateSwing:FireClient(trail, toggle)
+            end
+        end
     end)
     -- --[[
     --     VectorFroce approach to applying knockback, but there are two problems. (1) It's delayed & (2) I need to find out how to convert the 

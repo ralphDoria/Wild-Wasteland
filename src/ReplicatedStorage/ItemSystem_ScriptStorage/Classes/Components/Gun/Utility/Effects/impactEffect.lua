@@ -39,17 +39,21 @@ local function impactEffect(position: Vector3, normal: Vector3, isCharacter: boo
 		impact.Parent = Workspace
 
 	else
-		if tool:GetAttribute(Constants.AMMO_TYPE_ATTRIBUTE) == "Energy Cores" then 
-			impact = impactTemplates.Energy 
-		elseif table.find(sparkMaterials, hitMaterial) then 
-			impact = impactTemplates.Sparks:Clone()
-		else
-			impact = impactTemplates.Smoke:Clone()
-		end
-		impact.CFrame = CFrame.lookAlong(position, normal)
-		impact.Parent = Workspace
+		if tool:HasTag("Gun") then
+			if tool:GetAttribute(Constants.AMMO_TYPE_ATTRIBUTE) == "Energy Cores" then 
+				impact = impactTemplates.Energy 
+			elseif table.find(sparkMaterials, hitMaterial) then 
+				impact = impactTemplates.Sparks:Clone()
+			else
+				impact = impactTemplates.Smoke:Clone()
+			end
+			impact.CFrame = CFrame.lookAlong(position, normal)
+			impact.Parent = Workspace
 
-		createBulletHole(position, normal)
+			createBulletHole(position, normal)
+		-- elseif tool:HasTag("Melee") then -- TODO
+		-- 	createBulletHole(position, normal)
+		end
 	end
 
 	task.spawn(function()

@@ -7,7 +7,7 @@ local References_ItemSystem = require(game:GetService("ReplicatedStorage").RojoM
 local hitmarkerSound : Sound = References_ItemSystem.ItemSystem_Storage.Melee.Instances.hitmarker
 local meleeRemotes = {
     Hit = References_ItemSystem.ItemSystem_Storage.Melee.Remotes.Hit:: RemoteEvent,
-    ToggleSwingTrail = References_ItemSystem.ItemSystem_Storage.Melee.Remotes.ToggleSwingTrail:: RemoteEvent
+    Swing = References_ItemSystem.ItemSystem_Storage.Melee.Remotes.Swing:: RemoteEvent
 }
 local particles : {[string] : ParticleEmitter} = {
     blood = References_ItemSystem.ItemSystem_Storage.Melee.Instances.Blood
@@ -26,6 +26,7 @@ local camShake = CameraShaker.new(Enum.RenderPriority.Last.Value, function(shake
     currentCamera.CFrame *= shakeCF
 end)
 camShake:Start()
+local impactEffect = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Components.Gun.Utility.Effects.impactEffect)
 
 export type MeleeObject = Item.ItemObject & {
     damage : number,
@@ -143,6 +144,7 @@ function Melee.initialize(self : MeleeObject)
         end)
         camShake:ShakeOnce(3, 5, 0.2, 0.2)
         meleeRemotes.Hit:FireServer(humanoid, self.damage, particles.blood, raycastResult.Position, raycastResult.Normal)
+        impactEffect(raycastResult.Position, raycastResult.Normal, true, nil, nil) -- this is replicated to other players via the remote event above
     end)
     --The bound action below is for testing purposes; to demonstrate how a faster swing animation somehow inadvertently increases the range
     -- ContextActionService:BindAction("ChangeSwingSpeed", function(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?  
@@ -175,7 +177,8 @@ function Melee.swing(self : MeleeObject)
 end
 
 function Melee.toggleSwingTrail(self : MeleeObject, toggle : boolean)
-    meleeRemotes.ToggleSwingTrail:FireServer(self.trail, toggle)
+    meleeRemotes.Swing:FireServer(self.tool, self.trail, toggle)
+    self.trail.Enabled = toggle -- this is replicated by the remote event above
     local vmToolTrail : Trail? = References_ItemSystem.viewmodelManagerObject.ToolToVMToolMapping[self.tool]:FindFirstChildWhichIsA("Trail", true)
     if vmToolTrail then
         vmToolTrail.Enabled = toggle
@@ -183,9 +186,9 @@ function Melee.toggleSwingTrail(self : MeleeObject, toggle : boolean)
 end
 
 function Melee.Destroy(self: MeleeObject)
-    print(self)
     Item.Destroy(self, function()  
         self.trailsTransparencyUpdater:Disconnect()
+        print("Destroying hitbox")
         HitboxManager.Destroy(self.HitboxManager)
     end)
 end

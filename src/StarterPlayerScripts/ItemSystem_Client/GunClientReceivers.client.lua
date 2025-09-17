@@ -17,6 +17,9 @@ local gunRemotes = {
 }
 local replicateItemSound = ReplicatedStorage.ItemSystem_Storage.Shared.Remotes.ReplicateItemSound
 
+-----
+-- Gun
+-----
 local function onReplicateShotEvent(gun: Tool, position: Vector3, rayResults: { castRays.RayResult })
 	-- Make sure that the blaster is currently streamed in
 	if gun and gun:IsDescendantOf(game) then
