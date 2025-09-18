@@ -56,7 +56,6 @@ function Gun.new(tool: Tool): GunObject
     local self = Item.new(tool):: GunObject
 
 	local vmTool = References_ItemSystem.viewmodelManagerObject.ToolToVMToolMapping[tool]
-	if vmTool then print("Found ViewmodelTool") end
 	local muzzle = vmTool:WaitForChild("Muzzle"):: Part
 	local aimPart = vmTool:WaitForChild("AimPart"):: Part
 	local shellSpawnPart = vmTool:WaitForChild("ShellSpawnPart"):: Part
@@ -389,7 +388,7 @@ function Gun.toggleReloadBind(self: GunObject, toggle : boolean)
             end, 
             Constants.KEYBOARD_RELOAD_KEY_CODE,
             Constants.GAMEPAD_RELOAD_KEY_CODE, 
-            5, 
+            6, 
             nil, 
             nil,
             "rbxassetid://129530319713241")
@@ -499,7 +498,7 @@ function Gun.toggleAimingBind(self: GunObject, toggle : boolean)
             end, 
             Enum.UserInputType.MouseButton2,
             Enum.KeyCode.ButtonL2, 
-            6, 
+            5, 
             false, 
             nil,
             "rbxassetid://137793533654676")
@@ -565,7 +564,7 @@ function Gun.toggleInspectBind(self: GunObject, toggle : boolean)
             7, 
             false, 
             nil,
-            "rbxassetid://137793533654676",
+			"rbxassetid://115695446993282",
             function(): boolean
                 if not (self.State == "Idle") then
                     return false
