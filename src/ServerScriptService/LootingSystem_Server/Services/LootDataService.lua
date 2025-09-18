@@ -66,13 +66,12 @@ function LootDataService.init()
                             if randomToolName then
                                 local tool = bfn_serverSpawnTool:Invoke(randomToolName, LootItemsHolding)
                                 if tool then
-                                    print(i)
+                                    -- print(i)
                                     presetData[tostring(i)] = tool
                                 end
                             end
                         end
                     end
-                    print(presetData)
                     StandardLootable.new(taggedInstance:: Model | Tool, space, presetData)
                 end)
             end

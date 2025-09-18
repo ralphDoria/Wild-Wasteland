@@ -45,8 +45,9 @@ function HealingInjection._initialize(self: Consumable.ConsumableObject)
     end)
 end
 
-function HealingInjection.Destroy(self)
+function HealingInjection.Destroy(self: Consumable.ConsumableObject)
     Consumable.Destroy(self, function()  
+        self.tool:SetAttribute("DestroyToolPrompt", true)
     end)
 end
 

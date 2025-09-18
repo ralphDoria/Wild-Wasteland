@@ -11,7 +11,7 @@ local consumableParticles : {[string] : ParticleEmitter} = {
 -- parent class
 local Item = require("../Superclasses/Item")
 
-export type ConsumableObject = Item.ItemType & {
+export type ConsumableObject = Item.ItemObject & {
     consumeSpeed: number?,
     activatedEffects: () -> (),
     childClassCleanupFunction: () -> ()

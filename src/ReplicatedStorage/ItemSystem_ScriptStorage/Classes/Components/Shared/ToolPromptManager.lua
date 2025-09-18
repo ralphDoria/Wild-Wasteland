@@ -68,6 +68,15 @@ function ToolPromptManager._initialize(self : ToolPromptManager)
     
     table.insert(
         self.connections,
+        self.tool:GetAttributeChangedSignal("DestroyToolPrompt"):Connect(function()  
+            if self.tool:GetAttribute("DestroyToolPrompt") == true then
+                self.pp.Parent = nil
+            end
+        end)
+    )
+
+    table.insert(
+        self.connections,
         self.tool.AncestryChanged:Connect(function(child: Instance, parent: Instance?) 
             if parent == workspace then
                 self.pp.Enabled = true
