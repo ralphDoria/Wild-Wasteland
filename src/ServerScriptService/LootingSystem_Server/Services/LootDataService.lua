@@ -15,6 +15,7 @@ local LootToolsDestructionTracker = require(LootingSystem_Server.Components.Loot
 
 local LootingSystem_Storage = ReplicatedStorage.LootingSystem_Storage
 local LootItemsHolding = LootingSystem_Storage.LootItemsHolding
+local ToolInfo = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Data.ToolInfo)
 
 local rfn: {[string] : RemoteFunction} = {
     GetChangeReplicatorRemote = LootingSystem_Storage.Remotes.GetChangeReplicatorRemote,
@@ -27,6 +28,8 @@ local remotes = {
     SendClientCorpseFilledSlotsData = LootingSystem_Storage.Remotes.SendClientCorpseFilledSlotsData:: RemoteEvent,
     moveToolsToLootItemsHolding = LootingSystem_Storage.Remotes.MoveToolsToLootItemsHolding:: RemoteEvent,
 }
+
+local bfn_serverSpawnTool = ReplicatedStorage.ItemSystem_Storage.Shared.Bindables.ServerSpawnTool:: BindableFunction
 
 local LootDataService = {
     initialized = false
@@ -51,10 +54,28 @@ function LootDataService.init()
                 if space == nil then
                     error(`{taggedInstance.Name} is missing attribute "Space"`)
                 end
+                StandardLootable.new(taggedInstance:: Model | Tool, space)
             else
                 space = 20
+                task.spawn(function()
+                    local presetData: Types_LootSystem.StandardFilledSlotsData = {}
+                    for i = 1, 20, 1 do
+                        local diceroll = math.random(1, 6)
+                        if diceroll <= 2 then
+                            local randomToolName = ToolInfo.getWeightedRandomToolName()
+                            if randomToolName then
+                                local tool = bfn_serverSpawnTool:Invoke(randomToolName, LootItemsHolding)
+                                if tool then
+                                    print(i)
+                                    presetData[tostring(i)] = tool
+                                end
+                            end
+                        end
+                    end
+                    print(presetData)
+                    StandardLootable.new(taggedInstance:: Model | Tool, space, presetData)
+                end)
             end
-            StandardLootable.new(taggedInstance:: Model | Tool, space)
         end,
         function(taggedInstance: Instance)  
             StandardLootable.Destroy(StandardLootable.createdObjects[taggedInstance:: Model | Tool])

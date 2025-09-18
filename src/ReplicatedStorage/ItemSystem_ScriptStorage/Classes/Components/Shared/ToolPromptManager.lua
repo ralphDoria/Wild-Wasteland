@@ -53,7 +53,7 @@ function ToolPromptManager.new(tool: Tool) : ToolPromptManager
     pp.Parent = tool:WaitForChild("BodyAttach")
     ToolPromptManager._initialize(self)
 
-    warn("Created ToolPrompt for", tool)
+    -- warn("Created ToolPrompt for", tool)
     return self
 end
 

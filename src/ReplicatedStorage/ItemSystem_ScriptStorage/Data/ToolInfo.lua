@@ -1,10 +1,12 @@
 --!strict
 
 export type ToolInfo = {
+    Weight: number,
     animObjects : {[string] : Animation},
     soundObjects : {any}
 }
 
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ToolCatalog = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
 
@@ -22,6 +24,7 @@ local ToolInfo = {}
 
 local catalog : {[string] : ToolInfo} = {
     [barbedBat.Name] = {
+        Weight = 50,
         animObjects = {
             equip = barbedBat.Anims.equip,
             idle = barbedBat.Anims.idle,
@@ -41,6 +44,7 @@ local catalog : {[string] : ToolInfo} = {
         }
     },
     [healingInjection.Name] = {
+        Weight = 40,
         animObjects = {
             equip = healingInjection.Anims.equip,
             idle = healingInjection.Anims.idle,
@@ -61,6 +65,7 @@ local catalog : {[string] : ToolInfo} = {
         }
     },
     [nvGoggles.Name] = {
+        Weight = 10,
         animObjects = {
             equip = nvGoggles.Anims.equip,
             idle = nvGoggles.Anims.idle,
@@ -78,6 +83,7 @@ local catalog : {[string] : ToolInfo} = {
         }
     },
     [raiderAxe.Name] = {
+        Weight = 10,
         animObjects = {
             equip = raiderAxe.Anims.equip,
             idle = raiderAxe.Anims.idle,
@@ -98,6 +104,7 @@ local catalog : {[string] : ToolInfo} = {
         }
     },
     [bloxyColaCaps.Name] = {
+        Weight = 10,
         animObjects = {
             equip = bloxyColaCaps.Anims.equip,
             idle = bloxyColaCaps.Anims.idle,
@@ -119,6 +126,7 @@ local catalog : {[string] : ToolInfo} = {
         }
     },
     [backpack.Name] = {
+        Weight = 30,
         animObjects = {
             equip = backpack.Anims.equip,
             idle = backpack.Anims.idle,
@@ -138,6 +146,7 @@ local catalog : {[string] : ToolInfo} = {
         }
     },
     [lightBullets.Name] = {
+        Weight = 50,
         animObjects = {
             equip = lightBullets.Anims.equip,
             idle = lightBullets.Anims.idle,
@@ -159,6 +168,7 @@ local catalog : {[string] : ToolInfo} = {
         }
     },
     [m9.Name] = {
+        Weight = 20,
         animObjects = {
             equip = m9.Anims.equip,
             unequip = m9.Anims.unequip,
@@ -205,6 +215,7 @@ local catalog : {[string] : ToolInfo} = {
         }
     },
     [ak47.Name] = {
+        Weight = 10,
         animObjects = {
             equip = ak47.Anims.equip,
             idle = ak47.Anims.idle,
@@ -272,6 +283,35 @@ function ToolInfo.getSound(toolName: string, soundName: string): Sound?
         warn(`Couldn't find {soundName} of {toolName}: {toolName} not found in ToolCatalog.`)
         return nil
     end
+end
+
+local itemsToSpawn = {}
+local totalWeight = 0 -- initialized below
+if RunService:IsServer() then
+    for toolName, v in catalog do
+        table.insert(
+            itemsToSpawn,
+            {
+                Name = toolName,
+                Weight = v.Weight
+            }
+        )
+        totalWeight += v.Weight
+    end
+end
+
+function ToolInfo.getWeightedRandomToolName(): string?
+    assert(RunService:IsServer(), "This function is only for the server")
+    
+    local chosenNumber = math.random(1, totalWeight)
+    for _, itemData in itemsToSpawn do
+        chosenNumber -= itemData.Weight
+        if chosenNumber <= 0 then
+            return itemData.Name
+        end
+    end
+
+    return nil
 end
 
 return ToolInfo
