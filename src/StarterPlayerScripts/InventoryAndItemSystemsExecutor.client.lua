@@ -12,7 +12,7 @@ local function initInventorySystem(character: Model)
                 warn("Item Instance returned nil")
                 return
             else
-                warn(`Created new instance of {tool}`)
+                -- warn(`Created new instance of {tool}`)
                 ItemInstantiator.toolToDestroyInfoMap[itemInstance.tool] = {
                     itemInstance = itemInstance,
                     destroyFunction = destroyFunction
@@ -24,7 +24,7 @@ local function initInventorySystem(character: Model)
             if destroyInfo then
                 task.defer(function()
                     if destroyInfo.itemInstance and destroyInfo.itemInstance.tool then -- in the case of stackables being destroyed when within inventory do to merges, item info can be destroyed
-                        print(`Destroying Item Object for {destroyInfo.itemInstance.tool}`)
+                        -- print(`Destroying Item Object for {destroyInfo.itemInstance.tool}`)
                         destroyInfo.destroyFunction(destroyInfo.itemInstance)
                         ItemInstantiator.toolToDestroyInfoMap[tool] = nil
                     end

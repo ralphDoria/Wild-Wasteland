@@ -17,7 +17,6 @@ local backpack = ToolCatalog["Backpack"]
 local lightBullets = ToolCatalog["Light Bullets"]
 local m9 = ToolCatalog["M9"]
 local ak47 = ToolCatalog["AK47"]
-print(ak47)
 
 local ToolInfo = {}
 

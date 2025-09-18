@@ -50,9 +50,10 @@ function ToolPromptManager.new(tool: Tool) : ToolPromptManager
     pp.RequiresLineOfSight = false
     pp.HoldDuration = 0.5
     
-    pp.Parent = tool:FindFirstChild("BodyAttach", true)
+    pp.Parent = tool:WaitForChild("BodyAttach")
     ToolPromptManager._initialize(self)
 
+    warn("Created ToolPrompt for", tool)
     return self
 end
 

@@ -213,9 +213,12 @@ function Item.immediateUnequip(self: ItemObject)
             References_ItemSystem.ActionManager.unbindAction(v)
         end 
     end
-    References_ItemSystem.ToolAnimationManager.StopAllAnimsForTool(References_ItemSystem.animationManagerObject, self.tool)
-    References_ItemSystem.ToolAnimationManager.StopAllAnimsForTool(References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject, self.tool)
-    Item.ChangeState(self, "Unequipped")
+    print("[Item.immediateUnequip]: stopping all animations")
+    if self.State ~= "Dropped" then
+        References_ItemSystem.ToolAnimationManager.StopAllAnimsForTool(References_ItemSystem.animationManagerObject, self.tool)
+        References_ItemSystem.ToolAnimationManager.StopAllAnimsForTool(References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject, self.tool)
+        Item.ChangeState(self, "Unequipped")
+    end
 end
 
 function Item.ChangeState(self: ItemObject, state: State)
@@ -230,7 +233,9 @@ end
 function Item.drop(self : ItemObject, onDropping: () -> ()?, onDropped : () -> ()?)
     if self.State == "Idle" or self.State == "Equipping" or self.State == "Unequipped" or self.State == "Wearing" or self.State == "Unwearing" then
         local originalState = self.State
+        print("saving original state", self.State)
         Item.ChangeState(self, "Dropping")
+        print("Changing state to dropping")
         for _, v in self.actionNames do
             if References_ItemSystem.ActionManager.isBinded(v) then
                 References_ItemSystem.ActionManager.unbindAction(v)
@@ -240,9 +245,9 @@ function Item.drop(self : ItemObject, onDropping: () -> ()?, onDropped : () -> (
             onDropping()
         end
         -- local equippedTool = References_ItemSystem.character and References_ItemSystem.character:FindFirstChildOfClass("Tool")
+        print(originalState ~= "Unequipped")
         if originalState ~= "Unequipped" then
-            print(self.State)
-            print("Stopping all animations")
+            print("[Item.drop]: Stopping all animations")
             References_ItemSystem.ToolAnimationManager.StopAllAnimsForTool(References_ItemSystem.animationManagerObject, self.tool)
             References_ItemSystem.ToolAnimationManager.StopAllAnimsForTool(References_ItemSystem.viewmodelManagerObject.toolAnimationManagerObject, self.tool)
         end

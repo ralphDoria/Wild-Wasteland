@@ -46,8 +46,6 @@ function Melee.new(tool : Tool) : MeleeObject
     self.staminaCost = 10
     self.swingSpeed = 1
     self.HitboxManager = HitboxManager.new(tool, {References_ItemSystem.character, References_ItemSystem.viewmodelManagerObject.viewmodel})
-    print("HitboxManager")
-    print(self.HitboxManager)
     self.trail = tool:FindFirstChildWhichIsA("Trail", true):: Trail
     self.staminaObject = StaminaManager.waitForStaminaObject(References_ItemSystem.character)
 

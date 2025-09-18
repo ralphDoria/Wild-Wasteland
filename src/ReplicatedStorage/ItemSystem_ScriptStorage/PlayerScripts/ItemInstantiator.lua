@@ -35,7 +35,9 @@ function ItemInstantiator.initToolPrompts()
 
                 --give item a default state
                 taggedInstance:SetAttribute("State", "Unequipped")
-                ItemInstantiator.toolPromptObjects[taggedInstance] = References_ItemSystem.ToolPromptManager.new(taggedInstance:: Tool)
+                task.spawn(function()
+                    ItemInstantiator.toolPromptObjects[taggedInstance] = References_ItemSystem.ToolPromptManager.new(taggedInstance:: Tool)
+                end)
             end, 
             function(taggedInstance: Instance) -- onUntagged
                 if taggedInstance:HasTag("vmTool") then

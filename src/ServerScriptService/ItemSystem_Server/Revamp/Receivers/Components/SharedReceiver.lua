@@ -46,19 +46,28 @@ return function()
         OnHitFloor(tool)
     end)
     remotes.RequestPickUpTool.OnServerInvoke = function(player: Player, tool: Tool)
-        local MAX_PICKUP_RANGE = 5
         local character = player.Character
-        local bodyAttach = tool:FindFirstChild("BodyAttach")
-        local isWithinRange: boolean = if character and bodyAttach and math.abs((character.PrimaryPart.Position - bodyAttach.Position).Magnitude) < MAX_PICKUP_RANGE then true else false
-        local isInValidParent: boolean? = tool:FindFirstAncestorOfClass("Workspace") and (tool.Parent and not tool.Parent:FindFirstChildOfClass("Humanoid"))
-        if isWithinRange and isInValidParent then
-            PlaySoundUtil(pickUp, bodyAttach.Position) 
-            tool.Parent = player.Backpack
-            return true
-        else
-            warn("RequestPickUpTool denied due to failing range and/or parent checks")
+        local bodyAttach = tool:FindFirstChild("BodyAttach", true)
+        if not character or not bodyAttach then
+            warn("[RequestPickUpTool Denied]: character or bodyattach doesn't exist")
+            return
+        end
+        local MAX_PICKUP_RANGE = 5
+        local distance = (character.PrimaryPart.Position - bodyAttach.Position).Magnitude
+        local isWithinRange: boolean = distance < MAX_PICKUP_RANGE
+        if not isWithinRange then
+            warn("[RequestPickUpTool Denied]: failed range check", distance)
             return false
         end
+        local isInValidParent: boolean? = tool:FindFirstAncestorOfClass("Workspace") and (tool.Parent and not tool.Parent:FindFirstChildOfClass("Humanoid"))
+        if not isInValidParent then
+            warn("[RequestPickUpTool Denied]: failed parent check")
+            return false
+        end
+
+        PlaySoundUtil(pickUp, bodyAttach.Position) 
+        tool.Parent = player.Backpack
+        return true
     end
     --more to add later
 end
