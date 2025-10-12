@@ -3,7 +3,8 @@ local References_MainMenu = {}
 -- Services and Player references
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 References_MainMenu.TweenService = game:GetService("TweenService")
-References_MainMenu.MainMenu = ReplicatedStorage.MainMenu:: ScreenGui 
+local PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+References_MainMenu.MainMenu = PlayerGui:WaitForChild("MainMenu"):: ScreenGui 
 References_MainMenu.player = game:GetService("Players").LocalPlayer
 References_MainMenu.playerGui = References_MainMenu.player.PlayerGui
 

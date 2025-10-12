@@ -2,6 +2,8 @@ local ButtonsPanelManager = require("./Components/ButtonsPanelManager")
 local RightPanelManager = require("./Components/RightPanelManager")
 local References_MainMenu = require("./Components/References_MainMenu")
 local Promise = require(game:GetService("ReplicatedStorage").Packages.Promise)
+
+local state: "TitleScreen" | "GameMenu" = "TitleScreen" 
 local MainMenuManager = {initialied = false, isReset = false}
 
 MainMenuManager.menuIcon = nil
@@ -52,6 +54,11 @@ function MainMenuManager.init(onPlayButtonClicked: () -> (), onTitleScreenFading
 
 	MainMenuManager.initialized = true
 end
+
+function MainMenuManager.setState(state: number)
+
+end
+
 
 function MainMenuManager.reset()
 	References_MainMenu.Frame.Transparency = 0

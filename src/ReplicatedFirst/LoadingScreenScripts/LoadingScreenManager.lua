@@ -99,6 +99,7 @@ local function StartPreload()
     Sound:Play()
     disableSelectCoreUisAndTouchControls()
         
+    task.wait(5)
     ContentProvider:PreloadAsync(AssetsToPreload, function(assetId, assetFetchStatus): ...any  
         -- warn(`Preloading: {assetId} | {assetFetchStatus}`)
         if assetFetchStatus == Enum.AssetFetchStatus.Success then

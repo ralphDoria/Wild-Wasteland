@@ -47,7 +47,7 @@ end)
 --------------------------<<< Day/Night Cycle >>>
 
 
-local timeAccumulated = 0
+local timeAccumulated = Lighting.ClockTime
 RunService.RenderStepped:Connect(function(dt)
     -- for speed cycle testing
     -- timeAccumulated += dt * 10

@@ -52,22 +52,44 @@ function LootDataService.init()
             if taggedInstance:HasTag("StorageWearable") then
                 space = taggedInstance:GetAttribute("Space"):: number
                 if space == nil then
-                    error(`{taggedInstance.Name} is missing attribute "Space"`)
+                    space = 6
                 end
                 StandardLootable.new(taggedInstance:: Model | Tool, space)
             else
                 space = 20
                 task.spawn(function()
                     local presetData: Types_LootSystem.StandardFilledSlotsData = {}
-                    for i = 1, 20, 1 do
-                        local diceroll = math.random(1, 6)
-                        if diceroll <= 2 then
-                            local randomToolName = ToolInfo.getWeightedRandomToolName()
-                            if randomToolName then
-                                local tool = bfn_serverSpawnTool:Invoke(randomToolName, LootItemsHolding)
-                                if tool then
-                                    -- print(i)
-                                    presetData[tostring(i)] = tool
+                    if taggedInstance:HasTag("EveryItem") then
+                        warn("Creating loot crate w/ every item in game")
+                        -- every type of item in the game
+                        local layoutOrder: number  = 1
+                        for toolName: string, _ in ToolInfo.getEveryItemName() do
+                            if toolName == "Light Bullets" then
+                                for j = layoutOrder, layoutOrder + 5, 1 do
+                                    local tool = bfn_serverSpawnTool:Invoke(toolName, LootItemsHolding)
+                                    if tool then
+                                        presetData[tostring(layoutOrder)] = tool
+                                        layoutOrder += 1
+                                    end
+                                end
+                            end
+                            local tool = bfn_serverSpawnTool:Invoke(toolName, LootItemsHolding)
+                            if tool then
+                                presetData[tostring(layoutOrder)] = tool
+                                layoutOrder += 1
+                            end
+                        end
+                    else
+                        for i = 1, 20, 1 do
+                            local diceroll = math.random(1, 6)
+                            if diceroll <= 2 then
+                                local randomToolName = ToolInfo.getWeightedRandomToolName()
+                                if randomToolName then
+                                    local tool = bfn_serverSpawnTool:Invoke(randomToolName, LootItemsHolding)
+                                    if tool then
+                                        -- print(i)
+                                        presetData[tostring(i)] = tool
+                                    end
                                 end
                             end
                         end
@@ -162,7 +184,7 @@ function LootDataService.init()
     rfn.GetChangeReplicatorRemote.OnServerInvoke = function(player, lootableInstance: Tool | Model): UnreliableRemoteEvent
         while getStandardLootable(lootableInstance) == nil and getCorpseLootable(lootableInstance) == nil do
             task.wait()
-            print(`Waiting for {lootableInstance} to be initialized on the server`)
+            print(`Waiting for {lootableInstance} (parent: {lootableInstance.Parent}) to be initialized on the server`)
         end
         return if getStandardLootable(lootableInstance) then getStandardLootable(lootableInstance).DataChangeReplicatorRemote else getCorpseLootable(lootableInstance).DataChangeReplicatorRemote
     end

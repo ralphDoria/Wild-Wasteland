@@ -314,4 +314,8 @@ function ToolInfo.getWeightedRandomToolName(): string?
     return nil
 end
 
+function ToolInfo.getEveryItemName(): {[string] : ToolInfo}
+    return catalog;
+end
+
 return ToolInfo
