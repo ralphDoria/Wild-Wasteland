@@ -2,23 +2,38 @@ local References_MainMenu = require("./References_MainMenu")
 local ButtonsPanelManager = {}
 
 local buttonConnections = {}:: {RBXScriptConnection}
+local buttonState: References_MainMenu.MainMenuButtons<boolean> = {
+	play = false,
+	controls = false,
+	settings = false,
+	notes = false
+}
 
+
+
+local hoverSelectSize = UDim2.fromOffset(0, 70)
+local regularSize = UDim2.fromOffset(0, 50)
 function ButtonsPanelManager.connectButtonEvents(clickCallbackTbl: References_MainMenu.MainMenuButtons<(toggle: boolean) -> ()>)
 
-	for buttonName, v in References_MainMenu.buttonsTbl do
-		local textButton = v:: TextButton
+	for buttonName, textButton: TextButton in References_MainMenu.buttonsTbl do
 		-- hover events
 		table.insert(
 			buttonConnections,
 			textButton.MouseEnter:Connect(function(a0: number, a1: number)  
 				References_MainMenu.playSound(References_MainMenu.soundsTbl.ui.hover)	
-				textButton.Size = UDim2.fromOffset(0, 70)
+				local isEnabled = buttonState[buttonName]
+				if not isEnabled then
+					textButton.Size = hoverSelectSize
+				end
 			end)
 		)
 		table.insert(
 			buttonConnections,
 			textButton.MouseLeave:Connect(function(a0: number, a1: number)  
-				textButton.Size = UDim2.fromOffset(0, 50)
+				local isEnabled = buttonState[buttonName]
+				if not isEnabled then
+					textButton.Size = regularSize
+				end
 			end)
 		)
 
@@ -27,13 +42,16 @@ function ButtonsPanelManager.connectButtonEvents(clickCallbackTbl: References_Ma
 			buttonConnections,
 			textButton.MouseButton1Click:Connect(function(...: any)  
 				References_MainMenu.playSound(References_MainMenu.soundsTbl.ui.click)	
-				if textButton.FontFace.Style == Enum.FontStyle.Normal then
-					textButton.FontFace.Style = Enum.FontStyle.Italic
-					clickCallbackTbl[buttonName](true)
-				else
-					textButton.FontFace.Style = Enum.FontStyle.Normal
-					clickCallbackTbl[buttonName](false)
+				local isEnabled = buttonState[buttonName]
+				local newEnabledState = not isEnabled
+				clickCallbackTbl[buttonName](newEnabledState)
+				textButton.Size = if newEnabledState then hoverSelectSize else regularSize
+				for name, v in References_MainMenu.buttonsTbl do
+					if v == textButton then continue end
+					v.Size = regularSize
+					buttonState[name] = false
 				end
+				buttonState[buttonName] = newEnabledState
 			end)
 		)
 	end

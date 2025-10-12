@@ -3,7 +3,7 @@ local RightPanelManager = require("./Components/RightPanelManager")
 local References_MainMenu = require("./Components/References_MainMenu")
 local Promise = require(game:GetService("ReplicatedStorage").Packages.Promise)
 
-local state: "TitleScreen" | "GameMenu" = "TitleScreen" 
+local state: "TitleScreen" | "GameMenu" = "TitleScreen" -- Version 1 is Title Screen, Version 2 is in-game menu
 local MainMenuManager = {initialied = false, isReset = false}
 
 MainMenuManager.menuIcon = nil
@@ -13,22 +13,36 @@ function MainMenuManager.init(onPlayButtonClicked: () -> (), onTitleScreenFading
 	References_MainMenu.SoundGroupManager.soundGroups.master.Volume = 1 -- LoadingScreenManager mutes master volume
 	MainMenuManager.reset()
 	References_MainMenu.MainMenu.Parent = References_MainMenu.playerGui
+	local menuMusic = References_MainMenu.soundsTbl.music.menuMusic
+	local equalizerFX: EqualizerSoundEffect = menuMusic:FindFirstChildOfClass("EqualizerSoundEffect")
 	ButtonsPanelManager.connectButtonEvents({
-		play = function()
-			print("Play button clicked")
+		play = function(toggle: boolean)
+			print("Play button clicked", toggle)
+			RightPanelManager.setState("None")
+			References_MainMenu.SoundUtil.toggleMuffle(equalizerFX, false, 0.5)
+			References_MainMenu.TweenService:Create(References_MainMenu.CenterPanel, TweenInfo.new(0), {GroupTransparency = 0}):Play()
 			onPlayButtonClicked()
 			MainMenuManager.closeTitleScreen()
 			References_MainMenu.SoundGroupManager.volumeToDefault(1)
 			onTitleScreenFadingOut()
 		end,
-		controls = function()
-			print("Controls button clicked")
+		controls = function(toggle: boolean)
+			print("Controls button clicked", toggle)
+			References_MainMenu.SoundUtil.toggleMuffle(equalizerFX, toggle, 0.5)
+			References_MainMenu.TweenService:Create(References_MainMenu.CenterPanel, TweenInfo.new(0.5), {GroupTransparency = if toggle then 0.5 else 0}):Play()
+			RightPanelManager.setState("Controls")
 		end,
-		settings = function()
-			print("Settings button clicked")
+		settings = function(toggle: boolean)
+			print("Settings button clicked", toggle)
+			References_MainMenu.SoundUtil.toggleMuffle(equalizerFX, toggle, 0.5)
+			References_MainMenu.TweenService:Create(References_MainMenu.CenterPanel, TweenInfo.new(0.5), {GroupTransparency = if toggle then 0.5 else 0}):Play()
+			RightPanelManager.setState("Settings")
 		end,
-		notes = function()
-			print("Notes button clicked")
+		notes = function(toggle: boolean)
+			print("Notes button clicked", toggle)
+			References_MainMenu.SoundUtil.toggleMuffle(equalizerFX, toggle, 0.5)
+			References_MainMenu.TweenService:Create(References_MainMenu.CenterPanel, TweenInfo.new(0.5), {GroupTransparency = if toggle then 0.5 else 0}):Play()
+			RightPanelManager.setState("Notes")
 		end,
 	})
 
@@ -69,9 +83,8 @@ function MainMenuManager.reset()
 	--make center panel invisible
 	References_MainMenu.CenterPanel.GroupTransparency = 1
 	
-	for _, v in References_MainMenu.rightPanelTbl do
-		v.Visible = false
-	end
+	RightPanelManager.reset()
+
 	ButtonsPanelManager.toggleButtons(false, 0)
 	References_MainMenu.MainMenu.Enabled = true
 
@@ -157,6 +170,7 @@ function MainMenuManager.openTitleScreenVersion(timeToOpen: number)
 		ButtonsPanelManager.togglePanel(true, 0.5)
 		task.wait(0.5)
 		ButtonsPanelManager.toggleButtons(true, 0.5)
+		RightPanelManager.togglePanel(true, 0.5)
 
 		-- print(mainMenuCutscenes.Scene1)
 		-- CameraCutsceneManager.PlayCutscene(workspace.CurrentCamera, CameraCutsceneManager.CreateCutsceneCameraPositions(mainMenuCutscenes.Scene1))
@@ -189,12 +203,12 @@ end
 function MainMenuManager.closeTitleScreen()
 	ButtonsPanelManager.toggleButtons(false, 0.1)
 	MainMenuManager.toggleSlideSidePanels(false, 1)
-	local pitch_loadingMusic = Instance.new("PitchShiftSoundEffect")
-	pitch_loadingMusic.Octave = 1
+	local pitch_menuMusic = Instance.new("PitchShiftSoundEffect")
+	pitch_menuMusic.Octave = 1
 	local menuMusic = References_MainMenu.soundsTbl.music.menuMusic
-	pitch_loadingMusic.Parent = menuMusic
+	pitch_menuMusic.Parent = menuMusic
 	local tweenTime = 2
-	References_MainMenu.SoundUtil.pitchDown(pitch_loadingMusic, tweenTime)
+	References_MainMenu.SoundUtil.pitchDown(pitch_menuMusic, tweenTime)
 	local volumeTween = References_MainMenu.SoundUtil.fadeVolume(menuMusic, 0, tweenTime)
 	volumeTween.Completed:Wait()
 	References_MainMenu.soundsTbl.music.menuMusic:Stop()
