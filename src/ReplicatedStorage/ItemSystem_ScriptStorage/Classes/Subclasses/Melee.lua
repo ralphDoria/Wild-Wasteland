@@ -117,10 +117,10 @@ function Melee.initialize(self : MeleeObject)
             if status == "start" then
 
                 References_ItemSystem.remotes.PlaySound:FireServer(self.soundObjects.swing, self.bodyAttach, 0)
-                self.HitboxManager.RaycastHitbox:HitStart()
+                HitboxManager.HitStart(self.HitboxManager)
                 Melee.toggleSwingTrail(self, true)
             elseif status == "end" then
-                self.HitboxManager.RaycastHitbox:HitStop()
+                HitboxManager.HitStop(self.HitboxManager)
                 Melee.toggleSwingTrail(self, false)
             end 
         end
