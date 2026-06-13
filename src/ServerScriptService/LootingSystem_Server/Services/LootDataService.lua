@@ -72,6 +72,7 @@ function LootDataService.init()
                                         layoutOrder += 1
                                     end
                                 end
+                                continue
                             end
                             local tool = bfn_serverSpawnTool:Invoke(toolName, LootItemsHolding)
                             if tool then
@@ -142,9 +143,13 @@ function LootDataService.init()
     end)
 
     rfn.GetLootData.OnServerInvoke = function(player, lootableInstance: Model | Tool): Types_LootSystem.StandardFilledSlotsData
-        -- warn("Sending filledSlotsData from server: ")
-        -- warn(StandardLootable.createdObjects[lootableInstance].FilledSlotsData)
-        return if getStandardLootable(lootableInstance) then getStandardLootable(lootableInstance).FilledSlotsData else getCorpseLootable(lootableInstance).FilledSlotsData
+        local standardLootable = getStandardLootable(lootableInstance)
+        local corpseLootable = getCorpseLootable(lootableInstance)
+        if not standardLootable and not corpseLootable then
+            warn(`{lootableInstance} is not registered as a standard or corpse lootable.`)
+            return {}
+        end
+        return if standardLootable then standardLootable.FilledSlotsData else corpseLootable.FilledSlotsData
     end
 
     rfn.TrySlotInteraction.OnServerInvoke = function(player, lootableInstance: Model | Tool, changeRequests: any)
@@ -155,8 +160,7 @@ function LootDataService.init()
             warn(`{lootableInstance} is not registered as a standard or corpse lootable.`)
             return false
         end
-        
-        print(player)
+
         if corpseLootable then
             local success: boolean = CorpseLootable.processDataChangeRequest(corpseLootable, player, changeRequests:: Types_LootSystem.CorpseDataChangeRequest)
             return success
@@ -193,7 +197,7 @@ function LootDataService.init()
         warn(`SERVER CALLING PROCESS DATA CHANGE REQUEST TO EMPTY DESTROYED LOOT TOOL'S  ({tool.Name})SLOT`)
         local standardLootable = StandardLootable.createdObjects[lootableInstance]
         local corpseLootable = CorpseLootable.createdObjects[lootableInstance]
-        assert(corpseLootable or standardLootableObjects, "Could not find lootalbe associated with tool")
+        assert(corpseLootable or standardLootable, "Could not find lootable associated with tool")
 
         if corpseLootable then
             local equipmentLayoutOrder, toolLayoutOrder = CorpseLootable.getEquipmentAndToolLayoutOrders(corpseLootable.FilledSlotsData, tool)

@@ -107,7 +107,6 @@ function Drag.InitForSlot(slot: Type_Slot.SlotObject, onDragStarted: () -> (), o
                 if Drag.currentSlot == nil then
                     endDrag:Disconnect()
                     startDrag:Disconnect()
-                    print("Cancelling drag functionality")
                     return
                 end
 

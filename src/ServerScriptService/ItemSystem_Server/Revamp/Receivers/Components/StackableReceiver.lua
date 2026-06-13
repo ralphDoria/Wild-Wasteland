@@ -18,9 +18,9 @@ local stackableBindables = {
 }
 
 local function MergeQuantities(source: Tool, destination: Tool)
-    assert(source.Name == destination.Name, "Error: not the same stackable type")
-    assert(source ~= destination, "Source stackable cannot equal destination stackable.")
     assert(source and destination, "Source and Destination have to be non nil values")
+    assert(source ~= destination, "Source stackable cannot equal destination stackable.")
+    assert(source.Name == destination.Name, "Error: not the same stackable type")
     local MAX_QUANTITY = destination:GetAttribute("MAX_QUANTITY"):: number
 
     -- keep in mind that we already check if destination is maxed on the client. Even if it was, there would effectively be no disadvantage here
@@ -112,9 +112,11 @@ return function()
 
         if character then
             local equippedTool = character:FindFirstChildOfClass("Tool")
-            local quantity: number? = equippedTool:GetAttribute("Quantity")
-            if quantity then
-                sum += quantity
+            if equippedTool then
+                local quantity: number? = equippedTool:GetAttribute("Quantity")
+                if quantity then
+                    sum += quantity
+                end
             end
         end
 
@@ -122,7 +124,6 @@ return function()
     end
 
     stackableBindables.subtractQuantityFromSum.OnInvoke = function(player: Player, stackableName: string, quantityToSubtract: number): boolean
-        warn(stackableName, quantityToSubtract)
         assert(typeof(stackableName) == "string" and typeof(quantityToSubtract) == "number")
 
         local backpack = player.Backpack
@@ -145,10 +146,12 @@ return function()
 
         if character then
             local equippedTool = character:FindFirstChildOfClass("Tool")
-            local quantity: number? = equippedTool:GetAttribute("Quantity")
-            if quantity then
-                sum += quantity
-                table.insert(validStackables, {equippedTool, quantity})
+            if equippedTool then
+                local quantity: number? = equippedTool:GetAttribute("Quantity")
+                if quantity then
+                    sum += quantity
+                    table.insert(validStackables, {equippedTool, quantity})
+                end
             end
         end
 

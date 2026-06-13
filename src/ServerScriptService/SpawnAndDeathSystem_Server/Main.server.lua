@@ -12,20 +12,19 @@ local rfn = {
 
 -- Utility Modules
 local ZonePLus = require(ReplicatedStorage.Packages.ZonePlus)
-local SpawnAndDeathmanager = require(ReplicatedStorage.RojoManaged_RS.SpawnAndDeathSystem_ScriptStorage.SpawnAndDeathManager)
 
 -- Instances
 local zoneArea_protectedSpawnArea = workspace.Zones.ProtectedSpawnArea.zoneArea
 
 -- Initializing protected spawn zone
 local protectedSpawnZone = ZonePLus.new(zoneArea_protectedSpawnArea)
-protectedSpawnZone.playerEntered:Connect(function(player: Player) 
+protectedSpawnZone.playerEntered:Connect(function(player: Player)
     local character = player.Character
-    SpawnAndDeathmanager.applyCharacterProtocolTitleScreen(character)
+    SpawnAndDeathManager.applyCharacterProtocolTitleScreen(character)
 end)
-protectedSpawnZone.playerExited:Connect(function(player: Player) 
+protectedSpawnZone.playerExited:Connect(function(player: Player)
     local character = player.Character
-    SpawnAndDeathmanager.cleanUpCharacterProtocolTitleScreen(character)
+    SpawnAndDeathManager.cleanUpCharacterProtocolTitleScreen(character)
 end)
 
 rfn.MoveCharacterToSpawn.OnServerInvoke = function(player, spawnPointCFrame: CFrame)

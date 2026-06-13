@@ -12,7 +12,7 @@ function SawPlayer:OnDataChanged(data) --called every frame
     for _, player : Player in Players:GetPlayers() do
         local character = player.Character
 
-        if not character then --character may be dead or loading, so ignore for this frame
+        if not character or not character.PrimaryPart then --character may be dead or loading, so ignore for this frame
             continue
         end
 

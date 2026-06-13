@@ -259,6 +259,7 @@ end
 
 function ActionManager.toggleEnabled(actionName: string, enabledState: boolean)
 	local binding = ActionManager._bindings[actionName]
+	if not binding then return end
 	if binding.enabled ~= enabledState then
 		-- warn("toggling enabled for", actionName, "to", enabledState)
 		binding.enabled = enabledState
@@ -267,6 +268,7 @@ end
 
 function ActionManager.forceToggle(actionName: string, targetToggle: boolean?)
 	local binding = ActionManager._bindings[actionName]
+	if not binding then return end
 
 	if not binding.enabled then return end
 

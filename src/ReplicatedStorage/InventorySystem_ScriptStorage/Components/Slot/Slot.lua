@@ -197,12 +197,9 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
 
         local associatedSlotGroup: ObjectValue? = tool:FindFirstChild("AssociatedItemGroup"):: ObjectValue?
         if associatedSlotGroup then
-            warn("slot group found")
             local  connection
-            
-            print(`connecting associatedSlotGroup value property changed event listener, current associatedSlotGroup.Value = {associatedSlotGroup.Value}`)
-            self.connections.onNewSlotGroupInstanceAdded = associatedSlotGroup:GetPropertyChangedSignal("Value"):Connect(function()  
-                print("running callback")
+
+            self.connections.onNewSlotGroupInstanceAdded = associatedSlotGroup:GetPropertyChangedSignal("Value"):Connect(function()
                 if connection then
                     connection:Disconnect()
                 end
@@ -210,7 +207,6 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
                 if slotGroupInstance then
 
                     updateFilledSlotsAndIsEmptyStatus(slotGroupInstance)
-                    print("slotGroupInstance found, making FilledSlotcounter visible")
                     FilledSlotCounter.Visible = true
 
                     connection = slotGroupInstance:GetAttributeChangedSignal("FilledSlotCounter_Client"):Connect(function()
@@ -219,7 +215,6 @@ function Slot.FillSlot(self : Type_Slot.SlotObject, tool : Tool)
 
                     
                 else
-                    print("slotGroupInstance not found")
                     if connection then
                         connection:Disconnect()
                     end
@@ -252,7 +247,9 @@ function Slot.EmptySlot(self : Type_Slot.SlotObject?)
         return 
     end
 
-    Slot.toolToObjectMap[self.tool:: Tool] = nil
+    if self.tool then
+        Slot.toolToObjectMap[self.tool:: Tool] = nil
+    end
 
     Slot.ChangeState(self, "Emptying")
     Select.removeEffect(self)

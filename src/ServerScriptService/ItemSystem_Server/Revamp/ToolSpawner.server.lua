@@ -1,6 +1,4 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage")
-local rev_SpawnTool : RemoteEvent = ItemSystem_Storage:FindFirstChild("SpawnTool", true)
 local bfn_serverSpawnTool = ReplicatedStorage.ItemSystem_Storage.Shared.Bindables.ServerSpawnTool:: BindableFunction
 local ToolCatalog = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
 local Players = game:GetService("Players")
@@ -17,10 +15,9 @@ local function foo(toolName : string, parent : Instance)
     end
 end
 
-rev_SpawnTool.OnServerEvent:Connect(function(player : Player, toolName : string, parent : Instance)
-    foo(toolName, parent)
-end)
-
+-- NOTE: the client-facing `SpawnTool` RemoteEvent was removed (C1) — it cloned any catalog
+-- tool into any client-chosen parent with zero validation. Server-side spawning goes through
+-- the `ServerSpawnTool` BindableFunction below.
 
 bfn_serverSpawnTool.OnInvoke = function(toolName : string, parent : Instance)
     return foo(toolName, parent)

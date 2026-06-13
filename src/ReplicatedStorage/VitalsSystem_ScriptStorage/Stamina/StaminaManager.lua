@@ -54,7 +54,7 @@ local sfx_info: sfx_info = {
             0,
             -- 0.14, --exhale
             0.69, --inhale
-            References.SoundService:FindFirstChild("MaleBreathing", true).TimeLength
+            References.SoundService:FindFirstChild("FemaleBreathing", true).TimeLength
         },
         breathingSpeed = {
             min = 0.5,
@@ -100,7 +100,7 @@ local proportionMarkers = {
 }
 
 function StaminaManager.new(): StaminaObject
-    assert(References.character, "VitalsSystem References.Character is nil, cannot intiialize new StaminaObject")
+    assert(References.character, "VitalsSystem References.Character is nil, cannot initialize new StaminaObject")
     local statGuiObject = References.StatGuiManager.new(References.VitalsGui:WaitForChild("Frame"):WaitForChild("Stamina"), "Stamina", Color3.fromRGB(0, 150, 255)) 
     local MAX_STAMINA = 100
     local MAX_FILL_COOLDOWN = 0.5
@@ -175,7 +175,7 @@ function StaminaManager._init(self: StaminaObject)
         end
 
         --
-        local staminaProportion: number = math.round((newStamina/References.humanoid.MaxHealth) * 100)/100
+        local staminaProportion: number = math.round((newStamina/self.MAX_STAMINA) * 100)/100
         StaminaManager._updateBreathingSoundProperties(self, staminaProportion)
     end)
 end
@@ -282,10 +282,11 @@ function StaminaManager._updateBreathingSoundProperties(self: StaminaObject, sta
 end
 
 function StaminaManager._setStaminaBar(self: StaminaObject, value: number)
+    local oldStamina = self.currentStamina
     self.currentStamina = value
     local proportion = self.currentStamina/self.MAX_STAMINA
     References.StatGuiManager.SetStatValue(self.statGuiObject, proportion)
-    staminaChangedEvent:Fire(self.currentStamina, value)
+    staminaChangedEvent:Fire(oldStamina, value)
 end
 
 function StaminaManager.getStamina(self: StaminaObject)
@@ -296,7 +297,7 @@ function StaminaManager.changeStaminaBarBy(self: StaminaObject, delta: number)
     if not self.drainActive then
         self.currentFillCooldown = self.MAX_FILL_COOLDOWN 
     end
-    local newValue = self.currentStamina - delta
+    local newValue = math.clamp(self.currentStamina - delta, 0, self.MAX_STAMINA)
     StaminaManager._setStaminaBar(self, newValue)
 end
 

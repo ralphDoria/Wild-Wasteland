@@ -13,8 +13,9 @@ local Type_Slot = require(ScriptStorage.Components.Slot.Type_Slot)
 local Hover = {}
 
 Hover.currentSlot = nil
-SlotHoveredChangedBindable = Instance.new("BindableEvent")
-SlotHoveredChanged = SlotHoveredChangedBindable.Event
+local SlotHoveredChangedBindable = Instance.new("BindableEvent")
+local SlotHoveredChanged = SlotHoveredChangedBindable.Event
+Hover.SlotHoveredChanged = SlotHoveredChanged
 
 function Hover.isOutsideInventory(): boolean
     local mousePos = References_Inventory.UserInputService:GetMouseLocation()
@@ -55,7 +56,7 @@ local function createItemInfoDisplay(slot: Type_Slot.SlotObject)
     local textbox = clone:FindFirstChildWhichIsA("TextBox", true)
     local tool = slot.tool :: Tool
     if textbox then
-       textbox.Text = tool:GetAttribute("Description")  
+       textbox.Text = tool:GetAttribute("Description") or ""
     end
     local nameLabel = clone:FindFirstChildWhichIsA("TextLabel", true)
     if nameLabel then

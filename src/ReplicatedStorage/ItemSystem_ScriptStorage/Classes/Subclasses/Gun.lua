@@ -154,6 +154,10 @@ function Gun.recoil(self: GunObject)
 end
 
 function Gun._shellEjection(self: GunObject)
+	if not pistolShell then
+		warn("Gun._shellEjection: PistolCasingUsed not found, skipping shell ejection")
+		return
+	end
 	--shell ejection (all client side)
 	local shell = pistolShell:Clone():: BasePart
 	shell.Anchored = false --temporary to check if the shell is being positioned properly
@@ -268,7 +272,6 @@ end
 function Gun.reload(self: GunObject)
 	local magSize = self.tool:GetAttribute(Constants.MAGAZINE_SIZE_ATTRIBUTE):: number
 	local ammoReserve = StackableSlotFinder.getSum(self.tool:GetAttribute(Constants.AMMO_TYPE_ATTRIBUTE):: string):: number
-	print(ammoReserve)
 
 	if self.ammo >= magSize then 
 		warn("Gun is already fully loaded.")
@@ -279,7 +282,7 @@ function Gun.reload(self: GunObject)
 		return 
 	end
 	if self.isAiming then 
-		warn("Can't reloading while aiming.") 
+		warn("Can't reload while aiming.")
 		return 
 	end
 	if ammoReserve <= 0 then 
@@ -538,8 +541,8 @@ function Gun.toggleInspect(self: GunObject, toggle: boolean)
 end
 
 function Gun.toggleInspectBind(self: GunObject, toggle : boolean)
-	self.actionNames.aiming = "Inspect"
-	local actionName = self.actionNames.aiming
+	self.actionNames.inspect = "Inspect"
+	local actionName = self.actionNames.inspect
 	if not References_ItemSystem.animationManagerObject.animationTracks[self.tool.Name].inspect then return end
     if toggle then
         References_ItemSystem.ActionManager.bindAction(

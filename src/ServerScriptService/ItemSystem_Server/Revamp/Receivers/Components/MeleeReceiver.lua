@@ -29,7 +29,7 @@ return function()
 
         for _, v in Players:GetPlayers() do
             if v ~= player then
-                remotes.ReplicateHit:FireClient(particles, position, normal)
+                remotes.ReplicateHit:FireClient(v, particles, position, normal)
             end
         end
         humanoid:TakeDamage(damage)  
@@ -47,7 +47,7 @@ return function()
 
         for _, v in Players:GetPlayers() do
             if v ~= player then
-                remotes.ReplicateSwing:FireClient(trail, toggle)
+                remotes.ReplicateSwing:FireClient(v, trail, toggle)
             end
         end
     end)

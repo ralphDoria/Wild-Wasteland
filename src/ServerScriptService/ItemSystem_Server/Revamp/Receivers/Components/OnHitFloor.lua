@@ -20,10 +20,13 @@ end
 
 return function(tool : Tool)
     local BodyAttach = tool:FindFirstChild("BodyAttach", true)
+    if not BodyAttach then return end
     local soundObjects = ToolInfo.get(tool.Name).soundObjects
     local touchedEvent
     touchedEvent = BodyAttach.Touched:Connect(function(partThatTouched)
-        if partThatTouched.Parent:FindFirstChild("Humanoid") == nil and partThatTouched:FindFirstAncestorOfClass("Tool") == nil then
+        local touchedParent = partThatTouched.Parent
+        if touchedParent == nil then return end
+        if touchedParent:FindFirstChild("Humanoid") == nil and partThatTouched:FindFirstAncestorOfClass("Tool") == nil then
             local isOnSoftMaterial = checkSoftMaterial(partThatTouched)
             if isOnSoftMaterial then
                 -- warn("hit floor: soft material: ", partThatTouched, partThatTouched.Parent)

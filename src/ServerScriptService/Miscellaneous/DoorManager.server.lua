@@ -73,7 +73,7 @@ for _, vaultDoor in CollectionService:GetTagged("door_vault") do
             pp.Enabled = false
             TweenService:Create(upper, tweenInfo, {CFrame = upper.CFrame * CFrame.new(0, 4.9, 0):Inverse()}):Play()
             TweenService:Create(lower, tweenInfo, {CFrame = lower.CFrame * CFrame.new(0, 1.9, 0)}):Play()
-            playSound(vaultDoorOpenSound, pp.Parent, 0)
+            playSound(vaultDoorCloseSound, pp.Parent, 0)
             task.wait(transitionTime)
             pp.ActionText = "Open"
             pp.Enabled = true

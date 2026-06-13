@@ -16,7 +16,9 @@ end
 function Chasing:OnHeartbeat(data)
     local player = data.player
     local humanoid = data.humanoid
-    local playerPosition = player.Character.PrimaryPart.Position
+    local character = player and player.Character
+    if not character or not character.PrimaryPart then return end
+    local playerPosition = character.PrimaryPart.Position
 
     humanoid:MoveTo(playerPosition)
 end

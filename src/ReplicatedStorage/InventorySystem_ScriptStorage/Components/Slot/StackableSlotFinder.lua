@@ -44,7 +44,7 @@ function StackableSlotFinder.inventory(stackableName: string): Type_Slot.SlotObj
 	local currentSlot: Type_Slot.SlotObject?
 
     for _, slotGroupObject in SlotGroupRegistry.instanceToObjectMap do
-        if slotGroupObject._itself:FindFirstAncestor(References_Inventory.LootingScrollingFrame.Name) then return end
+        if slotGroupObject._itself:FindFirstAncestor(References_Inventory.LootingScrollingFrame.Name) then continue end
         for instance, object in slotGroupObject.slotInstanceToObjectMap do
             if object.tool and object.tool.Name == stackableName then
                 if isUnmaxedStackable(object) then
@@ -73,7 +73,6 @@ function StackableSlotFinder.getSum(stackableName: string): number
     end
     for _, v in HotbarSlotsRegistry.instanceToObjectMap do
         if v.tool and v.tool.Name == stackableName then
-            print("found stackable to add its quantity to sum")
             addStackableQuantityToSum(v.tool)
         end
     end

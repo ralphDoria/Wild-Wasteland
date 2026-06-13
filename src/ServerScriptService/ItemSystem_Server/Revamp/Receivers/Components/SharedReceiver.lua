@@ -31,14 +31,17 @@ return function()
             local character = player.Character
             if character then
                 local BodyAttach = tool:FindFirstChild("BodyAttach", true)
-                if BodyAttach then
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if BodyAttach and hrp then
                    tool.Parent = workspace
-                   BodyAttach.CFrame = character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3) 
+                   BodyAttach.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
                 else
-                    error("Can't drop tool: Tool BodyAttach is nil")
+                    warn("Can't drop tool: Tool BodyAttach or character HumanoidRootPart is nil")
+                    return
                 end
             else
-                error("Can't drop tool: character is nil")
+                warn("Can't drop tool: character is nil")
+                return
             end
         else
             tool.Parent = workspace
@@ -51,6 +54,10 @@ return function()
         if not character or not bodyAttach then
             warn("[RequestPickUpTool Denied]: character or bodyattach doesn't exist")
             return
+        end
+        if not character.PrimaryPart then
+            warn("[RequestPickUpTool Denied]: character has no PrimaryPart")
+            return false
         end
         local MAX_PICKUP_RANGE = 5
         local distance = (character.PrimaryPart.Position - bodyAttach.Position).Magnitude

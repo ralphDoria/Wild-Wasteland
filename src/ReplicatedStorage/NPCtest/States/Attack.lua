@@ -15,7 +15,9 @@ end
 
 function Attack:OnHeartbeat(data, deltaTime)
     local player : Player = data.player
-    local plrHumanoid : Humanoid = player.Character.Humanoid
+    local character = player and player.Character
+    local plrHumanoid : Humanoid? = character and character:FindFirstChildOfClass("Humanoid")
+    if not plrHumanoid then return end
 
     if self.timer < 1.5 then
         self.timer += deltaTime

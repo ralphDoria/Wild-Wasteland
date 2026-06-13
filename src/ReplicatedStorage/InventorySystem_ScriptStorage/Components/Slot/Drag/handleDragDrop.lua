@@ -43,7 +43,7 @@ local function getSlotData(slotObject: types_and_enums.SlotObject): types_and_en
 
     local slotGroupInstance: Frame?
     if slotType == types_and_enums.EnumSlotType.P_EQUIPMENT or slotType == types_and_enums.EnumSlotType.L_EQUIPMENT then
-    local objValue: ObjectValue? = if slotObject.tool then slotObject.tool:FindFirstChildOfClass("ObjectValue") else nil
+    local objValue: ObjectValue? = if slotObject.tool then slotObject.tool:FindFirstChild("AssociatedItemGroup"):: ObjectValue? else nil
         slotGroupInstance = if objValue and objValue.Value then objValue.Value:: Frame else nil
     else
         slotGroupInstance = if slotObject._itself.Parent then slotObject._itself.Parent.Parent:: Frame else nil

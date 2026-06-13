@@ -40,7 +40,7 @@ local function handleTaggedInstance(tagName, taggedInstance)
     clonedProxProm.Parent = taggedInstance.PrimaryPart
     clonedProxProm.Enabled = true
     clonedProxProm.Triggered:Connect(function(player)
-        currencyProxProm.Enabled = false
+        clonedProxProm.Enabled = false
         taggedInstance:Destroy()
         if tagName == TAG_RANDOM_CURRENCY then
             local pileValue = math.random(10, 20)

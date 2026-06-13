@@ -98,7 +98,7 @@ local function P_INVENTORY__X__P_EQUIPMENT(wearableSlotData: types_and_enums.Slo
                     local tool = inventoryOrHotbarSlot.tool
                     emptySlot(inventoryOrHotbarSlot)
                     fillSlot(wearableSlot, tool)
-                elseif not (wearableSlot._isEmpty and inventoryOrHotbarSlot._isEmpty) then
+                else
                     warn("Successfully swapped and wore")
                     -- took off item that was currently worn and put on item in hover slot
                     local wearableSlotTool = wearableSlot.tool

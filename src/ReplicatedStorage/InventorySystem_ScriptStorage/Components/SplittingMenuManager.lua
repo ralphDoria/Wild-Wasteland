@@ -165,7 +165,6 @@ function SplittingMenuManager.createAndShowSplitSlotMenu(self: SplittingMenuMana
                 suspendSlot(splitSlot, false)
             end)
 
-            print("Connecting slot state changed")
             local lastState
             splitSlotMenu.trove:Connect(stateChanged, function(slot, state)  
                 if slot.tool and slot.tool == duplicateStackable then
@@ -246,7 +245,6 @@ function SplittingMenuManager._toggleLoadingIcon(self: SplittingMenuManager, tog
         end
         makeChildrenInvisible = self.SplittingMenuFrame.ChildAdded:Connect(function(child: Instance)  
             if child:IsA("Frame") then
-                print("making this thang invisible")
                 child.Visible = false
             end
         end)
@@ -259,8 +257,6 @@ function SplittingMenuManager._toggleLoadingIcon(self: SplittingMenuManager, tog
         self.ValueBox.Visible = true
         if makeChildrenInvisible then
             makeChildrenInvisible:Disconnect()
-        else
-            print("makingChildrenInvisible connection not found")
         end
         for _, v in self.SplittingMenuFrame:GetChildren() do
             if v:IsA("GuiBase2d") and v.Visible == false then

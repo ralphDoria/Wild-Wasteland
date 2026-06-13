@@ -24,17 +24,34 @@ Players.PlayerAdded:Connect(function(player)
     player:SetAttribute("StatsLoaded", true)
 end)
 
-Players.PlayerRemoving:Connect(function(player)
+local function savePlayerData(player)
     for _, stat in playerStatsInfo.getAll() do
         local success, errorMessage = pcall(function()
             dataStores[stat.name]:SetAsync(player.UserId, player:GetAttribute(stat.name))
         end)
-        --[[
-        if success then
-            print("---successfully saved " .. player:GetAttribute(stat.name) .. " " .. stat.name)
-        else
-            print("---" .. stat.name .. " saving error message: " .. errorMessage)
+        if not success then
+            warn("[DataSaveSystem] Failed to save " .. stat.name .. " for " .. player.Name .. ": " .. tostring(errorMessage))
         end
-        ]]
     end
-end)  
+end
+
+Players.PlayerRemoving:Connect(function(player)
+    savePlayerData(player)
+end)
+
+-- Ensure data is flushed on server shutdown/update so PlayerRemoving saves are not lost.
+game:BindToClose(function()
+    local remaining = 0
+    for _, player in Players:GetPlayers() do
+        remaining += 1
+        task.spawn(function()
+            savePlayerData(player)
+            remaining -= 1
+        end)
+    end
+    -- Wait for the spawned saves to finish (bounded so we never block shutdown indefinitely).
+    local elapsed = 0
+    while remaining > 0 and elapsed < 25 do
+        elapsed += task.wait()
+    end
+end)
