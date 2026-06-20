@@ -8,31 +8,73 @@ local remotes = {
     ReplicateSwing = ItemSystem_Storage.Melee.Remotes.ReplicateSwing:: UnreliableRemoteEvent,
 }
 
+-- Shared server-authority boundary + the server-side combat config (BUGS.md C6).
+local Validation = require(script.Parent.Parent.Validation)
+local CombatStats = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Data.CombatStats)
+
 return function()
-    local _maxHitRange = 10
-    remotes.Hit.OnServerEvent:Connect(function(player: Player, humanoid: Humanoid, damage: number, particles: ParticleEmitter, position: Vector3, normal: Vector3)
-        local playerChar = player.Character:: Model?
-		if not playerChar then
-			warn("[MeleeReceiver] Rejecting Hit: missing player character", player)
-			return
-		end
-        local targetChar = humanoid.Parent:: Model?
-		if not targetChar then
-			warn("[MeleeReceiver] Rejecting Hit: missing target character", humanoid)
-			return
-		end
+    -- Swing-rate limit state: player -> (target humanoid -> last-hit os.clock()). Keyed per target
+    -- so it caps single-target DPS WITHOUT blocking one swing from cleaving multiple distinct
+    -- targets (RaycastHitbox fires Hit once per humanoid). Inner tables are weak-keyed so dead
+    -- NPC humanoids get collected instead of accumulating forever.
+    local lastHitTimes: { [Player]: { [Humanoid]: number } } = {}
+    Players.PlayerRemoving:Connect(function(player: Player)
+        lastHitTimes[player] = nil
+    end)
+
+    remotes.Hit.OnServerEvent:Connect(function(player: Player, humanoid: Humanoid, _clientDamage: number?, particles: ParticleEmitter, position: Vector3, normal: Vector3)
+        -- Sender must be alive.
+        local playerChar = Validation.getAliveCharacter(player)
+        if not playerChar then
+            return
+        end
+
+        -- The server picks the weapon (the sender's currently equipped tool) and reads its
+        -- authoritative damage from config. The client's `damage` argument is IGNORED — sending
+        -- math.huge no longer does anything (C6).
+        local tool = playerChar:FindFirstChildOfClass("Tool")
+        if not tool then
+            return
+        end
+        local stats = CombatStats[tool.Name]
+        if not stats then
+            return -- equipped tool isn't a known melee weapon
+        end
+
+        -- Target must be a real, living Humanoid in a real character that isn't the attacker.
+        if not Validation.isInstance(humanoid, "Humanoid") or humanoid.Health <= 0 then
+            return
+        end
+        local targetChar = humanoid.Parent
+        if not targetChar or not targetChar:IsA("Model") or targetChar == playerChar then
+            return
+        end
+
+        -- Distance sanity check (attacker character to target character).
         local distance = (playerChar:GetPivot().Position - targetChar:GetPivot().Position).Magnitude
-		if distance > _maxHitRange then
-			warn("[MeleeReceiver] Rejecting Hit: distance too large", distance)
-			return
-		end
+        if distance > stats.maxRange then
+            return
+        end
+
+        -- Swing-rate limit: reject hits on the SAME target faster than the weapon's cooldown.
+        local now = os.clock()
+        local playerHits = lastHitTimes[player]
+        if not playerHits then
+            playerHits = setmetatable({}, { __mode = "k" }) :: any
+            lastHitTimes[player] = playerHits
+        end
+        local last = playerHits[humanoid]
+        if last and now - last < stats.swingCooldown then
+            return
+        end
+        playerHits[humanoid] = now
 
         for _, v in Players:GetPlayers() do
             if v ~= player then
                 remotes.ReplicateHit:FireClient(v, particles, position, normal)
             end
         end
-        humanoid:TakeDamage(damage)  
+        humanoid:TakeDamage(stats.damage)
     end)
     remotes.Swing.OnServerEvent:Connect(function(player: Player, tool: Tool, trail : Trail, toggle : boolean)
         local character = player.Character
@@ -40,7 +82,7 @@ return function()
 			warn("[MeleeReceiver] Rejecting Swing: missing player character", player)
 			return
 		end
-        if tool.Parent ~= character then
+        if not Validation.isInstance(tool, "Tool") or tool.Parent ~= character then
             warn("[MeleeReceiver] Rejecting Swing: tool not equipped by character", tool, character)
             return
         end

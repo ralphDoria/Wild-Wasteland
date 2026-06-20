@@ -232,6 +232,36 @@ pure `StackableMath` module. Ownership is enforced on transfer + duplicate (call
   stays clean — no `attempt to index nil` / assert errors from StackableReceiver, and none of the
   old `starting merge` / `Destroyed unused stackable` debug prints appear.
 
+### Batch 2 — Melee hit routed through the boundary (C6, server-authoritative damage) ✅ VERIFIED 2026-06-20
+
+`MeleeReceiver.Hit` no longer trusts the client. Damage now comes from `Data/CombatStats` keyed by
+the sender's *equipped* tool; the client's `damage` argument is ignored. Added: alive-sender check,
+equipped-known-melee check, Humanoid type/health validation, distance vs `maxRange`, and a
+per-(player, target) swing-rate limit (`swingCooldown`). H1 replication was already fixed.
+
+- **Unit (automated):** `CombatStats.spec` — every weapon entry has positive/finite
+  damage, cooldown, range. Run via `test.project.json` → Play (or the MCP).
+
+- **C6 — damage is server-fixed (playtest).** Equip a melee, hit a dummy/NPC.
+  - ✅ Target takes the config damage (50) per hit and dies in the expected number of swings.
+  - ❌ Target takes a different amount, or a remote-spammer can still vary damage (would mean the
+    client value is still being applied).
+
+- **No-weapon / wrong-weapon can't damage (playtest or remote test).** With nothing equipped (or a
+  non-melee tool), firing the Hit remote does nothing.
+  - ✅ No damage is applied; Output stays clean (graceful reject, no error).
+  - ❌ Damage lands, or the handler throws on a non-Humanoid target.
+
+- **Cleave still works; single-target spam is capped (playtest).** Swing through 2+ NPCs standing
+  together; separately, try to land hits on ONE target faster than the swing cycle.
+  - ✅ A single swing damages each distinct NPC once; the same target can't be hit faster than
+    `swingCooldown`.
+  - ❌ A swing only hits one of several adjacent NPCs (rate limit wrongly keyed per-player), or a
+    single target takes rapid stacked hits.
+
+- **★ Replication (2-client).** Player A's hit FX (blood/impact) still appear for Player B — the H1
+  fix plus the new validation path didn't regress replication.
+
 ---
 
 ## Quick checklist (copy into the PR/commit notes)

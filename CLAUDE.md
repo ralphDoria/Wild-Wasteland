@@ -30,6 +30,15 @@ For how to verify fixes in-engine, read @docs/PLAYTEST_VERIFICATION.md
   per-weapon attribute. ✅ Playtest-verified 2026-06-20 (split menu opens, no dup on
   split/cancel, loot-stack merges intact). Committed: `6de7cdf` (+ harness `c9bee4c`, Batch 0
   `53bffc1`, looting M17/H4 `cc66952`, docs `9ce3c77`).
+- ✅ Tier 2 Batch 2 — **Melee Hit routed through the boundary** (C6). Damage is now
+  server-authoritative: chose a **config module** (`ItemSystem_ScriptStorage/Data/CombatStats.lua`,
+  keyed by tool name) over per-instance Studio attributes, to keep balance version-controlled and
+  testable (the gun path still uses instance attributes — could migrate later). `MeleeReceiver.Hit`
+  picks the equipped weapon server-side, ignores the client damage, validates Humanoid/range/
+  ownership, and rate-limits per-(player, target) so cleave still works. `CombatStats.spec` shape
+  test. Client `Melee` reads the same config. ✅ Playtest-verified 2026-06-20.
+- 🔵 Also fixed this session (outside the Tier 2 batches): the looting infinite-yield
+  (`GetChangeReplicatorRemote` M17 + `ToolSpawner` H4) — see `cc66952`.
 
 **Important working-session detail:** connect Rojo with **`test.project.json`** (not
 `default.project.json`) during Tier 2 dev, so DevPackages + tests sync and specs can run in-session.
@@ -40,7 +49,9 @@ Do a final per-batch verification pass on `default.project.json` to confirm what
    Tier 2 → Batch 0) — equip Beretta, empty a mag into a dummy, reload; confirm unchanged.
 2. ✅ Batch 1 playtest gate closed (2026-06-20). A regression was found+fixed during it: the
    `operationId` type guard rejected the numeric counter and broke the split menu (fix in `6de7cdf`).
-3. Route the **next** remote: melee (C6) is the recommended pick — damage model is decided
-   (server-side per-weapon attribute; the tool models need a damage attribute). Or the ownership
-   remotes (C10/C11/C13; C13 needs the WornItems ownership path that `Ownership.lua` flags as TODO).
-4. Still pending before the looting batch: deep-review `CorpseLootable.lua` / `StandardLootable.lua`.
+3. ✅ Batch 2 melee (C6) done + verified 2026-06-20.
+4. Route the **next** remote(s): the ownership batch — `DropTool`/`ToggleToolCanCollide` (C10/C11) and
+   wearables (C13). C13 needs the WornItems ownership path that `Ownership.lua` flags as TODO, so
+   C10/C11 are the easier start. Consumables (C3/C4) and the vitals/respawn remotes (C9/C16) also
+   remain. Per-system design questions in BUGFIX_STRATEGY.md → Tier 2 gate each one.
+5. Still pending before the looting batch: deep-review `CorpseLootable.lua` / `StandardLootable.lua`.

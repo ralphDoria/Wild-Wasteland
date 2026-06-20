@@ -27,6 +27,9 @@ local camShake = CameraShaker.new(Enum.RenderPriority.Last.Value, function(shake
 end)
 camShake:Start()
 local impactEffect = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Classes.Components.Gun.Utility.Effects.impactEffect)
+-- Single source of truth for weapon damage (server reads the same table and is authoritative; the
+-- value the client sends with the Hit remote is ignored — BUGS.md C6).
+local CombatStats = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Data.CombatStats)
 
 export type MeleeObject = Item.ItemObject & {
     damage : number,
@@ -42,7 +45,7 @@ local Melee =  {}
 
 function Melee.new(tool : Tool) : MeleeObject
     local self: MeleeObject = Item.new(tool):: MeleeObject
-    self.damage = 50
+    self.damage = (CombatStats[tool.Name] and CombatStats[tool.Name].damage) or 50
     self.staminaCost = 10
     self.swingSpeed = 1
     self.HitboxManager = HitboxManager.new(tool, {References_ItemSystem.character, References_ItemSystem.viewmodelManagerObject.viewmodel})
