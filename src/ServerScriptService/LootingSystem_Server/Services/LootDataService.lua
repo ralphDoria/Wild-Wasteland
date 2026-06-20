@@ -44,6 +44,19 @@ local function getCorpseLootable(lootableInstance)
     return corpseLootableObjects[lootableInstance]
 end
 
+-- Spawn one preset tool defensively. A single bad item must not throw, because the crate's
+-- registration (StandardLootable.new) runs *after* the whole spawn loop in the same coroutine —
+-- one uncaught error there would abort registration and leave the crate permanently
+-- tagged-but-unregistered (the infinite GetChangeReplicatorRemote wait — BUGS.md M17/H4).
+local function trySpawnPresetTool(toolName: string): Instance?
+    local ok, result = pcall(bfn_serverSpawnTool.Invoke, bfn_serverSpawnTool, toolName, LootItemsHolding)
+    if not ok then
+        warn(`[LootDataService] failed to spawn '{toolName}' for a loot crate: {result}`)
+        return nil
+    end
+    return result
+end
+
 function LootDataService.init()
     local connections = handleTaggedInstances(
         TAGS_LOOT.STANDARD_LOOTABLE, 
@@ -66,7 +79,7 @@ function LootDataService.init()
                         for toolName: string, _ in ToolInfo.getEveryItemName() do
                             if toolName == "Light Bullets" then
                                 for j = layoutOrder, layoutOrder + 5, 1 do
-                                    local tool = bfn_serverSpawnTool:Invoke(toolName, LootItemsHolding)
+                                    local tool = trySpawnPresetTool(toolName)
                                     if tool then
                                         presetData[tostring(layoutOrder)] = tool
                                         layoutOrder += 1
@@ -74,7 +87,7 @@ function LootDataService.init()
                                 end
                                 continue
                             end
-                            local tool = bfn_serverSpawnTool:Invoke(toolName, LootItemsHolding)
+                            local tool = trySpawnPresetTool(toolName)
                             if tool then
                                 presetData[tostring(layoutOrder)] = tool
                                 layoutOrder += 1
@@ -86,7 +99,7 @@ function LootDataService.init()
                             if diceroll <= 2 then
                                 local randomToolName = ToolInfo.getWeightedRandomToolName()
                                 if randomToolName then
-                                    local tool = bfn_serverSpawnTool:Invoke(randomToolName, LootItemsHolding)
+                                    local tool = trySpawnPresetTool(randomToolName)
                                     if tool then
                                         -- print(i)
                                         presetData[tostring(i)] = tool
@@ -185,12 +198,21 @@ function LootDataService.init()
 
     LootDataService.initialized = true
 
-    rfn.GetChangeReplicatorRemote.OnServerInvoke = function(player, lootableInstance: Tool | Model): UnreliableRemoteEvent
+    rfn.GetChangeReplicatorRemote.OnServerInvoke = function(player, lootableInstance: Tool | Model): UnreliableRemoteEvent?
+        -- Registration normally completes at server start (well before any client asks). If we are
+        -- still waiting after this long, the lootable's registration never ran (e.g. its spawn
+        -- coroutine threw) — give up rather than busy-wait + log-spam forever (BUGS.md M17).
+        local REGISTRATION_TIMEOUT = 10 -- seconds
+        local deadline = os.clock() + REGISTRATION_TIMEOUT
         while getStandardLootable(lootableInstance) == nil and getCorpseLootable(lootableInstance) == nil do
+            if os.clock() >= deadline then
+                warn(`[LootDataService] GetChangeReplicatorRemote timed out waiting for {lootableInstance} to register; returning nil`)
+                return nil
+            end
             task.wait()
-            print(`Waiting for {lootableInstance} (parent: {lootableInstance.Parent}) to be initialized on the server`)
         end
-        return if getStandardLootable(lootableInstance) then getStandardLootable(lootableInstance).DataChangeReplicatorRemote else getCorpseLootable(lootableInstance).DataChangeReplicatorRemote
+        local standardLootable = getStandardLootable(lootableInstance)
+        return if standardLootable then standardLootable.DataChangeReplicatorRemote else getCorpseLootable(lootableInstance).DataChangeReplicatorRemote
     end
 
     LootToolsDestructionTracker.ToolDestroyed:Connect(function(tool: Tool, lootableInstance: Tool)

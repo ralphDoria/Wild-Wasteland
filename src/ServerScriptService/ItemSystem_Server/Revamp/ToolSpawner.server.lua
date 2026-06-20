@@ -4,15 +4,23 @@ local ToolCatalog = ReplicatedStorage:FindFirstChild("ToolCatalog", true)
 local Players = game:GetService("Players")
 
 local function foo(toolName : string, parent : Instance)
-    local folder : Folder? = ToolCatalog[toolName]
+    -- FindFirstChild (not `ToolCatalog[toolName]`) so an unknown name returns nil instead of
+    -- throwing, and nil-guard the Tool child so a malformed catalog folder degrades to "this one
+    -- item didn't spawn" rather than an error that propagates into and kills the caller's thread
+    -- (which is what left loot crates permanently unregistered — BUGS.md H4).
+    local folder : Folder? = ToolCatalog:FindFirstChild(toolName)
     if folder == nil then
         warn(toolName .. " not found in ToolCatalog FOLDER")
-    else
-        local tool = folder:FindFirstChildOfClass("Tool")
-        local newTool = tool:Clone()
-        newTool.Parent = parent
-        return newTool
+        return nil
     end
+    local tool = folder:FindFirstChildOfClass("Tool")
+    if tool == nil then
+        warn(toolName .. " catalog folder has no Tool child")
+        return nil
+    end
+    local newTool = tool:Clone()
+    newTool.Parent = parent
+    return newTool
 end
 
 -- NOTE: the client-facing `SpawnTool` RemoteEvent was removed (C1) — it cloned any catalog
