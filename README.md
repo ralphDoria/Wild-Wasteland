@@ -1,5 +1,7 @@
-# Project-RF-Demo
- remaster
-Here is the design doc:
+# Name TBD
+Focusing the scope & defining what the game will actually be.
 
-https://docs.google.com/document/d/1ppvF-D36yc-RDPN7SgM-q3T6qqQK2Ur3wmR1_1QK1g4/edit?usp=sharing
+Fallout Tycoon-like game: Scavenge the wasteland to build your base and survive
+Fallout Roleplay/Tech Demo (no structured game mode / open world)
+- Vault Dwellers vs Raiders
+- Cowboy Bebop inspired space raiders with k

@@ -1,0 +1,45 @@
+Read @docs/CODEBASE.md for context on the codebase.
+
+We are currently focusing on fixing detected bugs. Read @docs/BUGS.md and @docs/BUGFIX_STRATEGY.md
+For how to verify fixes in-engine, read @docs/PLAYTEST_VERIFICATION.md
+
+## Where we left off (updated 2026-06-20)
+
+**Plan of record:** targeted rewrites inside a refactor — NOT a ground-up rewrite. See the
+"Approach" section in BUGFIX_STRATEGY.md. Two sanctioned rewrites: the server-authority boundary
+(Tier 2) and the vitals subsystem (Tier 3). Everything else is refactored for its specific bugs only.
+
+**Progress:**
+- ✅ Tier 1 mechanical pass — commits `fbfc7dd`, `0d3da3b` (not yet playtest-verified per the policy).
+- ✅ Testing framework: **TestEZ** installed as a Wally dev-dependency (`DevPackages/`, gitignored).
+  Wired via `tests/specs/*.spec.lua`, `tests/TestRunner.server.lua`, and `test.project.json`
+  (a separate Rojo project overlaying tests onto the source — production `default.project.json`
+  is untouched). Run by serving `test.project.json` and pressing Play, or via the Studio MCP.
+- ✅ Tier 2 Batch 0 — shared server-authority validation layer:
+  `src/ServerScriptService/ItemSystem_Server/Revamp/Receivers/Validation/`
+  (`TypeValidation/` incl. new `isBoundedNumber`/`isInteger`, `Ownership.lua`, `init.lua` aggregator).
+  The gun's old `TypeValidation/` was **migrated** into it and `GunReceiver`/`validateShootArguments`
+  re-pointed. `TypeValidation.spec` = 19/19 green in-engine.
+- ✅ Tier 2 Batch 1 — **Stackable remotes routed through the boundary** (C7). New pure
+  `Receivers/Components/StackableMath.lua` (merge/transfer arithmetic) + `StackableMath.spec`
+  (negative-transfer dupe is now a failing-input test). `StackableReceiver` re-pointed:
+  type-validates all operands; ownership-gates `RequestQuantityTransfer` + `RequestDuplicateStackable`
+  (caller-owned only) and `DestroyUnusedStackable`; `RequestMergeStackables` left **un-gated** on
+  purpose (it legitimately merges loot-container stacks — that gate is design Q5, the looting batch).
+  Decisions this session: do Stackable before melee; melee damage (future) reads from a server-side
+  per-weapon attribute. Not yet playtest-verified (Studio not connected this session).
+
+**Important working-session detail:** connect Rojo with **`test.project.json`** (not
+`default.project.json`) during Tier 2 dev, so DevPackages + tests sync and specs can run in-session.
+Do a final per-batch verification pass on `default.project.json` to confirm what actually ships.
+
+**Next steps:**
+1. Manual gate still open for Batch 0: gun regression smoke test (see PLAYTEST_VERIFICATION.md →
+   Tier 2 → Batch 0) — equip Beretta, empty a mag into a dummy, reload; confirm unchanged.
+2. Manual gate open for Batch 1: Stackable checks (see PLAYTEST_VERIFICATION.md → Tier 2 → Batch 1)
+   — split/cancel a stack (no dupe, `transfer 0` restore works) and confirm loot-stack merges still
+   work. Also run `StackableMath.spec` in-engine.
+3. Route the **next** remote: melee (C6) is the recommended pick — damage model is decided
+   (server-side per-weapon attribute; the tool models need a damage attribute). Or the ownership
+   remotes (C10/C11/C13; C13 needs the WornItems ownership path that `Ownership.lua` flags as TODO).
+4. Still pending before the looting batch: deep-review `CorpseLootable.lua` / `StandardLootable.lua`.
