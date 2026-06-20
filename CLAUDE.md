@@ -37,6 +37,12 @@ For how to verify fixes in-engine, read @docs/PLAYTEST_VERIFICATION.md
   picks the equipped weapon server-side, ignores the client damage, validates Humanoid/range/
   ownership, and rate-limits per-(player, target) so cleave still works. `CombatStats.spec` shape
   test. Client `Melee` reads the same config. ✅ Playtest-verified 2026-06-20.
+- ✅ Tier 2 Batch 3 — **Shared ownership remotes** (C10/C11). `DropTool` now requires the tool be a
+  `Tool` the sender owns; `ToggleToolCanCollide` requires the model belong to a real `Tool` that's
+  sender-owned or already dropped in `workspace` (blocks map-geometry noclip + tool disarm). Plus
+  `isInstance` guards on `RequestPickUpTool`/`PlaySound`. ✅ Playtest-verified 2026-06-20.
+  **Deferred:** C13 wearables (design-gated — needs the accessory↔tool relationship pinned) and the
+  full C14 sound whitelist/rate-limit (Q8).
 - 🔵 Also fixed this session (outside the Tier 2 batches): the looting infinite-yield
   (`GetChangeReplicatorRemote` M17 + `ToolSpawner` H4) — see `cc66952`.
 
@@ -50,8 +56,10 @@ Do a final per-batch verification pass on `default.project.json` to confirm what
 2. ✅ Batch 1 playtest gate closed (2026-06-20). A regression was found+fixed during it: the
    `operationId` type guard rejected the numeric counter and broke the split menu (fix in `6de7cdf`).
 3. ✅ Batch 2 melee (C6) done + verified 2026-06-20.
-4. Route the **next** remote(s): the ownership batch — `DropTool`/`ToggleToolCanCollide` (C10/C11) and
-   wearables (C13). C13 needs the WornItems ownership path that `Ownership.lua` flags as TODO, so
-   C10/C11 are the easier start. Consumables (C3/C4) and the vitals/respawn remotes (C9/C16) also
-   remain. Per-system design questions in BUGFIX_STRATEGY.md → Tier 2 gate each one.
+4. ✅ Batch 3 C10/C11 done + verified 2026-06-20. **In progress:** C13 wearables (`ToggleWear`) —
+   design question being pinned: how to verify `originalAccessory`/`thisAccessory` belong to the
+   sender's wearable tool (likely an ancestry check against the tool's `ToolModel`). Then:
+   own-character + own-tool + accessory-belongs-to-tool, and turn the `error()`s into graceful returns.
+5. Remaining Tier 2: consumables (C3/C4), vitals/respawn (C9/C16), C14 sound whitelist (Q8).
+   Per-system design questions in BUGFIX_STRATEGY.md → Tier 2 gate each one.
 5. Still pending before the looting batch: deep-review `CorpseLootable.lua` / `StandardLootable.lua`.

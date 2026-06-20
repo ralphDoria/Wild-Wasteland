@@ -262,6 +262,30 @@ per-(player, target) swing-rate limit (`swingCooldown`). H1 replication was alre
 - **★ Replication (2-client).** Player A's hit FX (blood/impact) still appear for Player B — the H1
   fix plus the new validation path didn't regress replication.
 
+### Batch 3 — Shared ownership remotes (C10/C11, + H11/C14 hardening) ✅ VERIFIED 2026-06-20
+
+`DropTool` and `ToggleToolCanCollide` now route through `Validation`. `DropTool` requires the tool be
+a `Tool` the **sender owns**; `ToggleToolCanCollide` requires the model belong to a real `Tool` that
+is sender-owned **or** already dropped in `workspace` (so the drop re-enable still works).
+`RequestPickUpTool` and `PlaySound` got type guards. **Not** in this batch: C13 wearables (design-
+gated) and the full C14 sound whitelist/rate-limit (Q8).
+
+- **C11 — drop only your own tool (2-client).** Player A equips a tool; Player B fires `DropTool`
+  with A's tool (or just play normally and drop your own).
+  - ✅ You can drop your own equipped/backpack tool exactly as before (equipped drops in place,
+    backpack drops in front of you). B cannot force-drop A's tool.
+  - ❌ A's tool pops to the ground when B acts / your own drop stops working.
+
+- **C10 — collision toggle scoped to tools (playtest).** Equip, unequip, and drop tools; move around
+  the map.
+  - ✅ Equip disables tool collision, drop re-enables it (dropped tools rest on the floor, don't fall
+    through) — unchanged from before. Output clean.
+  - ❌ A dropped tool falls through the floor (the workspace re-enable was wrongly rejected), or
+    Output errors on equip/drop.
+
+- **Pickup unaffected (playtest).** Walk over and pick up dropped tools.
+  - ✅ Pickup still works within range; no error on odd input.
+
 ---
 
 ## Quick checklist (copy into the PR/commit notes)
