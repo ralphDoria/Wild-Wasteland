@@ -1,8 +1,9 @@
-local TypeValidation = script.Parent.Parent.TypeValidation
-local validateInstance = require(TypeValidation.validateInstance)
-local validateNumber = require(TypeValidation.validateNumber)
-local validateCFrame = require(TypeValidation.validateCFrame)
-local validateSimpleTable = require(TypeValidation.validateSimpleTable)
+-- Shared server-authority boundary (Receivers/Validation): ServerChecks -> Gun -> Components -> Receivers -> Validation
+local Validation = require(script.Parent.Parent.Parent.Parent.Validation)
+local validateInstance = Validation.isInstance
+local validateNumber = Validation.isNumber
+local validateCFrame = Validation.isCFrame
+local validateSimpleTable = Validation.isSimpleTable
 
 local function taggedValidator(instance: any): boolean
 	return validateInstance(instance, "Humanoid")

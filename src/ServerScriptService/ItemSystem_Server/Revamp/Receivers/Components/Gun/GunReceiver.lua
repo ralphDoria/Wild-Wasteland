@@ -24,7 +24,9 @@ local validateShootArguments = require(ServerChecks.validateShootArguments)
 local validateShot = require(ServerChecks.validateShot)
 local validateTag = require(ServerChecks.validateTag)
 local validateReload = require(ServerChecks.validateReload)
-local validateInstance = require(script.Parent.TypeValidation.validateInstance)
+-- Shared server-authority boundary (Receivers/Validation). Gun-specific TypeValidation was
+-- migrated here so every receiver shares one source of truth.
+local Validation = require(script.Parent.Parent.Parent.Validation)
 
 return function()
     --LEGACY CODE
@@ -168,7 +170,7 @@ return function()
 
     gunRemotes.reload.OnServerEvent:Connect(function(player: Player, gun: Tool)  
         -- Validate the received argument
-        if not validateInstance(gun, "Tool") then
+        if not Validation.isInstance(gun, "Tool") then
             return
         end
 
