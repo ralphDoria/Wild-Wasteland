@@ -204,7 +204,7 @@ behavior changed — this is a relocation, so the check is a regression test of 
   - ❌ `attempt to index nil` / require error mentioning `TypeValidation` or `Validation` on the
     first shot or at server start (would mean a re-point path is wrong).
 
-### Batch 1 — Stackable remotes routed through the boundary (C7, type/ownership hardening)
+### Batch 1 — Stackable remotes routed through the boundary (C7, type/ownership hardening) ✅ VERIFIED 2026-06-20
 
 Routed `RequestMergeStackables` / `RequestQuantityTransfer` / `RequestDuplicateStackable` /
 `DestroyUnusedStackable` through `Validation`, and extracted the merge/transfer arithmetic into the

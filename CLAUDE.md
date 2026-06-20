@@ -27,7 +27,9 @@ For how to verify fixes in-engine, read @docs/PLAYTEST_VERIFICATION.md
   (caller-owned only) and `DestroyUnusedStackable`; `RequestMergeStackables` left **un-gated** on
   purpose (it legitimately merges loot-container stacks — that gate is design Q5, the looting batch).
   Decisions this session: do Stackable before melee; melee damage (future) reads from a server-side
-  per-weapon attribute. Not yet playtest-verified (Studio not connected this session).
+  per-weapon attribute. ✅ Playtest-verified 2026-06-20 (split menu opens, no dup on
+  split/cancel, loot-stack merges intact). Committed: `6de7cdf` (+ harness `c9bee4c`, Batch 0
+  `53bffc1`, looting M17/H4 `cc66952`, docs `9ce3c77`).
 
 **Important working-session detail:** connect Rojo with **`test.project.json`** (not
 `default.project.json`) during Tier 2 dev, so DevPackages + tests sync and specs can run in-session.
@@ -36,9 +38,8 @@ Do a final per-batch verification pass on `default.project.json` to confirm what
 **Next steps:**
 1. Manual gate still open for Batch 0: gun regression smoke test (see PLAYTEST_VERIFICATION.md →
    Tier 2 → Batch 0) — equip Beretta, empty a mag into a dummy, reload; confirm unchanged.
-2. Manual gate open for Batch 1: Stackable checks (see PLAYTEST_VERIFICATION.md → Tier 2 → Batch 1)
-   — split/cancel a stack (no dupe, `transfer 0` restore works) and confirm loot-stack merges still
-   work. Also run `StackableMath.spec` in-engine.
+2. ✅ Batch 1 playtest gate closed (2026-06-20). A regression was found+fixed during it: the
+   `operationId` type guard rejected the numeric counter and broke the split menu (fix in `6de7cdf`).
 3. Route the **next** remote: melee (C6) is the recommended pick — damage model is decided
    (server-side per-weapon attribute; the tool models need a damage attribute). Or the ownership
    remotes (C10/C11/C13; C13 needs the WornItems ownership path that `Ownership.lua` flags as TODO).
