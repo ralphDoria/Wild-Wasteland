@@ -5,8 +5,9 @@
 	instance the sender does not own. These helpers answer "does this player legitimately own
 	this tool?" so receivers can reject foreign instances before mutating them.
 
-	NOTE: worn accessories tracked outside the character (a server-side WornItems folder) are
-	NOT yet covered by ownsTool — that path is added with the wearable batch (C13).
+	NOTE: worn wearable tools live in a `WornItems` folder that is itself parented under the
+	player's Backpack (see WearableReceiver), so `ownsTool` already covers them via the Backpack
+	descendant check — no separate WornItems path is needed (confirmed in the C13 wearable batch).
 ]]
 
 local Ownership = {}

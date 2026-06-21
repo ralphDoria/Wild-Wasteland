@@ -286,6 +286,27 @@ gated) and the full C14 sound whitelist/rate-limit (Q8).
 - **Pickup unaffected (playtest).** Walk over and pick up dropped tools.
   - ✅ Pickup still works within range; no error on odd input.
 
+### Batch 4 — Wearable remote (C13, ToggleWear ownership/accessory validation) ✅ VERIFIED 2026-06-20
+
+`ToggleWear` now validates every argument: `character` must be the sender's own, `tool` must be a
+sender-owned `Tool`, `thisAccessory` must be a descendant of that tool, `originalAccessory` must be a
+descendant of the tool's `ToolCatalog` folder, and `wearableCategory` must be a real category. The
+`error()` calls became graceful returns. `MakeAccessoryVisibleOnDeath` only reveals an accessory the
+sender owns. (`ownsTool` already covers `WornItems` — it's under the Backpack.)
+
+- **Wear / unwear works (playtest).** Equip the NV Goggles (or any wearable), toggle worn on, then off.
+  - ✅ Wearing parents the accessory to your character and hides the held one; unwearing reverses it;
+    the tool moves into/out of `Backpack/WornItems`. Output clean (no `error()` spam).
+  - ❌ Wearing throws, or the worn accessory doesn't appear / doesn't clear.
+
+- **Can't wear onto / using another player's stuff (2-client or remote test).** Fire `ToggleWear`
+  with another player's character or tool, or with a foreign accessory.
+  - ✅ Nothing happens — rejected before any clone/reparent.
+  - ❌ An accessory is cloned onto someone, or another player's tool is reparented.
+
+- **Death reveal still works (playtest).** Die while wearing a wearable.
+  - ✅ The worn accessory becomes visible on the corpse as before; no error.
+
 ---
 
 ## Quick checklist (copy into the PR/commit notes)
