@@ -22,8 +22,10 @@ end
 function HealingInjection._initialize(self: Consumable.ConsumableObject)
     Consumable.initialize(
         self, 
-        function() -- activatedEffects()  
-            remotes.heal:FireServer(References_ItemSystem.humanoid, 25)
+        function() -- activatedEffects()
+            -- The heal amount is server-authoritative (Data/ConsumableStats keyed by the
+            -- equipped tool); the server heals the sender's own humanoid (BUGS.md C3).
+            remotes.heal:FireServer()
         end,
         function() -- childClassCleanupFunction()
             HealingInjection.Destroy(self)

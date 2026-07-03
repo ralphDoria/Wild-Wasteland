@@ -307,6 +307,43 @@ sender owns. (`ownsTool` already covers `WornItems` — it's under the Backpack.
 - **Death reveal still works (playtest).** Die while wearing a wearable.
   - ✅ The worn accessory becomes visible on the corpse as before; no error.
 
+### Batch 5 — Consumable remotes (C3/C4, server-authoritative heal + gated dispose)
+
+`Heal` now ignores both client arguments: the server heals the **sender's own humanoid only**, by the
+amount in `Data/ConsumableStats` for the sender's *equipped* consumable, with a per-player
+`useCooldown`, and **consumes the item server-side** (`Debris` on the equipped tool) — so a client
+can't heal without losing the item. `Dispose` is only honored for the exact tool the server just
+consumed for that player (it merely triggers the all-clients cleanup echo). The client
+`HealingInjection` no longer sends a humanoid or amount.
+
+- **Unit (automated):** `ConsumableStats.spec` — positive/finite heal amount and cooldown, Healing
+  Injection entry present. Run via `test.project.json` → Play (or the MCP).
+
+- **C3 — legit heal works, amount is server-fixed (playtest).** Take damage (e.g. from an NPC),
+  equip a Healing Injection, activate it, let the animation finish.
+  - ✅ Health rises by exactly 25 (clamped at MaxHealth); the injection is dropped and disappears
+    ~10s later; the pickup prompt/slot cleanup runs as before. Output clean.
+  - ❌ No heal (would mean the validated path wrongly rejects the real flow), a different amount,
+    or the tool lingers/never cleans up (dispose echo not firing).
+
+- **C3 — can't heal others / can't damage via negative amounts (remote test).** From a client, fire
+  `Heal` with another humanoid and/or a negative number (or just verify by code inspection — the
+  arguments are no longer read).
+  - ✅ Only the sender's own humanoid can ever be healed, by the config amount; no target damage.
+  - ❌ Any humanoid other than the sender's changes health.
+
+- **C3 — no free healing without the item (playtest/remote test).** With no consumable equipped
+  (or a non-consumable tool equipped), fire the Heal remote; also spam it while one is equipped.
+  - ✅ Nothing happens without an equipped known consumable; spam heals at most once per
+    `useCooldown` and consumes the item on the first validated use.
+  - ❌ Health rises with no item, or repeated heals from one item.
+
+- **C4 — dispose can't delete arbitrary tools (2-client or remote test).** Fire `Dispose` with
+  another player's tool, a map instance, or a tool you own but haven't consumed.
+  - ✅ Nothing is destroyed — only the tool the server consumed on your own validated heal is
+    accepted (and it was already scheduled for destruction by the heal itself).
+  - ❌ Any client-chosen instance gets destroyed or triggers the cleanup echo.
+
 ---
 
 ## Quick checklist (copy into the PR/commit notes)

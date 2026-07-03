@@ -3,7 +3,7 @@ Read @docs/CODEBASE.md for context on the codebase.
 We are currently focusing on fixing detected bugs. Read @docs/BUGS.md and @docs/BUGFIX_STRATEGY.md
 For how to verify fixes in-engine, read @docs/PLAYTEST_VERIFICATION.md
 
-## Where we left off (updated 2026-06-20)
+## Where we left off (updated 2026-07-05)
 
 **Plan of record:** targeted rewrites inside a refactor — NOT a ground-up rewrite. See the
 "Approach" section in BUGFIX_STRATEGY.md. Two sanctioned rewrites: the server-authority boundary
@@ -49,6 +49,15 @@ For how to verify fixes in-engine, read @docs/PLAYTEST_VERIFICATION.md
   Ownership.lua TODO corrected (WornItems is under Backpack). ✅ Playtest-verified 2026-06-20.
 - 🔵 Also fixed this session (outside the Tier 2 batches): the looting infinite-yield
   (`GetChangeReplicatorRemote` M17 + `ToolSpawner` H4) — see `cc66952`.
+- 🟡 Tier 2 Batch 5 — **Consumable remotes** (C3/C4), committed 2026-07-03. `Heal` ignores both
+  client args: heals the sender's own humanoid only, by `Data/ConsumableStats` amount for the
+  *equipped* consumable, per-player `useCooldown`, server consumes the item; `Dispose` honored
+  only for the tool the server just consumed (it's just the all-clients cleanup echo trigger).
+  `ConsumableStats.spec` green (2026-07-05, in the 69/69 suite run). **⚠ Playtest gate OPEN** —
+  the batch is NOT verified yet: run the Batch 5 checks in PLAYTEST_VERIFICATION.md (heal
+  works + item consumed + cooldown caps spam). The can't-heal-others/negative checks are
+  satisfied by inspection (the handler no longer reads those args). **The bugfix workstream is
+  paused here** (2026-07-05) while NPC System v2 is built on branch `npc-system-v2`.
 
 **Important working-session detail:** connect Rojo with **`test.project.json`** (not
 `default.project.json`) during Tier 2 dev, so DevPackages + tests sync and specs can run in-session.
@@ -62,9 +71,8 @@ sourcemap untrack), `53bffc1` (Batch 0), `6de7cdf` (Batch 1), `cc66952` (looting
 + this Batch 4 commit.
 
 **Next steps (pick up here):**
-1. **Still-open Tier 2 remotes** (each has a design question in BUGFIX_STRATEGY.md → Tier 2):
-   - Consumables **C3/C4** (`ConsumableReceiver` — heal/dispose; the heal remote can damage any
-     humanoid with a negative number). Probably the cleanest next batch.
+1. **Verify Batch 5 in-engine** (see the ⚠ open gate above) — then the still-open Tier 2
+   remotes (each has a design question in BUGFIX_STRATEGY.md → Tier 2):
    - Vitals/respawn **C9/C16** — but C9 (hunger/thirst authority) overlaps the Tier 3 vitals rewrite;
      decide whether to do an interim cap or fold into Tier 3.
    - **C14** sound whitelist/rate-limit (Q8) — `PlaySound` only has a type guard so far.
