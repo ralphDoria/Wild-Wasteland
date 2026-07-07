@@ -26,8 +26,13 @@ client managers become views.
   VitalsSim prediction + attribute reconciliation; Sprint/Crouch fire intents; Melee cost
   reads VitalsConfig. `SprintReceiver.lua` stub (L5) deleted. Specs extended. Code
   complete; **playtest gate OPEN** (PLAYTEST_VERIFICATION.md → Tier 3 Batch V2).
-- ⬜ Batch V3 — restore path: `ConsumableStats.restores` → `VitalsService.restore` (M12's
-  missing food/drink feature).
+- 🟡 **Batch V3** — restore path (M12's missing food/drink feature). `ConsumableStats`
+  entries reshaped: `healAmount` → `restores = {Health/Hunger/Thirst/Stamina = n}`;
+  `ConsumableReceiver.heal` applies Health to the humanoid and routes the rest through
+  `VitalsService.restore`. Healing Injection unchanged in behavior (Health 25 only — no
+  food/drink item exists yet; the hunger/thirst leg is playtested via a temporary config
+  tweak). `ConsumableStats.spec` rewritten (restore-key whitelist catches typos). Code
+  complete; **playtest gate OPEN** (PLAYTEST_VERIFICATION.md → Tier 3 Batch V3).
 
 Note: `npc-system-v2` had uncommitted Phase 3.4 WIP when this branch was cut — it is in
 `git stash` ("npc-system-v2 WIP: Phase 3.4 target re-evaluation"); pop it when back on

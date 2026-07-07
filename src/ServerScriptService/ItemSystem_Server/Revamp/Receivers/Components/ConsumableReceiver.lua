@@ -11,6 +11,10 @@ local remotes: {[string] : RemoteEvent} = {
 local Validation = require(script.Parent.Parent.Validation)
 local ConsumableStats = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Data.ConsumableStats)
 
+-- Tier 3 Batch V3: consumables restore Hunger/Thirst/Stamina through the vitals
+-- authority (the food/drink path that never existed pre-rewrite, BUGS.md M12).
+local VitalsService = require(game:GetService("ServerScriptService").RojoManaged_SSS.VitalsSystem_Server.VitalsService)
+
 return function()
     -- The tool the server consumed on each player's last validated heal. Dispose is only honored
     -- for that exact tool (C4 — clients can't schedule deletion of arbitrary instances). Heal
@@ -52,7 +56,14 @@ return function()
         end
         lastUseTimes[player] = now
 
-        humanoid.Health = math.min(humanoid.Health + stats.healAmount, humanoid.MaxHealth)
+        -- Health lives on the Humanoid (already server-owned); everything else goes
+        -- through the vitals authority, which clamps to each stat's config max and
+        -- ignores unknown keys.
+        local healthRestore = stats.restores.Health
+        if healthRestore then
+            humanoid.Health = math.min(humanoid.Health + healthRestore, humanoid.MaxHealth)
+        end
+        VitalsService.restore(player, stats.restores)
 
         pendingDispose[player] = tool
         Debris:AddItem(tool, 10)

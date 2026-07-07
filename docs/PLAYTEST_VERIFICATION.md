@@ -461,6 +461,40 @@ snapping to the attribute when divergence exceeds `reconcileSnapTolerance`. The 
 - **Output clean (playtest).** No errors from `VitalsService`, `Main` (movement receiver),
   `StaminaManager`, or `MeleeReceiver` across sprint/crouch/jump/swing/death.
 
+### Batch V3 — consumable restore path (M12's missing food/drink feature)
+
+`ConsumableStats` entries now declare `restores = { Health/Hunger/Thirst/Stamina = n }`
+instead of `healAmount`. On a validated use, `ConsumableReceiver` applies `restores.Health`
+to the sender's humanoid (clamped to MaxHealth, exactly as before) and passes the table to
+`VitalsService.restore`, which clamps Hunger/Thirst/Stamina to their config max and ignores
+unknown keys. Gameplay is otherwise unchanged: the Healing Injection still restores only
+25 Health — no food/drink item exists yet, so the hunger/thirst leg is verified with a
+temporary config tweak.
+
+- **Unit (automated):** `ConsumableStats.spec` rewritten for the shape: every entry
+  restores ≥ 1 stat from the known set (typo'd keys fail the spec instead of silently
+  restoring nothing), positive finite amounts, finite cooldown, Healing Injection restores
+  Health. Run via `test.project.json` → Play (or the MCP).
+
+- **Heal regression (playtest).** Take damage, use a Healing Injection (the full Batch 5
+  flow).
+  - ✅ Health rises by exactly 25 (clamped at MaxHealth); item consumed; cooldown caps
+    spam — identical to the Batch 5 checks.
+  - ❌ No heal or a different amount (the `restores.Health` re-shape broke the path).
+
+- **M12 — food/drink restores land (playtest, config tweak).** Temporarily add
+  `Hunger = 25, Thirst = 25, Stamina = 25` to the Healing Injection's `restores` in
+  `Data/ConsumableStats`, let hunger/thirst tick down a bit and drain some stamina, then
+  use an injection.
+  - ✅ The hunger and thirst bars jump up by 25 points each (server attributes on the
+    Player rise too), stamina refills by 25, all clamp at max, and **no** rumble/gulp
+    sound plays on the upward crossing (the V1 view is downward-only). Revert the tweak.
+  - ❌ Bars don't move (restore not reaching VitalsService), a stat overshoots its max,
+    or the threshold sound fires on a refill.
+
+- **Output clean (playtest).** No errors from `ConsumableReceiver`/`VitalsService` during
+  repeated consumable use.
+
 ---
 
 ## Quick checklist (copy into the PR/commit notes)
