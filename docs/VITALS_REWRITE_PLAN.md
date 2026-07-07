@@ -2,6 +2,11 @@
 
 Branch: `vitals-rewrite` (off `fable-5-gonna-fix-it-all` @ `adc0eb1`). Started 2026-07-06.
 
+**Status (2026-07-07):** all four batches are code-complete and committed — V0 `0b0beba`,
+V1 `9d3b3ea`, V2 `72c2c41`, V3 `9da834a`. Per the verification policy NONE are "done":
+the spec suite has not yet run in-engine and every batch's playtest gate is OPEN
+(PLAYTEST_VERIFICATION.md → Tier 3). Current per-batch state lives in CLAUDE.md.
+
 This is the second of the two sanctioned rewrites in BUGFIX_STRATEGY.md ("Approach"): the
 vitals subsystem is client-authoritative **and** incomplete (no food/drink restore path), so
 it is rebuilt server-authoritative rather than retrofitted. Presentation code (heartbeat/
@@ -87,7 +92,17 @@ bar smooth; actions still gate at thresholds.
 
 ### Cleanup (with V2/V3 as they land)
 Delete dead code: old client decay loops (gone in V1), `MovementAndStaminaSystem_Server`
-handler (V2), unused Studio remotes noted for place cleanup. Update BUGS.md entries.
+handler (V2 — also removed the empty `SprintReceiver.lua` stub, L5), unused Studio remotes
+noted for place cleanup. Update BUGS.md entries.
+
+**Place cleanup (Studio-side, optional — do while connected for the playtests):**
+these RemoteEvents now have no server listener and can be deleted from the place:
+- `ReplicatedStorage.VitalsSystem_Storage.hungerThirstDamage` (inert since V1)
+- `ReplicatedStorage.MovementAndStaminaSystem_Storage.Remotes.ChangeHumanoidWalkSpeed`
+  (inert since V2)
+
+No place additions are needed: the `MovementIntent` remote is created at runtime by
+`MovementAndStaminaSystem_Server/Main.server.lua`.
 
 ## Deliberate decisions
 
