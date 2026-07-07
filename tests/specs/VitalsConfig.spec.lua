@@ -49,6 +49,16 @@ return function()
 			expect(isPositiveFinite(stamina.jumpCost) and stamina.jumpCost <= stamina.max).to.equal(true)
 			expect(isPositiveFinite(stamina.swingCost) and stamina.swingCost <= stamina.max).to.equal(true)
 		end)
+
+		it("V2 movement/reconcile knobs are positive and sane", function()
+			local stamina = VitalsConfig.Stamina
+			expect(isPositiveFinite(stamina.movingSpeedThreshold)).to.equal(true)
+			-- a threshold above walking speed would mean sprint never drains
+			expect(stamina.movingSpeedThreshold < 8).to.equal(true)
+			expect(isPositiveFinite(stamina.reconcileSnapTolerance)).to.equal(true)
+			-- a tolerance as big as the pool would mean the client never reconciles
+			expect(stamina.reconcileSnapTolerance < stamina.max).to.equal(true)
+		end)
 	end)
 
 	describe("scheduling", function()

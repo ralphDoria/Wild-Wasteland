@@ -12,6 +12,11 @@ local remotes = {
 local Validation = require(script.Parent.Parent.Validation)
 local CombatStats = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Data.CombatStats)
 
+-- Tier 3 Batch V2: the swing's stamina cost is charged server-side on the validated
+-- Swing remote (the client only predicts it).
+local VitalsConfig = require(ReplicatedStorage.RojoManaged_RS.VitalsSystem_ScriptStorage.Data.VitalsConfig)
+local VitalsService = require(game:GetService("ServerScriptService").RojoManaged_SSS.VitalsSystem_Server.VitalsService)
+
 return function()
     -- Swing-rate limit state: player -> (target humanoid -> last-hit os.clock()). Keyed per target
     -- so it caps single-target DPS WITHOUT blocking one swing from cleaving multiple distinct
@@ -85,6 +90,12 @@ return function()
         if not Validation.isInstance(tool, "Tool") or tool.Parent ~= character then
             warn("[MeleeReceiver] Rejecting Swing: tool not equipped by character", tool, character)
             return
+        end
+
+        -- One authoritative stamina charge per swing (the client fires toggle=true once
+        -- at swing start, false when the trail ends). Only costs the sender.
+        if toggle == true and CombatStats[tool.Name] then
+            VitalsService.applyStaminaCost(player, VitalsConfig.Stamina.swingCost)
         end
 
         for _, v in Players:GetPlayers() do

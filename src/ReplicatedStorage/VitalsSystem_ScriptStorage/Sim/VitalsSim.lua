@@ -73,4 +73,30 @@ function VitalsSim.applyStaminaCost(stamina: number, cost: number): number
 	return math.max(0, stamina - cost)
 end
 
+--[[
+	Which movement mode the player actually GETS, given the mode they asked for.
+	Sprint requires stamina in the pool; everything else passes through. The server
+	looks the WalkSpeed number up from this — it never accepts a speed from the wire
+	(BUGS.md C2).
+]]
+function VitalsSim.effectiveMovementMode(requestedMode: string, stamina: number): string
+	if requestedMode == "Sprint" and stamina <= 0 then
+		return "Default"
+	end
+	return requestedMode
+end
+
+--[[
+	Reconcile client prediction against the replicated authoritative value: keep the
+	smooth predicted value while it's plausibly close, snap to authority once they
+	diverge past the tolerance (prediction and the 1 Hz server tick legitimately
+	drift by a few points between attribute updates).
+]]
+function VitalsSim.reconcile(predicted: number, authoritative: number, tolerance: number): number
+	if math.abs(predicted - authoritative) > tolerance then
+		return authoritative
+	end
+	return predicted
+end
+
 return VitalsSim

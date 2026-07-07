@@ -17,8 +17,15 @@ client managers become views.
   `HungerThirstManager` rewritten as attribute-driven view (M11), `hungerThirstDamage`
   listener deleted, `RespawnPlayerCharacter` gated dead-only + rate limit (C16). Code
   complete; **playtest gate OPEN** (PLAYTEST_VERIFICATION.md → Tier 3 Batch V1).
-- ⬜ Batch V2 — stamina authority + movement-intent remote replacing
-  `ChangeHumanoidWalkSpeed` (C2, M7–M10); client StaminaManager becomes prediction + view.
+- 🟡 **Batch V2** — stamina authority + movement intent (C2, M7–M10). Server: stamina in
+  `VitalsService` (`Stamina` attribute; sprint gated on server pool; drain only while the
+  server observes movement; jump cost on `StateChanged→Jumping`; swing cost in
+  `MeleeReceiver.Swing`). New `MovementIntent` remote (mode name only, created at runtime
+  by `MovementAndStaminaSystem_Server/Main.server.lua`) replaces the deleted
+  `ChangeHumanoidWalkSpeed` handler (Studio remote now inert). Client: `StaminaManager` =
+  VitalsSim prediction + attribute reconciliation; Sprint/Crouch fire intents; Melee cost
+  reads VitalsConfig. `SprintReceiver.lua` stub (L5) deleted. Specs extended. Code
+  complete; **playtest gate OPEN** (PLAYTEST_VERIFICATION.md → Tier 3 Batch V2).
 - ⬜ Batch V3 — restore path: `ConsumableStats.restores` → `VitalsService.restore` (M12's
   missing food/drink feature).
 

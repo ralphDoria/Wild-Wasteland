@@ -1,16 +1,19 @@
 local player = game:GetService("Players").LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid: Humanoid = character:WaitForChild("Humanoid")
-local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.Data.Config)
 local MovementDirectionMonitor = require("./MovementDirectionMonitor")
-local StaminaManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.Stamina.StaminaManager)local Trove = require(game:GetService("ReplicatedStorage").Packages.Trove)
+local StaminaManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.Stamina.StaminaManager)
+local Trove = require(game:GetService("ReplicatedStorage").Packages.Trove)
 local trove = Trove.new()
 local currentStaminaObject = StaminaManager.waitForStaminaObject(character)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MovementAndStaminaSystem_Storage = ReplicatedStorage.MovementAndStaminaSystem_Storage
-local remotes: {[string]: RemoteEvent} = {
-    ChangeHumanoidWalkSpeed = MovementAndStaminaSystem_Storage.Remotes.ChangeHumanoidWalkSpeed
+-- Tier 3 Batch V2: the server owns WalkSpeed now. We send a movement INTENT (a mode
+-- name); the server looks the speed up itself and gates Sprint on its own stamina.
+-- The remote is created by the server at runtime, hence WaitForChild.
+local remotes: { [string]: RemoteEvent } = {
+    MovementIntent = MovementAndStaminaSystem_Storage.Remotes:WaitForChild("MovementIntent"),
 }
 
 local connections: {RBXScriptConnection} = {}
@@ -22,7 +25,7 @@ local Sprint = {
 
 --[[
 @note:
-Don't have to worry about animations here because the forked Animate script in StarterCharacterScripts handles sprint animation 
+Don't have to worry about animations here because the forked Animate script in StarterCharacterScripts handles sprint animation
 (as well as footstep sounds).
 ]]
 
@@ -35,45 +38,35 @@ local function disconnectAllConnections()
     end
 end
 
-local function dynamicWalkSpeedBasedOnIsMoving()
+-- Local stamina PREDICTION only (the authoritative sim runs server-side and drains only
+-- while it observes movement — this mirrors that gate so the bar doesn't drain standing still).
+local function dynamicStaminaPredictionBasedOnIsMoving()
 
-    local function changeWalkSpeedIfMoving()
+    local function predictIfMoving()
         if MovementDirectionMonitor.isMovingHorizontally() then
-            remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Sprint"])
             StaminaManager.drainStaminaBar(currentStaminaObject)
         else
-            remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
             StaminaManager.fillStaminaBar(currentStaminaObject)
         end
     end
 
      -- Initial check
-     changeWalkSpeedIfMoving()
+     predictIfMoving()
 
     -- When isMoving changes
     table.insert(
         connections,
-        MovementDirectionMonitor.isMovingChanged:Connect(function(...: any)  
-            changeWalkSpeedIfMoving()
-        end)    
+        MovementDirectionMonitor.isMovingChanged:Connect(function(...: any)
+            predictIfMoving()
+        end)
     )
 end
 
 function Sprint.activate()
     disconnectAllConnections()
 
-    -- -- Initial check
-    -- updateSprintSpeed()
-
-    -- -- When zMovementDirection changes
-    -- table.insert( 
-    --     connections,
-    --     ZMovementDirectionUtility.zMovementDirectionChanged:Connect(function()  
-    --         updateSprintSpeed()
-    --     end)
-    -- )
-
-    dynamicWalkSpeedBasedOnIsMoving()
+    remotes.MovementIntent:FireServer("Sprint")
+    dynamicStaminaPredictionBasedOnIsMoving()
 
     Sprint.active = true
     character:SetAttribute("Sprint", true)
@@ -81,7 +74,7 @@ end
 
 function Sprint.deactivate()
     disconnectAllConnections()
-    remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
+    remotes.MovementIntent:FireServer("Default")
     StaminaManager.fillStaminaBar(currentStaminaObject)
     Sprint.active = false
     character:SetAttribute("Sprint", false)

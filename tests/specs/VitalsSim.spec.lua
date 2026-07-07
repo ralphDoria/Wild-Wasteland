@@ -109,4 +109,37 @@ return function()
 			expect(VitalsSim.applyStaminaCost(5, 10)).to.equal(0)
 		end)
 	end)
+
+	describe("effectiveMovementMode (Batch V2, C2 replacement)", function()
+		it("passes non-sprint modes through regardless of stamina", function()
+			expect(VitalsSim.effectiveMovementMode("Default", 0)).to.equal("Default")
+			expect(VitalsSim.effectiveMovementMode("Crouch", 0)).to.equal("Crouch")
+		end)
+
+		it("grants Sprint while stamina remains", function()
+			expect(VitalsSim.effectiveMovementMode("Sprint", 0.1)).to.equal("Sprint")
+			expect(VitalsSim.effectiveMovementMode("Sprint", 100)).to.equal("Sprint")
+		end)
+
+		it("downgrades Sprint to Default on an empty pool", function()
+			expect(VitalsSim.effectiveMovementMode("Sprint", 0)).to.equal("Default")
+			expect(VitalsSim.effectiveMovementMode("Sprint", -5)).to.equal("Default")
+		end)
+	end)
+
+	describe("reconcile (Batch V2 client prediction)", function()
+		it("keeps the prediction inside the tolerance", function()
+			expect(VitalsSim.reconcile(50, 55, 15)).to.equal(50)
+			expect(VitalsSim.reconcile(50, 35, 15)).to.equal(50)
+		end)
+
+		it("snaps to authority past the tolerance, in both directions", function()
+			expect(VitalsSim.reconcile(50, 80, 15)).to.equal(80)
+			expect(VitalsSim.reconcile(50, 20, 15)).to.equal(20)
+		end)
+
+		it("treats an exact-tolerance divergence as acceptable", function()
+			expect(VitalsSim.reconcile(50, 65, 15)).to.equal(50)
+		end)
+	end)
 end

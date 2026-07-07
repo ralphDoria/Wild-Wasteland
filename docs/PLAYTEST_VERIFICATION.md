@@ -401,6 +401,66 @@ server listener; `RespawnPlayerCharacter` requires the sender to be dead + rate 
 - **Output clean (playtest).** Whole session: no errors from `VitalsService`/
   `VitalsSystemReceivers`/`HungerThirstManager`, and no "adding to tbl" warns.
 
+### Batch V2 — stamina authority + movement intent (C2, M7–M10 structural)
+
+Server stamina joins `VitalsService` (replicated as the `Stamina` attribute); WalkSpeed is
+now set ONLY by the server from `Data/Config.speed`, driven by the new runtime-created
+`MovementIntent` remote (mode name only — never a number or humanoid). Sprint is gated on
+server stamina; sprint drain requires the server to observe horizontal movement; jump cost
+charges on `Humanoid.StateChanged → Jumping`; melee swing cost charges on the validated
+`Swing` remote. Client `StaminaManager` is prediction (same `VitalsSim` math) + view,
+snapping to the attribute when divergence exceeds `reconcileSnapTolerance`. The old
+`ChangeHumanoidWalkSpeed` handler is deleted (Studio remote inert); the empty
+`SprintReceiver.lua` stub (L5) was removed.
+
+- **Unit (automated):** `VitalsSim.spec` gains `effectiveMovementMode` (sprint requires
+  stamina; other modes pass through) and `reconcile` (keep within tolerance, snap past it)
+  blocks; `VitalsConfig.spec` covers the new `movingSpeedThreshold`/`reconcileSnapTolerance`
+  knobs. Run via `test.project.json` → Play (or the MCP).
+
+- **Sprint feel unchanged (playtest — the big one).** Hold Shift and run; stop moving while
+  still holding Shift; release; sprint again.
+  - ✅ Moving while sprinting is visibly faster and drains the bar ~5/s; standing still
+    while "sprinting" does NOT drain; after stopping, regen kicks in after ~0.5 s at ~10/s;
+    the bar is smooth (no 1 Hz stutter or visible snapping while sprinting normally).
+  - ❌ No speed change on sprint (remote/intent wiring broken — check server Output for a
+    `MovementIntent`/`VitalsService` error), drain while standing, or the bar visibly
+    snaps/rubber-bands every second (reconcile tolerance too tight / server-client drift).
+
+- **Sprint exhaustion (playtest).** Sprint until stamina hits zero.
+  - ✅ At 0 the character drops to walking speed even if Shift is still held (server
+    downgrade + client kick-out agree); once stamina regenerates you can sprint again.
+  - ❌ Sprint speed persists at 0 stamina, or sprint never re-enables after regen.
+
+- **Crouch (playtest).** Press C to crouch, move, release.
+  - ✅ Crouch slows to the config speed with anims and camera offset as before;
+    releasing restores default speed.
+  - ❌ Speed doesn't change (intent path broken) or stays slow after release.
+
+- **Jump + melee swing costs (playtest).** Jump repeatedly; equip the Raider Axe and swing.
+  - ✅ Each jump and each swing knocks ~10 off the bar; the server agrees (select your
+    Player in Explorer → the `Stamina` attribute tracks the bar within ~15); jump/swing
+    gate off below their thresholds as before.
+  - ❌ Bar drops but the attribute never moves (server charge not landing — StateChanged
+    hook or Swing receiver), or double-charging (bar drops ~20 per action).
+
+- **C2 — speedhack is dead (remote test).** From the client command bar:
+  `game.ReplicatedStorage.MovementAndStaminaSystem_Storage.Remotes.ChangeHumanoidWalkSpeed:FireServer(game.Players.LocalPlayer.Character.Humanoid, 100)`
+  and also try it against another player's/NPC's humanoid. Then try
+  `...Remotes.MovementIntent:FireServer("Sprint")` with an empty stamina pool, and
+  `MovementIntent:FireServer(999)` / `("Turbo")`.
+  - ✅ The old remote does nothing (no listener). MovementIntent only ever yields the
+    three config speeds on YOUR OWN humanoid: garbage modes are ignored, Sprint with an
+    empty pool walks, and no other humanoid can be touched at all.
+  - ❌ Any WalkSpeed change lands on another humanoid, or a non-config speed appears.
+
+- **Respawn resets movement (playtest).** Die while sprinting/crouching.
+  - ✅ The new character walks at default speed and spawns with a full stamina bar.
+  - ❌ The new character spawns crouch-slow or sprint-fast (stale movement mode).
+
+- **Output clean (playtest).** No errors from `VitalsService`, `Main` (movement receiver),
+  `StaminaManager`, or `MeleeReceiver` across sprint/crouch/jump/swing/death.
+
 ---
 
 ## Quick checklist (copy into the PR/commit notes)

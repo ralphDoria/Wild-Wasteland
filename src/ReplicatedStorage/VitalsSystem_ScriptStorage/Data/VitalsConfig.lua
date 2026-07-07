@@ -30,6 +30,12 @@ export type StaminaConfig = {
 	regenCooldown: number,
 	jumpCost: number,
 	swingCost: number,
+	-- horizontal speed (studs/s) above which the server counts a sprinter as moving
+	-- (sprint only drains while actually moving, matching the old client behavior)
+	movingSpeedThreshold: number,
+	-- client prediction snaps to the replicated Stamina attribute when they diverge
+	-- by more than this (prediction and 1 Hz authority legitimately drift a little)
+	reconcileSnapTolerance: number,
 }
 
 export type VitalsConfig = {
@@ -62,6 +68,8 @@ local VitalsConfig: VitalsConfig = {
 		regenCooldown = 0.5,
 		jumpCost = 10,
 		swingCost = 10,
+		movingSpeedThreshold = 0.5,
+		reconcileSnapTolerance = 15,
 	},
 	tickInterval = 1,
 	respawnRequestCooldown = 1,
