@@ -3,6 +3,29 @@ Read @docs/CODEBASE.md for context on the codebase.
 We are currently focusing on fixing detected bugs. Read @docs/BUGS.md and @docs/BUGFIX_STRATEGY.md
 For how to verify fixes in-engine, read @docs/PLAYTEST_VERIFICATION.md
 
+## Vitals rewrite (Tier 3, started 2026-07-06 on branch `vitals-rewrite`)
+
+The sanctioned server-authoritative vitals rewrite is underway on `vitals-rewrite`
+(cut from `fable-5-gonna-fix-it-all` @ `adc0eb1`). Full plan: docs/VITALS_REWRITE_PLAN.md.
+Architecture: shared `Data/VitalsConfig` + pure `Sim/VitalsSim`; server `VitalsSystem_Server/
+VitalsService` (one Heartbeat tick, player-attribute replication, `restore()` mutation API);
+client managers become views.
+
+- ✅ **Batch V0** — config + pure sim + `VitalsSim.spec`/`VitalsConfig.spec` (commit `0b0beba`).
+  ⚠ Specs not yet run in-engine.
+- 🟡 **Batch V1** — server hunger/thirst + starvation damage (C9/M12/M13), client
+  `HungerThirstManager` rewritten as attribute-driven view (M11), `hungerThirstDamage`
+  listener deleted, `RespawnPlayerCharacter` gated dead-only + rate limit (C16). Code
+  complete; **playtest gate OPEN** (PLAYTEST_VERIFICATION.md → Tier 3 Batch V1).
+- ⬜ Batch V2 — stamina authority + movement-intent remote replacing
+  `ChangeHumanoidWalkSpeed` (C2, M7–M10); client StaminaManager becomes prediction + view.
+- ⬜ Batch V3 — restore path: `ConsumableStats.restores` → `VitalsService.restore` (M12's
+  missing food/drink feature).
+
+Note: `npc-system-v2` had uncommitted Phase 3.4 WIP when this branch was cut — it is in
+`git stash` ("npc-system-v2 WIP: Phase 3.4 target re-evaluation"); pop it when back on
+that branch.
+
 ## Where we left off (updated 2026-07-05)
 
 **Plan of record:** targeted rewrites inside a refactor — NOT a ground-up rewrite. See the

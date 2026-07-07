@@ -346,6 +346,63 @@ consumed for that player (it merely triggers the all-clients cleanup echo). The 
 
 ---
 
+## Tier 3 — Vitals rewrite (branch `vitals-rewrite`)
+
+Server-authoritative vitals per [VITALS_REWRITE_PLAN.md](VITALS_REWRITE_PLAN.md). Run with
+Rojo serving **`test.project.json`** so the specs are in-place.
+
+### Batch V0 — shared config + pure sim (no behavior change)
+
+`Data/VitalsConfig` + `Sim/VitalsSim` + specs only; nothing requires them at runtime yet.
+
+- **Unit (automated):** `VitalsSim.spec` (decay clamp, threshold sections incl. boundaries/
+  clamping, stamina drain/cooldown/regen/cost clamps) and `VitalsConfig.spec` (shape:
+  positive finite numbers, strictly ascending 0→1 thresholds, affordable costs). Run via
+  `test.project.json` → Play (or the MCP). Suite must stay green alongside the existing specs.
+
+### Batch V1 — server-authoritative hunger/thirst + gated respawn (C9/M11/M12/M13/C16)
+
+`VitalsService` simulates decay/starvation on ONE Heartbeat tick and replicates via player
+attributes; client `HungerThirstManager` is now a pure view; `hungerThirstDamage` has no
+server listener; `RespawnPlayerCharacter` requires the sender to be dead + rate limit.
+
+- **Decay + GUI (playtest).** Play and watch the hunger/thirst bars for a couple of minutes
+  (or speed it up: temporarily raise `decayPerSecond` in `Data/VitalsConfig`).
+  - ✅ Both bars tick down (thirst faster than hunger), the % labels count down, threshold
+    crossings play the stomach-rumble/gulp sound for the RIGHT stat only, and the bar tints
+    toward the stat color below 50%. Server attribute check: select your Player in the
+    Explorer → Attributes shows `Hunger`/`Thirst` falling.
+  - ❌ Bars never move (attributes not replicating — check the server Output for a
+    VitalsService require error), or a thirst threshold plays the hunger sound (the old
+    M11 cross-fire).
+
+- **C9 — starvation is server-owned (playtest).** Set both decay rates high (e.g. 5/s) in
+  VitalsConfig, let both stats hit zero.
+  - ✅ Health starts dropping ~2 HP/s (1 per starving stat) ONLY once a stat is at zero,
+    and the death flow triggers normally at 0 HP. A client firing the old
+    `hungerThirstDamage` remote (command bar on the client:
+    `game.ReplicatedStorage.VitalsSystem_Storage.hungerThirstDamage:FireServer(true, workspace.SomeDummy.Humanoid, 100)`)
+    does nothing to anyone.
+  - ❌ No starvation damage ever lands, damage lands while stats are above zero, or the
+    old remote still damages a humanoid.
+
+- **M12 — respawn refills (playtest).** Die (starve or jump off something), respawn.
+  - ✅ Hunger/thirst are back at 100% on the new character; bars white; no leftover rumble.
+  - ❌ The new life starts with the dead life's values, or the GUI shows stale tint/values.
+
+- **C16 — respawn only when dead (remote test).** While ALIVE, fire
+  `game.ReplicatedStorage.VitalsSystem_Storage.RespawnPlayerCharacter:FireServer()` from the
+  client command bar; then die and use the death screen's respawn button normally.
+  - ✅ Nothing happens while alive; the death-screen respawn still works when dead (spam
+    is capped at 1/s).
+  - ❌ An alive character respawns (combat escape), or the legitimate death-screen respawn
+    is rejected.
+
+- **Output clean (playtest).** Whole session: no errors from `VitalsService`/
+  `VitalsSystemReceivers`/`HungerThirstManager`, and no "adding to tbl" warns.
+
+---
+
 ## Quick checklist (copy into the PR/commit notes)
 
 - [ ] Output clean across a full session (no nil-index/missing-method/FireClient errors, no debug spam)

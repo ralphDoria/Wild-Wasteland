@@ -1,41 +1,46 @@
-local RS = game:GetService("ReplicatedStorage")
-local VitalsSystem_Storage = RS:FindFirstChild("VitalsSystem_Storage", true)
-local remotes: {[string]: RemoteEvent} = {
-    hungerThirstDamage = VitalsSystem_Storage:FindFirstChild("hungerThirstDamage", true),
-    RespawnPlayerCharacter = VitalsSystem_Storage:FindFirstChild("RespawnPlayerCharacter", true)
-}
+--!strict
+--[[
+	Vitals server entry point (Tier 3 rewrite).
 
-local dmgThreads: {[string]: thread} = {}
+	- Boots VitalsService (server-authoritative hunger/thirst — see VitalsService.lua).
+	- The old hungerThirstDamage handler is GONE (BUGS.md C9/M13): the server simulates
+	  starvation itself, so the Studio-side remote is now inert if a client fires it.
+	- RespawnPlayerCharacter is gated (C16): only honored for a player who is actually
+	  dead, at a bounded rate — no more free combat-escape respawns.
+]]
 
-local mt = {}
-mt.__newindex = function(tbl, i, v)
-    if v ~= nil then
-        dmgThreads[i] = task.spawn(function()
-            while v.humanoid.Health > 0 do
-                v.humanoid:TakeDamage(v.damage)
-                task.wait(1)
-            end
-        end)
-    else
-        if dmgThreads[i] ~= nil then
-            task.cancel(dmgThreads[i])
-        end
-    end
-end
-local affectedHumanoids = setmetatable({}, mt)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-remotes.hungerThirstDamage.OnServerEvent:Connect(function(player: Player, addToTbl: boolean, humanoidToDamage: Humanoid?, damage: number?, timeInterval: number?)
-    if addToTbl then
-        warn("adding to tbl")
-        affectedHumanoids[player.Name] =  {
-            humanoid = humanoidToDamage,
-            damage = damage
-        }
-    else
-        affectedHumanoids[player.Name] = nil
-    end
+local VitalsConfig = require(ReplicatedStorage.RojoManaged_RS.VitalsSystem_ScriptStorage.Data.VitalsConfig)
+local VitalsService = require(script.Parent.VitalsService)
+
+VitalsService.init()
+
+local VitalsSystem_Storage = ReplicatedStorage:FindFirstChild("VitalsSystem_Storage", true)
+assert(VitalsSystem_Storage, "VitalsSystem_Storage not found in ReplicatedStorage")
+local respawnRemote = VitalsSystem_Storage:FindFirstChild("RespawnPlayerCharacter", true) :: RemoteEvent
+
+local lastRespawnRequest: { [Player]: number } = {}
+Players.PlayerRemoving:Connect(function(player: Player)
+	lastRespawnRequest[player] = nil
 end)
 
-remotes.RespawnPlayerCharacter.OnServerEvent:Connect(function(player: Player)  
-    player:LoadCharacter()
+respawnRemote.OnServerEvent:Connect(function(player: Player)
+	local character = player.Character
+	if character then
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid and humanoid.Health > 0 then
+			return -- alive senders don't get a respawn (C16)
+		end
+	end
+
+	local now = os.clock()
+	local last = lastRespawnRequest[player]
+	if last and now - last < VitalsConfig.respawnRequestCooldown then
+		return
+	end
+	lastRespawnRequest[player] = now
+
+	player:LoadCharacter()
 end)

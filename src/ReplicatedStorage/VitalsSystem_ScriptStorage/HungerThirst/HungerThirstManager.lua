@@ -1,150 +1,98 @@
+--[[
+	Hunger/Thirst VIEW (Tier 3 rewrite). The simulation lives on the server
+	(VitalsSystem_Server/VitalsService) and replicates via player attributes
+	("Hunger"/"Thirst"); this module only renders:
+	- the circular GUI bar (StatGuiManager)
+	- the threshold-crossing rumble/gulp sound, on DOWNWARD crossings only
+	  (restores from future food/drink shouldn't rumble)
+	- the low-value tint toward the stat color
+
+	The old client decay loops, the module-level shared threshold event (BUGS.md M11),
+	and the hungerThirstDamage remote (C9) are all gone.
+]]
+
 local RS = game:GetService("ReplicatedStorage")
-local VitalsSystem_Storage = RS:FindFirstChild("VitalsSystem_Storage", true)
-local remotes: {[string]: RemoteEvent} = {
-    hungerThirstDamage = VitalsSystem_Storage:FindFirstChild("hungerThirstDamage", true)
-}
-local References = require(RS.RojoManaged_RS.VitalsSystem_ScriptStorage.Data.References)
+local VitalsSystem_ScriptStorage = RS.RojoManaged_RS.VitalsSystem_ScriptStorage
+local References = require(VitalsSystem_ScriptStorage.Data.References)
+local VitalsConfig = require(VitalsSystem_ScriptStorage.Data.VitalsConfig)
+local VitalsSim = require(VitalsSystem_ScriptStorage.Sim.VitalsSim)
 
-local soundsTbl = {
-    Thirst = References.SoundService:FindFirstChild("Gulping Water Glottal Croaks Slurp Water 1 (SFX)", true),
-    Hunger = References.SoundService:FindFirstChild("StomachRumble", true)
-}
-
-local Config = {
-    Thirst = {
-        speed = 1/3,
-        increment = 1,
-        damage = 1
-    },
-    Hunger = {
-        speed = 1/4,
-        increment = 1,
-        damage = 1
-    }
+local soundsTbl: { [string]: Sound? } = {
+	Thirst = References.SoundService:FindFirstChild("Gulping Water Glottal Croaks Slurp Water 1 (SFX)", true),
+	Hunger = References.SoundService:FindFirstChild("StomachRumble", true),
 }
 
-local valueThresholds = {
-    Thirst = {0, 0.1, 0.25, 0.5, 1},
-    Hunger = {0, 0.1, 0.25, 0.5, 1}
+local statColors: { [string]: Color3 } = {
+	Thirst = Color3.fromRGB(198, 204, 19),
+	Hunger = Color3.fromRGB(255, 123, 0),
 }
-
-local function findThresholdSection(option: "Thirst" | "Hunger", currentSection: number, currentProportion: number): number?
-    local threshold = valueThresholds[option]
-    ------------------
-    -- two for loops because checking starting from currentSection to end and then 
-    -- going back to beginning and checking to currentSection may be faster in most cases
-    ------------------
-    for i = currentSection, #threshold - 1, 1 do
-        if threshold[i] <= currentProportion and currentProportion <= threshold[i+1] then
-            return i
-        end
-    end
-
-    if currentSection ~= 1 then
-        for i = 1, currentSection - 1, 1 do
-            if threshold[i] <= currentProportion and currentProportion <= threshold[i+1] then
-                return i
-            end
-        end 
-    end
-
-    return nil
-end
-
-local thresholdChangedEvent: BindableEvent = Instance.new("BindableEvent")
-local thresholdChanged: RBXScriptSignal = thresholdChangedEvent.Event
 
 export type hungerThirstObject = {
-    MAX_VALUE: number,
-    currentValue: number,
-    currentThresholdSection: number,
-    statGuiObject: any,
-    trove: any
+	statGuiObject: any,
+	currentThresholdSection: number,
+	trove: any,
 }
 
 local HungerThirstManager = {}
 
 function HungerThirstManager.new(option: "Hunger" | "Thirst"): hungerThirstObject
-    local statGuiObject = References.StatGuiManager.new(References.VitalsGui:WaitForChild("Frame"):WaitForChild(option), option, if option == "Thirst" then Color3.fromRGB(198, 204, 19) else Color3.fromRGB(255, 123, 0))
-    local trove = References.Trove.new()
-    local MAX_VALUE = 100
-    local currentValue = MAX_VALUE
-    local currentThresholdSection = findThresholdSection(option, 1, currentValue/MAX_VALUE)
+	local config = VitalsConfig[option]
+	local thresholds = config.thresholds
+	local statGuiObject = References.StatGuiManager.new(
+		References.VitalsGui:WaitForChild("Frame"):WaitForChild(option),
+		option,
+		statColors[option]
+	)
+	local trove = References.Trove.new()
+	local sound = soundsTbl[option]
+	local player = References.player
 
-    local self: hungerThirstObject = {
-        MAX_VALUE = MAX_VALUE,
-        currentValue = currentValue,
-        currentThresholdSection = currentThresholdSection,
-        statGuiObject = statGuiObject,
-        trove = trove
-    }
+	local self: hungerThirstObject = {
+		statGuiObject = statGuiObject,
+		currentThresholdSection = #thresholds - 1,
+		trove = trove,
+	}
 
-    local threshold = valueThresholds[option]
+	local function render(value: number)
+		local proportion = math.clamp(value / config.max, 0, 1)
+		References.StatGuiManager.SetStatValue(statGuiObject, proportion)
 
-    local sound = soundsTbl[option]
-    trove:Connect(thresholdChanged, function(newThresholdSection)
-        if newThresholdSection ~= #threshold then
-            sound:Play()
-        end
-    end)
+		local newSection = VitalsSim.findThresholdSection(thresholds, proportion)
+		if newSection < self.currentThresholdSection and sound then
+			sound:Play()
+		end
+		self.currentThresholdSection = newSection
 
-    local isAffected = false
+		-- Tint from white toward the stat color as the bar falls below the
+		-- second-highest threshold (same mapping as pre-rewrite, plus an explicit
+		-- restore to white so refills clean up after themselves).
+		local canvasGroup = References.StatGuiManager.getCanvasGroup(statGuiObject)
+		local tintStart = thresholds[#thresholds - 1]
+		if proportion < tintStart then
+			local alpha = math.clamp(proportion / tintStart, 0, 1)
+			canvasGroup.GroupColor3 = statGuiObject.color:Lerp(Color3.new(1, 1, 1), alpha)
+		else
+			canvasGroup.GroupColor3 = Color3.new(1, 1, 1)
+		end
+	end
 
-    trove:Add(
-        task.spawn(function()
-            while task.wait(1/Config[option].speed) do
-                ------------------
-                -- threholdChanged signal fire
-                ------------------
-                local potentiallyNewThresholdSection = findThresholdSection(option, currentThresholdSection, currentValue/MAX_VALUE)
-                if potentiallyNewThresholdSection ~= currentThresholdSection then
-                    thresholdChangedEvent:Fire(potentiallyNewThresholdSection)
-                    currentThresholdSection = potentiallyNewThresholdSection
-                end
+	local initial = player:GetAttribute(option)
+	render(if typeof(initial) == "number" then initial else config.max)
 
-                ------------------
-                -- decrement hunger or damage humanoid flow control
-                ------------------
-                if currentValue > 0 then
-                    if isAffected == true then
-                        isAffected = false
-                        remotes.hungerThirstDamage:FireServer(false, References.humanoid, Config[option].damage)
-                    end
-                    local newValue = currentValue - Config[option].increment
-                    local proportion = newValue/MAX_VALUE
-                    References.StatGuiManager.SetStatValue(statGuiObject, proportion)
-                    currentValue = newValue
-                else
-                    if isAffected == false then
-                        isAffected = true
-                        remotes.hungerThirstDamage:FireServer(true, References.humanoid, Config[option].damage)
-                    end
-                end   
-                
-                ------------------
-                -- dynamic color change of gui relative to value
-                ------------------
-                if currentThresholdSection < #threshold - 1 then
-                    local alpha = math.clamp(
-                        math.map(
-                            currentValue/MAX_VALUE, 0, threshold[#threshold - 1], 0, 1 
-                        ),
-                        0,
-                        1
-                    ) 
-                    References.StatGuiManager.getCanvasGroup(statGuiObject).GroupColor3 = statGuiObject.color:Lerp(Color3.new(1, 1, 1), alpha)
-                end
-            end
-        end)
-    )
+	trove:Connect(player:GetAttributeChangedSignal(option), function()
+		local value = player:GetAttribute(option)
+		if typeof(value) == "number" then
+			render(value)
+		end
+	end)
 
-    return self
+	return self
 end
 
 function HungerThirstManager.Destroy(self: hungerThirstObject)
-    self.trove:Destroy()
-    References.StatGuiManager.Destroy(self.statGuiObject)
-    table.clear(self)
+	self.trove:Destroy()
+	References.StatGuiManager.Destroy(self.statGuiObject)
+	table.clear(self)
 end
 
 return HungerThirstManager
