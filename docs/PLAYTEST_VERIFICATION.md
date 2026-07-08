@@ -533,3 +533,41 @@ temporary config tweak.
 - [ ] Loot crates open without asserts; "all items" crate has no duplicate Light Bullets
 - [ ] Saved stat persists across a playtest Stop (BindToClose)
 - [ ] `rev_SpawnTool` client remote is absent
+
+---
+
+## Home Base Loop — scaffold (branch `home-base-loop`)
+
+Server-authoritative base↔wasteland loop scaffold (see docs/HOME_BASE_LOOP_RESEARCH.md).
+Persistence is backed by ProfileStore (`lm-loleris/profilestore`, a server-dependency).
+
+### Verified via MCP (2026-07-08) — automated, reliable
+
+- **TestEZ suite 73/73 green** in-engine, incl. the new `ItemSerializer.spec` (serialize/
+  round-trip/malformed-reject) and the first in-engine run of the vitals specs.
+- **Server require chain loads clean:** `PlayerProfileService` (constructs the ProfileStore),
+  `HomeBaseService`, `TravelService`, `BaseStorageService` all `require` without error.
+- **Place-content contract:** the placeholder `ServerStorage.HomeBaseTemplates.BunkerTemplate`
+  resolves as a Model with `PrimaryPart` + `StorageAnchor` + `SafeZone`; region grid math yields
+  distinct cells; the template clones and pivots exactly to a region origin; the entry CFrame
+  sits above it; `workspace.WastelandArrival` resolves as a BasePart.
+- **Storage round-trip** against real ToolCatalog data: a real tool serializes to
+  `{tag, quantity, attributes}` and deserializes back to an equivalent tool; a malformed entry
+  is rejected (nil, no crash).
+
+> Placeholder stubs (BunkerTemplate, WastelandArrival) were created in the place via MCP — SAVE
+> THE PLACE to persist them, and replace them with real art later (keep the named anchor parts).
+
+### Still needs a human F5 playtest (MCP can't introspect the play-session server VM here)
+
+- **Join → base:** on spawn the player is moved into their private bunker region (y≈-5000), a
+  `BunkerTemplate` clone exists in workspace, and the storage view is pushed. ❌ fail: character
+  stays at the map spawn / no clone / server error from `HomeBaseService`/`ProfileStore`.
+- **Travel out/home:** firing `RequestTravel:FireServer("Wasteland")` from the client shows the
+  intermission (~5 s), then the character appears at `WastelandArrival`; `"Home"` returns them to
+  the bunker entry. A bad/garbage intent or a second fire mid-travel does nothing. ❌ fail: no
+  move, instant move (no intermission), or a client-supplied value affecting the destination.
+- **Persistence:** deposit an item, Stop, rejoin → the item is still in base storage; two servers
+  never hold the same profile (ProfileStore session lock).
+- **C5 retirement:** once travel is live, confirm the old `MoveCharacterToSpawn` client-CFrame
+  RemoteFunction is removed and normal spawn placement is server-side.
