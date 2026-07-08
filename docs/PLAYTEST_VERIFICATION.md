@@ -346,6 +346,175 @@ consumed for that player (it merely triggers the all-clients cleanup echo). The 
 
 ---
 
+## Tier 3 — Vitals rewrite (branch `vitals-rewrite`)
+
+Server-authoritative vitals per [VITALS_REWRITE_PLAN.md](VITALS_REWRITE_PLAN.md). Run with
+Rojo serving **`test.project.json`** so the specs are in-place.
+
+### Batch V0 — shared config + pure sim (no behavior change)
+
+`Data/VitalsConfig` + `Sim/VitalsSim` + specs only; nothing requires them at runtime yet.
+
+- **Unit (automated):** `VitalsSim.spec` (decay clamp, threshold sections incl. boundaries/
+  clamping, stamina drain/cooldown/regen/cost clamps) and `VitalsConfig.spec` (shape:
+  positive finite numbers, strictly ascending 0→1 thresholds, affordable costs). Run via
+  `test.project.json` → Play (or the MCP). Suite must stay green alongside the existing specs.
+
+### Batch V1 — server-authoritative hunger/thirst + gated respawn (C9/M11/M12/M13/C16)
+
+`VitalsService` simulates decay/starvation on ONE Heartbeat tick and replicates via player
+attributes; client `HungerThirstManager` is now a pure view; `hungerThirstDamage` has no
+server listener; `RespawnPlayerCharacter` requires the sender to be dead + rate limit.
+
+- **Decay + GUI (playtest).** Play and watch the hunger/thirst bars for a couple of minutes
+  (or speed it up: temporarily raise `decayPerSecond` in `Data/VitalsConfig`).
+  - ✅ Both bars tick down (thirst faster than hunger), the % labels count down, threshold
+    crossings play the stomach-rumble/gulp sound for the RIGHT stat only, and the bar tints
+    toward the stat color below 50%. Server attribute check: select your Player in the
+    Explorer → Attributes shows `Hunger`/`Thirst` falling.
+  - ❌ Bars never move (attributes not replicating — check the server Output for a
+    VitalsService require error), or a thirst threshold plays the hunger sound (the old
+    M11 cross-fire).
+
+- **C9 — starvation is server-owned (playtest).** Set both decay rates high (e.g. 5/s) in
+  VitalsConfig, let both stats hit zero.
+  - ✅ Health starts dropping ~2 HP/s (1 per starving stat) ONLY once a stat is at zero,
+    and the death flow triggers normally at 0 HP. A client firing the old
+    `hungerThirstDamage` remote (command bar on the client:
+    `game.ReplicatedStorage.VitalsSystem_Storage.hungerThirstDamage:FireServer(true, workspace.SomeDummy.Humanoid, 100)`)
+    does nothing to anyone.
+  - ❌ No starvation damage ever lands, damage lands while stats are above zero, or the
+    old remote still damages a humanoid.
+
+- **M12 — respawn refills (playtest).** Die (starve or jump off something), respawn.
+  - ✅ Hunger/thirst are back at 100% on the new character; bars white; no leftover rumble.
+  - ❌ The new life starts with the dead life's values, or the GUI shows stale tint/values.
+
+- **C16 — respawn only when dead (remote test).** While ALIVE, fire
+  `game.ReplicatedStorage.VitalsSystem_Storage.RespawnPlayerCharacter:FireServer()` from the
+  client command bar; then die and use the death screen's respawn button normally.
+  - ✅ Nothing happens while alive; the death-screen respawn still works when dead (spam
+    is capped at 1/s).
+  - ❌ An alive character respawns (combat escape), or the legitimate death-screen respawn
+    is rejected.
+
+- **Output clean (playtest).** Whole session: no errors from `VitalsService`/
+  `VitalsSystemReceivers`/`HungerThirstManager`, and no "adding to tbl" warns.
+
+### Batch V2 — stamina authority + movement intent (C2, M7–M10 structural)
+
+Server stamina joins `VitalsService` (replicated as the `Stamina` attribute); WalkSpeed is
+now set ONLY by the server from `Data/Config.speed`, driven by the new runtime-created
+`MovementIntent` remote (mode name only — never a number or humanoid). Sprint is gated on
+server stamina; sprint drain requires the server to observe horizontal movement; jump cost
+charges on `Humanoid.StateChanged → Jumping`; melee swing cost charges on the validated
+`Swing` remote. Client `StaminaManager` is prediction (same `VitalsSim` math) + view,
+snapping to the attribute when divergence exceeds `reconcileSnapTolerance`. The old
+`ChangeHumanoidWalkSpeed` handler is deleted (Studio remote inert); the empty
+`SprintReceiver.lua` stub (L5) was removed.
+
+- **Unit (automated):** `VitalsSim.spec` gains `effectiveMovementMode` (sprint requires
+  stamina; other modes pass through) and `reconcile` (keep within tolerance, snap past it)
+  blocks; `VitalsConfig.spec` covers the new `movingSpeedThreshold`/`reconcileSnapTolerance`
+  knobs. Run via `test.project.json` → Play (or the MCP).
+
+- **Sprint feel unchanged (playtest — the big one).** Hold Shift and run; stop moving while
+  still holding Shift; release; sprint again.
+  - ✅ Moving while sprinting is visibly faster and drains the bar ~5/s; standing still
+    while "sprinting" does NOT drain; after stopping, regen kicks in after ~0.5 s at ~10/s;
+    the bar is smooth (no 1 Hz stutter or visible snapping while sprinting normally).
+  - ❌ No speed change on sprint (remote/intent wiring broken — check server Output for a
+    `MovementIntent`/`VitalsService` error), drain while standing, or the bar visibly
+    snaps/rubber-bands every second (reconcile tolerance too tight / server-client drift).
+
+- **Sprint exhaustion (playtest).** Sprint until stamina hits zero.
+  - ✅ At 0 the character drops to walking speed even if Shift is still held (server
+    downgrade + client kick-out agree); once stamina regenerates you can sprint again.
+  - ❌ Sprint speed persists at 0 stamina, or sprint never re-enables after regen.
+
+- **Crouch (playtest).** Press C to crouch, move, release.
+  - ✅ Crouch slows to the config speed with anims and camera offset as before;
+    releasing restores default speed.
+  - ❌ Speed doesn't change (intent path broken) or stays slow after release.
+
+- **Jump + melee swing costs (playtest).** Jump repeatedly; equip the Raider Axe and swing.
+  - ✅ Each jump and each swing knocks ~10 off the bar; the server agrees (select your
+    Player in Explorer → the `Stamina` attribute tracks the bar within ~15); jump/swing
+    gate off below their thresholds as before.
+  - ❌ Bar drops but the attribute never moves (server charge not landing — StateChanged
+    hook or Swing receiver), or double-charging (bar drops ~20 per action).
+
+- **C2 — speedhack is dead (remote test).** From the client command bar:
+  `game.ReplicatedStorage.MovementAndStaminaSystem_Storage.Remotes.ChangeHumanoidWalkSpeed:FireServer(game.Players.LocalPlayer.Character.Humanoid, 100)`
+  and also try it against another player's/NPC's humanoid. Then try
+  `...Remotes.MovementIntent:FireServer("Sprint")` with an empty stamina pool, and
+  `MovementIntent:FireServer(999)` / `("Turbo")`.
+  - ✅ The old remote does nothing (no listener). MovementIntent only ever yields the
+    three config speeds on YOUR OWN humanoid: garbage modes are ignored, Sprint with an
+    empty pool walks, and no other humanoid can be touched at all.
+  - ❌ Any WalkSpeed change lands on another humanoid, or a non-config speed appears.
+
+- **Respawn resets movement (playtest).** Die while sprinting/crouching.
+  - ✅ The new character walks at default speed and spawns with a full stamina bar.
+  - ❌ The new character spawns crouch-slow or sprint-fast (stale movement mode).
+
+- **Output clean (playtest).** No errors from `VitalsService`, `Main` (movement receiver),
+  `StaminaManager`, or `MeleeReceiver` across sprint/crouch/jump/swing/death.
+
+**Addendum (2026-07-08) — breathing GUI pulse fixes** (user-reported blue-snap bug + a
+leak found alongside it; both in `_toggleGuiBreathingSync`):
+
+- **Pulse is smooth on a cold start (playtest).** In a fresh session (ideally first run
+  after a Studio restart, so audio isn't cached), drain stamina below 50% and watch the
+  stamina bar's breathing pulse for several breath cycles.
+  - ✅ The bar color oscillates white → blue → white smoothly, in sync with the breathing
+    audio, from the very first cycle (or begins pulsing the moment the sound asset loads).
+  - ❌ The color ramps to blue, freezes, then snaps to white once per breath (the old
+    behavior: the sound's `TimeLength` was captured as 0 at require time, so the
+    blue→white half of the pulse never rendered).
+
+- **Breathing sync survives death (playtest).** Drain stamina below 50% (breathing sync
+  active), die, respawn, drain below 50% again.
+  - ✅ The pulse works on the new life; no errors on death or respawn.
+  - ❌ `BindToRenderStep: 'GuiBreathingSync' is already bound` (or similar) in Output on
+    the second life, and/or the pulse never returns (the binding leaked across death).
+
+### Batch V3 — consumable restore path (M12's missing food/drink feature)
+
+`ConsumableStats` entries now declare `restores = { Health/Hunger/Thirst/Stamina = n }`
+instead of `healAmount`. On a validated use, `ConsumableReceiver` applies `restores.Health`
+to the sender's humanoid (clamped to MaxHealth, exactly as before) and passes the table to
+`VitalsService.restore`, which clamps Hunger/Thirst/Stamina to their config max and ignores
+unknown keys. Gameplay is otherwise unchanged: the Healing Injection still restores only
+25 Health — no food/drink item exists yet, so the hunger/thirst leg is verified with a
+temporary config tweak.
+
+- **Unit (automated):** `ConsumableStats.spec` rewritten for the shape: every entry
+  restores ≥ 1 stat from the known set (typo'd keys fail the spec instead of silently
+  restoring nothing), positive finite amounts, finite cooldown, Healing Injection restores
+  Health. Run via `test.project.json` → Play (or the MCP).
+
+- **Heal regression (playtest).** Take damage, use a Healing Injection (the full Batch 5
+  flow).
+  - ✅ Health rises by exactly 25 (clamped at MaxHealth); item consumed; cooldown caps
+    spam — identical to the Batch 5 checks.
+  - ❌ No heal or a different amount (the `restores.Health` re-shape broke the path).
+
+- **M12 — food/drink restores land (playtest, config tweak).** Temporarily add
+  `Hunger = 25, Thirst = 25, Stamina = 25` to the Healing Injection's `restores` in
+  `Data/ConsumableStats`, let hunger/thirst tick down a bit and drain some stamina, then
+  use an injection.
+  - ✅ The hunger and thirst bars jump up by 25 points each (server attributes on the
+    Player rise too), stamina refills by 25, all clamp at max, and **no** rumble/gulp
+    sound plays on the upward crossing (the V1 view is downward-only). Revert the tweak.
+  - ❌ Bars don't move (restore not reaching VitalsService), a stat overshoots its max,
+    or the threshold sound fires on a refill.
+
+- **Output clean (playtest).** No errors from `ConsumableReceiver`/`VitalsService` during
+  repeated consumable use.
+
+---
+
 ## Quick checklist (copy into the PR/commit notes)
 
 - [ ] Output clean across a full session (no nil-index/missing-method/FireClient errors, no debug spam)

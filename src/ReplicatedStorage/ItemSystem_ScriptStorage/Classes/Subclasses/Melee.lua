@@ -19,6 +19,7 @@ local Item = require("../Superclasses/Item")
 -- Melee Item specific modules
 local HitboxManager = require("../Components/Shared/HitboxManager")
 local StaminaManager = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.Stamina.StaminaManager)
+local VitalsConfig = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.Data.VitalsConfig)
 local MeleeVMM = require("../Components/Melee/MeleeVMM")
 local CameraShaker = require(ReplicatedStorage.Packages.CameraShaker)
 local currentCamera = workspace.CurrentCamera
@@ -46,7 +47,9 @@ local Melee =  {}
 function Melee.new(tool : Tool) : MeleeObject
     local self: MeleeObject = Item.new(tool):: MeleeObject
     self.damage = (CombatStats[tool.Name] and CombatStats[tool.Name].damage) or 50
-    self.staminaCost = 10
+    -- Client-side prediction of the cost; the server charges the same number from
+    -- VitalsConfig on the Swing remote (Tier 3 Batch V2)
+    self.staminaCost = VitalsConfig.Stamina.swingCost
     self.swingSpeed = 1
     self.HitboxManager = HitboxManager.new(tool, {References_ItemSystem.character, References_ItemSystem.viewmodelManagerObject.viewmodel})
     self.trail = tool:FindFirstChildWhichIsA("Trail", true):: Trail

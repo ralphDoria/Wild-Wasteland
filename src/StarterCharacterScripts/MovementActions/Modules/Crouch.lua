@@ -3,12 +3,13 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid: Humanoid = character.Humanoid
 local animator: Animator = humanoid:FindFirstChildOfClass("Animator") :: Animator
 local TweenService = game:GetService("TweenService")
-local Config = require(game:GetService("ReplicatedStorage").RojoManaged_RS.VitalsSystem_ScriptStorage.Data.Config)
 local MovementDirectionMonitor = require("./MovementDirectionMonitor")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MovementAndStaminaSystem_Storage = ReplicatedStorage.MovementAndStaminaSystem_Storage
+-- Tier 3 Batch V2: server owns WalkSpeed; we send an intent mode, not a number.
+-- The remote is created by the server at runtime, hence WaitForChild.
 local remotes: {[string]: RemoteEvent} = {
-    ChangeHumanoidWalkSpeed = MovementAndStaminaSystem_Storage.Remotes.ChangeHumanoidWalkSpeed
+    MovementIntent = MovementAndStaminaSystem_Storage.Remotes:WaitForChild("MovementIntent")
 }
 local crouchAnimTrack = {
 	idle = animator:LoadAnimation(MovementAndStaminaSystem_Storage.Anims.crouchIdle),
@@ -46,7 +47,7 @@ function Crouch.activate()
     if character and character.Parent ~= nil then
         crouchAnimTrack.idle:Play()
         camOffsetTween.down:Play()
-        remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Crouch"])
+        remotes.MovementIntent:FireServer("Crouch")
 
         -- Initial check
         crouchWalkIfMoving(character.HumanoidRootPart.AssemblyLinearVelocity.Magnitude)
@@ -84,7 +85,7 @@ function Crouch.deactivate()
         v:Stop()
     end
     camOffsetTween.up:Play()
-    remotes.ChangeHumanoidWalkSpeed:FireServer(humanoid, Config.speed["Default"])
+    remotes.MovementIntent:FireServer("Default")
 
     Crouch.active = false
     character:SetAttribute("Crouch", false)
