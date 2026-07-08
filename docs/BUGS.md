@@ -72,6 +72,7 @@ Quick reference; full paths and details are in each entry below. Server files ar
 | M18 | LootingSystem_Server/Services/LootDataService.lua | 66-81 |
 | M19 | InventorySystem_ScriptStorage/Components/ToolStateMachine/Main_ToolStateMachine.lua | 89/96, 167-170, 327-333, 174-179 |
 | M20 | InventorySystem_ScriptStorage/Components/ToolStateMachine/Main_ToolStateMachine.lua | 267-273 |
+| M21 | StarterCharacterScripts/InitDeathScreen.client.lua | 145-181 (esp. 55-85, 158-170) |
 | L1 | CorpseKeeper.server.lua | 10-15 |
 | L2 | ItemSystem_ScriptStorage/.../HitboxManager.lua (+4 files, see entry) | 22-23 |
 | L3 | ItemSystem_ScriptStorage/Classes/Superclasses/Item.lua; StaminaManager.lua | 104-106; 193-195 |
@@ -407,6 +408,20 @@ A `continue` (or loop restructure) appears intended.
 ### M20. Loot crate "isEmptyTable" treats nil as viable
 `src/ReplicatedStorage/.../Main_ToolStateMachine.lua:267-273` — minor: a nil path returns `false`
 ("not empty"), which is why the unreachable-reject path in M19 matters; a nil path slips through validation.
+
+### M21. Death screen re-wires button events every life, leaking connections
+`src/StarterCharacterScripts/InitDeathScreen.client.lua:145-181`
+The script runs in **StarterCharacterScripts** (re-executes per life), but the `DeathScreen` ScreenGui
+is `ResetOnSpawn = false` (persists across lives). Each life's `humanoid.Died:Once` handler (line 158)
+calls `ButtonsManager.connectButtonEvents`, which appends new `MouseEnter`/`MouseLeave`/`MouseButton1Click`
+connections into the module-level `buttonConnections` table (lines 55-85) **without ever disconnecting the
+previous life's connections**. After N deaths each button carries N stacked handlers. Consequences: the
+italic/normal `FontFace.Style` toggle used as click-state (lines 76-82) flips N times per click so the
+`clickCallbackTbl[buttonName](toggle)` boolean is unreliable, and the respawn button fires
+`RespawnPlayerCharacter:FireServer()` N times per click (line 165) — currently masked only by the Tier 3 V1
+server-side 1/s respawn rate limit. Fix: disconnect + clear `buttonConnections` at the top of
+`connectButtonEvents`, or move the wiring out of the per-life `Died` handler. (Found during the 2026-07-08
+top-level-UI review — see docs/TOPLEVEL_UI_ASSESSMENT.md.)
 
 ---
 
