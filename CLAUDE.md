@@ -24,8 +24,12 @@ client managers become views.
   by `MovementAndStaminaSystem_Server/Main.server.lua`) replaces the deleted
   `ChangeHumanoidWalkSpeed` handler (Studio remote now inert). Client: `StaminaManager` =
   VitalsSim prediction + attribute reconciliation; Sprint/Crouch fire intents; Melee cost
-  reads VitalsConfig. `SprintReceiver.lua` stub (L5) deleted. Specs extended. Code
-  complete; **playtest gate OPEN** (PLAYTEST_VERIFICATION.md → Tier 3 Batch V2).
+  reads VitalsConfig. `SprintReceiver.lua` stub (L5) deleted. Specs extended. Plus a
+  2026-07-08 addendum: breathing GUI pulse fixed (TimeLength was captured at require time
+  while still 0 → blue-ramp-then-snap-to-white; now read lazily in the render step) and
+  the `GuiBreathingSync` binding is unbound in `Destroy` (dying below 50% stamina leaked
+  it and errored the next life's bind). Code complete; **playtest gate OPEN**
+  (PLAYTEST_VERIFICATION.md → Tier 3 Batch V2, incl. addendum).
 - 🟡 **Batch V3** — restore path (M12's missing food/drink feature). `ConsumableStats`
   entries reshaped: `healAmount` → `restores = {Health/Hunger/Thirst/Stamina = n}`;
   `ConsumableReceiver.heal` applies Health to the humanoid and routes the rest through

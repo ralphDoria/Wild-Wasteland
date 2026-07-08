@@ -43,14 +43,17 @@ type sfx_info = {[string]: {
     }
 }}
 
+-- NOTE: the tables hold only the section START markers. The final section's end is the
+-- sound's TimeLength, read LIVE in the GuiBreathingSync render step — TimeLength is 0
+-- until the audio asset loads, and baking it in here at require time froze that 0 forever
+-- on slow-load sessions (the blue-ramp-then-snap-to-white pulse bug).
 local sfx_info: sfx_info = {
     ["Male"] = {
         sound = References.SoundService:FindFirstChild("MaleBreathing", true),
         timePositionMarkers = {
             0,
             -- 0.07,--exhale
-            0.56, --inhale
-            References.SoundService:FindFirstChild("MaleBreathing", true).TimeLength
+            0.56 --inhale
         },
         breathingSpeed = {
             min = 0.5,
@@ -66,8 +69,7 @@ local sfx_info: sfx_info = {
         timePositionMarkers = {
             0,
             -- 0.14, --exhale
-            0.69, --inhale
-            References.SoundService:FindFirstChild("FemaleBreathing", true).TimeLength
+            0.69 --inhale
         },
         breathingSpeed = {
             min = 0.5,
@@ -91,6 +93,7 @@ export type StaminaObject = {
     drainActive: boolean,
     fillActive: boolean,
     aboveStartBreathingThreshold: boolean,
+    _guiBreathingSyncActive: boolean,
     _actionNameToMinimumStaminaMap: {[string]: number},
     trove: any
 }
@@ -120,6 +123,7 @@ function StaminaManager.new(): StaminaObject
         drainActive = false,
         fillActive = false,
         aboveStartBreathingThreshold = true,
+        _guiBreathingSyncActive = false,
         _actionNameToMinimumStaminaMap = {},
         trove = Trove.new()
     }
@@ -180,6 +184,13 @@ end
 
 function StaminaManager.Destroy(self: StaminaObject)
     StaminaManager.initializedCharacters[self._associatedCharacter] = nil
+    -- The render-step binding is a GLOBAL name the trove doesn't own. Dying while the
+    -- breathing sync is active (stamina < 50%) would otherwise leak the binding — it
+    -- keeps tweening the destroyed gui, and the next life's bind of the same name throws.
+    if self._guiBreathingSyncActive then
+        self._guiBreathingSyncActive = false
+        RunService:UnbindFromRenderStep("GuiBreathingSync")
+    end
     self.trove:Destroy()
     table.clear(self)
 end
@@ -207,13 +218,21 @@ function StaminaManager._toggleGuiBreathingSync(self: StaminaObject, toggle: boo
     local fadeOutTween: Tween?
 
     if toggle then
+        self._guiBreathingSyncActive = true
         RunService:BindToRenderStep("GuiBreathingSync", 201, function(delta: number)
+            -- Read TimeLength live: it stays 0 until the audio asset has loaded, so it
+            -- must never be captured ahead of time. Until it's ready, skip the frame
+            -- (the color just holds) — the pulse self-heals the moment the asset loads.
+            local timeLength = sound.TimeLength
+            if timeLength <= 0 then
+                return
+            end
             local currentTimePosition = math.round(sound.TimePosition*100)/100
-            for i = 1, #markers - 1, 1 do
-                if markers[i] <= currentTimePosition and currentTimePosition < markers[i + 1] then
+            for i = 1, #markers, 1 do
+                local t0: number = markers[i]
+                local t1: number = markers[i + 1] or timeLength -- last section ends at the live TimeLength
+                if t0 <= currentTimePosition and currentTimePosition < t1 then
                     local dynamicColorValue: Color3
-                    local t0: number = markers[i]
-                    local t1: number = markers[i + 1]
                     local a: number = (currentTimePosition - t0) / (t1 - t0)
                     if i == 1 then
                         dynamicColorValue = white:Lerp(blue, a)
@@ -227,6 +246,7 @@ function StaminaManager._toggleGuiBreathingSync(self: StaminaObject, toggle: boo
         end)
     else
         -- print("Playing tween from:", BrickColor.new(References.StatGuiManager.getCanvasGroup(self.statGuiObject).GroupColor3).Name)
+        self._guiBreathingSyncActive = false
         RunService:UnbindFromRenderStep("GuiBreathingSync")
         local ti = TweenInfo.new(3)
         References.TweenService:Create(References.StatGuiManager.getCanvasGroup(self.statGuiObject), ti, {GroupColor3 = Color3.new(1, 1, 1)}):Play()

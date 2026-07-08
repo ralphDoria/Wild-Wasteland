@@ -461,6 +461,24 @@ snapping to the attribute when divergence exceeds `reconcileSnapTolerance`. The 
 - **Output clean (playtest).** No errors from `VitalsService`, `Main` (movement receiver),
   `StaminaManager`, or `MeleeReceiver` across sprint/crouch/jump/swing/death.
 
+**Addendum (2026-07-08) — breathing GUI pulse fixes** (user-reported blue-snap bug + a
+leak found alongside it; both in `_toggleGuiBreathingSync`):
+
+- **Pulse is smooth on a cold start (playtest).** In a fresh session (ideally first run
+  after a Studio restart, so audio isn't cached), drain stamina below 50% and watch the
+  stamina bar's breathing pulse for several breath cycles.
+  - ✅ The bar color oscillates white → blue → white smoothly, in sync with the breathing
+    audio, from the very first cycle (or begins pulsing the moment the sound asset loads).
+  - ❌ The color ramps to blue, freezes, then snaps to white once per breath (the old
+    behavior: the sound's `TimeLength` was captured as 0 at require time, so the
+    blue→white half of the pulse never rendered).
+
+- **Breathing sync survives death (playtest).** Drain stamina below 50% (breathing sync
+  active), die, respawn, drain below 50% again.
+  - ✅ The pulse works on the new life; no errors on death or respawn.
+  - ❌ `BindToRenderStep: 'GuiBreathingSync' is already bound` (or similar) in Output on
+    the second life, and/or the pulse never returns (the binding leaked across death).
+
 ### Batch V3 — consumable restore path (M12's missing food/drink feature)
 
 `ConsumableStats` entries now declare `restores = { Health/Hunger/Thirst/Stamina = n }`
