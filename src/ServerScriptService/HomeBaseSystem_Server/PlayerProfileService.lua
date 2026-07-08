@@ -1,127 +1,119 @@
 --!nonstrict
 --[[
 	Session-locked per-player profile persistence — the critical-path replacement for the
-	current one-DataStore-per-stat design (Miscellaneous/DataSaveSystem). ONE DataStore key per
-	player holds { stats, storage, base } (see HomeBaseConfig.profile.storeName and
-	docs/HOME_BASE_LOOP_RESEARCH.md). This is also where BUGS.md M15's "full retry / session
-	locking is Tier 3" note gets satisfied.
+	one-DataStore-per-stat design (Miscellaneous/DataSaveSystem). ONE profile key per player
+	holds { stats, storage, base } (see docs/HOME_BASE_LOOP_RESEARCH.md). Also satisfies BUGS.md
+	M15 (full retry / session locking).
 
-	SCAFFOLD STATUS: the load/save/release flow and the UpdateAsync-based session lock are
-	sketched with the correct shape, but the locking is deliberately conservative and NOT yet
-	hardened/playtested. Two paths forward, decide before relying on it:
-	  (a) finish this hand-rolled UpdateAsync lock (steal-after-stale, release on remove), or
-	  (b) adopt the community ProfileStore module (recommended — battle-tested session locking)
-	      as a Wally dependency and make this a thin adapter over it.
-	Either way the PUBLIC INTERFACE below is what the rest of the system codes against, so the
-	choice stays isolated here.
+	This is a THIN ADAPTER over ProfileStore (lm-loleris/profilestore) — the battle-tested
+	session-locking / auto-save / graceful-migration module — so the rest of the system codes
+	against the small stable interface below and never touches ProfileStore directly. Swapping
+	the backing store later means editing only this file.
+
+	ProfileStore gives us for free: cross-server session hand-off (StartSessionAsync notifies the
+	owning server to make a final save before releasing), periodic auto-save, :Reconcile() to
+	fill new template fields on existing saves, and OnSessionEnd for lock-loss handling.
 
 	TODO(migration): first load for an existing player should import the legacy per-stat
-	DataStores (PlayerStatsInfo) into profile.stats, then this service becomes the sole writer
-	and DataSaveSystem.server.lua is retired. Not done yet — the two coexist during scaffolding.
+	DataStores (PlayerStatsInfo) into Profile.Data.stats, after which this becomes the sole
+	writer and DataSaveSystem.server.lua is retired. Left as a follow-up; the two coexist for now.
 ]]
 
-local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
+local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local ProfileStore = require(ServerScriptService.ServerPackages.ProfileStore)
 local HomeBaseConfig = require(ReplicatedStorage.RojoManaged_RS.HomeBaseSystem_ScriptStorage.Data.HomeBaseConfig)
 
-local store = DataStoreService:GetDataStore(HomeBaseConfig.profile.storeName)
+-- Template = the default profile shape. ProfileStore:Reconcile() backfills these onto older
+-- saves, so adding a field here is a safe, non-destructive migration.
+local PROFILE_TEMPLATE = {
+	stats = {},
+	storage = {},
+	base = {
+		type = HomeBaseConfig.defaultBaseType,
+		upgrades = {},
+		builds = {},
+	},
+}
+
+local playerStore = ProfileStore.New(HomeBaseConfig.profile.storeName, PROFILE_TEMPLATE)
 
 local PlayerProfileService = {}
 
--- In-memory live profiles for players on this server. The rest of the system reads/mutates
--- these; they are flushed to the DataStore on release.
+-- player -> ProfileStore profile object (nil when no active session)
 local profiles: { [Player]: any } = {}
-
-local function defaultProfile()
-	return {
-		stats = {},
-		storage = {},
-		base = {
-			type = HomeBaseConfig.defaultBaseType,
-			upgrades = {},
-			builds = {},
-		},
-		-- lock metadata (server jobId + timestamp) is written into the DataStore, not exposed here
-	}
-end
 
 -- ── Public interface (stable; the whole system depends only on these) ────────────────────────
 
--- Load (and session-lock) a player's profile. Yields. Returns the live profile table, or nil
--- on hard failure (caller should then kick the player to avoid data loss).
+-- Start (session-lock) a player's profile. Yields. Returns the live Profile.Data table, or nil
+-- on failure / if the player left mid-load (caller should stop and let PlayerRemoving clean up).
 function PlayerProfileService.load(player: Player): any?
-	-- TODO(lock): UpdateAsync that (1) reads existing data, (2) refuses if a fresh lock from
-	-- another server is present, (3) steals a lock older than sessionLockStaleSeconds, (4)
-	-- stamps our jobId + os.time(), (5) returns the data. Retry loadRetries times.
-	local data
-	for attempt = 1, HomeBaseConfig.profile.loadRetries do
-		local ok, result = pcall(function()
-			return store:GetAsync(player.UserId) -- PLACEHOLDER: replace with the UpdateAsync lock above
-		end)
-		if ok then
-			data = result or defaultProfile()
-			break
-		end
-		warn(`[PlayerProfileService] load attempt {attempt} failed for {player.Name}: {tostring(result)}`)
-		task.wait(2 ^ attempt) -- exponential backoff
+	local profile = playerStore:StartSessionAsync(`{player.UserId}`, {
+		Cancel = function()
+			return player.Parent ~= Players -- stop trying if they already left
+		end,
+	})
+
+	if not profile then
+		return nil -- could not acquire the session (another server won't release / DataStore down)
 	end
-	if not data then
+
+	profile:AddUserId(player.UserId) -- GDPR compliance / association
+	profile:Reconcile() -- backfill any new PROFILE_TEMPLATE fields onto older saves
+
+	profile.OnSessionEnd:Connect(function()
+		-- The session was lost (another server stole it, or the store dropped it). Drop our
+		-- reference and kick so we never write stale data over the new owner's.
+		profiles[player] = nil
+		player:Kick("Your profile session was ended remotely. Please rejoin.")
+	end)
+
+	if player.Parent ~= Players then
+		-- Player left during the async load; release immediately so their data isn't locked.
+		profile:EndSession()
 		return nil
 	end
-	profiles[player] = data
-	return data
+
+	profiles[player] = profile
+	return profile.Data
 end
 
--- Get the already-loaded live profile (nil if not loaded / already released).
+-- Get the already-loaded live data table (nil if not loaded / already released).
 function PlayerProfileService.get(player: Player): any?
-	return profiles[player]
+	local profile = profiles[player]
+	return if profile then profile.Data else nil
 end
 
--- Persist the live profile without releasing the lock (periodic autosave / pre-travel checkpoint).
-function PlayerProfileService.save(player: Player): boolean
-	local data = profiles[player]
-	if not data then
-		return false
-	end
-	local ok, err = pcall(function()
-		-- TODO(lock): UpdateAsync that verifies WE still hold the lock before writing.
-		store:SetAsync(player.UserId, data) -- PLACEHOLDER
-	end)
-	if not ok then
-		warn(`[PlayerProfileService] save failed for {player.Name}: {tostring(err)}`)
-	end
-	return ok
+-- Whether a live session is held (data is safe to mutate).
+function PlayerProfileService.isLoaded(player: Player): boolean
+	return profiles[player] ~= nil
 end
 
--- Save and drop the session lock (on PlayerRemoving / BindToClose).
+-- End the session (save + release lock). ProfileStore makes the final save itself.
 function PlayerProfileService.release(player: Player)
-	PlayerProfileService.save(player)
-	-- TODO(lock): clear the lock stamp so another server can take over immediately.
+	local profile = profiles[player]
+	if not profile then
+		return
+	end
 	profiles[player] = nil
+	profile:EndSession()
 end
 
--- Flush every live profile (server shutdown). Bounded so we never hang shutdown.
+-- ProfileStore auto-saves; explicit shutdown flushing is handled by ProfileStore's own
+-- game:BindToClose. Kept for interface symmetry / callers that want an eager release.
 function PlayerProfileService.releaseAll()
-	local remaining = 0
-	for player in profiles do
-		remaining += 1
-		task.spawn(function()
-			PlayerProfileService.release(player)
-			remaining -= 1
-		end)
-	end
-	local elapsed = 0
-	while remaining > 0 and elapsed < 25 do
-		elapsed += task.wait()
+	for _, player in Players:GetPlayers() do
+		PlayerProfileService.release(player)
 	end
 end
 
--- Convenience for the stats leg (keeps the attribute-based API the rest of the game expects).
--- Mirrors a stat into both the profile and a player attribute so existing readers keep working.
+-- ── Stats convenience (keeps the attribute-based API the rest of the game already reads) ──────
+-- Mirrors a stat into both the profile and a player attribute so existing GetAttribute readers
+-- keep working while persistence moves under this service.
 function PlayerProfileService.setStat(player: Player, statName: string, value: number)
-	local data = profiles[player]
+	local data = PlayerProfileService.get(player)
 	if not data then
 		return
 	end
@@ -130,7 +122,7 @@ function PlayerProfileService.setStat(player: Player, statName: string, value: n
 end
 
 function PlayerProfileService.getStat(player: Player, statName: string): number?
-	local data = profiles[player]
+	local data = PlayerProfileService.get(player)
 	return if data then data.stats[statName] else nil
 end
 

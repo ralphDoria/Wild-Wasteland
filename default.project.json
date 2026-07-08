@@ -52,6 +52,9 @@
       "RojoManaged_SSS": {
         "$className": "Folder",
         "$path": "src/ServerScriptService"
+      },
+      "ServerPackages": {
+        "$path": "ServerPackages"
       }
     }
 
