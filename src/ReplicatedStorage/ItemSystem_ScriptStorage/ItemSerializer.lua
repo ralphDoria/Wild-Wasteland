@@ -1,17 +1,23 @@
 --!strict
 --[[
-	Pure item (de)serialization for base storage + profile persistence.
+	Pure item (de)serialization for inventory/storage persistence.
 
 	Tools are ToolCatalog entries keyed by name, so an item round-trips as
 	{ tag = <toolName>, quantity = n, attributes = {<whitelisted attrs>} }. Serialize reads a
 	Tool; deserialize clones the catalog model back via an INJECTED spawn function (the server's
 	`ServerSpawnTool` bindable) so this module stays free of server-only globals and is directly
 	TestEZ-testable (see tests/specs/ItemSerializer.spec.lua).
+
+	The canonical attribute whitelist lives in Data/ItemPersistence.
 ]]
 
-local Types = require(script.Parent.Types)
-
-type StoredItem = Types.StoredItem
+-- A single persisted item: catalog name + stack size + a whitelisted attribute bag
+-- (e.g. a gun's ammo, a stackable's Quantity). Rehydrated by cloning the ToolCatalog entry.
+export type StoredItem = {
+	tag: string, -- ToolCatalog key (tool name)
+	quantity: number,
+	attributes: { [string]: any },
+}
 
 local ItemSerializer = {}
 

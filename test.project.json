@@ -60,9 +60,6 @@
         "$className": "Folder",
         "$path": "src/ServerScriptService"
       },
-      "ServerPackages": {
-        "$path": "ServerPackages"
-      },
       "TestRunner": {
         "$path": "tests/TestRunner.server.lua"
       }

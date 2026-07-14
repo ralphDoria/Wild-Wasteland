@@ -18,8 +18,5 @@ Icon = "legitatx/topbarplus@3.0.5"
 ZonePlus = "qvgk/zoneplus@3.2.1"
 Observers = "sleitnick/observers@^0.3.3"
 
-[server-dependencies]
-ProfileStore = "lm-loleris/profilestore@1.0.3"
-
 [dev-dependencies]
 TestEZ = "roblox/testez@0.4.1"

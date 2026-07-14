@@ -1,20 +1,19 @@
 --!nocheck
 --[[
-	Pins the store→retrieve round-trip for base storage / profile persistence
-	(HomeBaseSystem_ScriptStorage/ItemSerializer). A malformed persisted entry must be rejected,
+	Pins the store→retrieve round-trip for inventory/storage persistence
+	(ItemSystem_ScriptStorage/ItemSerializer). A malformed persisted entry must be rejected,
 	not crash deserialize; a serialized item must rehydrate to an equivalent tool.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ItemSerializer = require(
-	ReplicatedStorage.RojoManaged_RS.HomeBaseSystem_ScriptStorage.ItemSerializer
+	ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.ItemSerializer
+)
+local ItemPersistence = require(
+	ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Data.ItemPersistence
 )
 
-local whitelist = {
-	default = { "Quantity" },
-	Stackable = { "Quantity" },
-	Gun = { "Quantity", "Ammo", "AmmoReserve" },
-}
+local whitelist = ItemPersistence.attributeWhitelist
 
 -- Build a fake Tool with the given Type/attributes (real Instance — spec runs in-engine).
 local function makeTool(name, toolType, attrs)
