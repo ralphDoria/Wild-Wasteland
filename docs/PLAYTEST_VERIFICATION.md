@@ -307,7 +307,11 @@ sender owns. (`ownsTool` already covers `WornItems` — it's under the Backpack.
 - **Death reveal still works (playtest).** Die while wearing a wearable.
   - ✅ The worn accessory becomes visible on the corpse as before; no error.
 
-### Batch 5 — Consumable remotes (C3/C4, server-authoritative heal + gated dispose)
+### Batch 5 — Consumable remotes (C3/C4, server-authoritative heal + gated dispose) ✅ VERIFIED 2026-07-13
+
+> Verified via the Tier 3 Batch V3 heal-regression run (same flow: heal lands, item
+> consumed, cooldown caps spam). The can't-heal-others/negative checks are satisfied by
+> inspection — the handler no longer reads those arguments.
 
 `Heal` now ignores both client arguments: the server heals the **sender's own humanoid only**, by the
 amount in `Data/ConsumableStats` for the sender's *equipped* consumable, with a per-player
@@ -346,7 +350,7 @@ consumed for that player (it merely triggers the all-clients cleanup echo). The 
 
 ---
 
-## Tier 3 — Vitals rewrite (branch `vitals-rewrite`)
+## Tier 3 — Vitals rewrite (merged to `main`; playtest-verified 2026-07-13, except the V3 food/drink restore leg — no such item exists yet)
 
 Server-authoritative vitals per [VITALS_REWRITE_PLAN.md](VITALS_REWRITE_PLAN.md). Run with
 Rojo serving **`test.project.json`** so the specs are in-place.
@@ -360,7 +364,7 @@ Rojo serving **`test.project.json`** so the specs are in-place.
   positive finite numbers, strictly ascending 0→1 thresholds, affordable costs). Run via
   `test.project.json` → Play (or the MCP). Suite must stay green alongside the existing specs.
 
-### Batch V1 — server-authoritative hunger/thirst + gated respawn (C9/M11/M12/M13/C16)
+### Batch V1 — server-authoritative hunger/thirst + gated respawn (C9/M11/M12/M13/C16) ✅ VERIFIED 2026-07-13
 
 `VitalsService` simulates decay/starvation on ONE Heartbeat tick and replicates via player
 attributes; client `HungerThirstManager` is now a pure view; `hungerThirstDamage` has no
@@ -401,7 +405,7 @@ server listener; `RespawnPlayerCharacter` requires the sender to be dead + rate 
 - **Output clean (playtest).** Whole session: no errors from `VitalsService`/
   `VitalsSystemReceivers`/`HungerThirstManager`, and no "adding to tbl" warns.
 
-### Batch V2 — stamina authority + movement intent (C2, M7–M10 structural)
+### Batch V2 — stamina authority + movement intent (C2, M7–M10 structural) ✅ VERIFIED 2026-07-13 (incl. addendum)
 
 Server stamina joins `VitalsService` (replicated as the `Stamina` attribute); WalkSpeed is
 now set ONLY by the server from `Data/Config.speed`, driven by the new runtime-created
@@ -479,7 +483,7 @@ leak found alongside it; both in `_toggleGuiBreathingSync`):
   - ❌ `BindToRenderStep: 'GuiBreathingSync' is already bound` (or similar) in Output on
     the second life, and/or the pulse never returns (the binding leaked across death).
 
-### Batch V3 — consumable restore path (M12's missing food/drink feature)
+### Batch V3 — consumable restore path (M12's missing food/drink feature) 🟡 heal leg VERIFIED 2026-07-13; restore leg deferred
 
 `ConsumableStats` entries now declare `restores = { Health/Hunger/Thirst/Stamina = n }`
 instead of `healAmount`. On a validated use, `ConsumableReceiver` applies `restores.Health`
@@ -500,7 +504,9 @@ temporary config tweak.
     spam — identical to the Batch 5 checks.
   - ❌ No heal or a different amount (the `restores.Health` re-shape broke the path).
 
-- **M12 — food/drink restores land (playtest, config tweak).** Temporarily add
+- **M12 — food/drink restores land (playtest, config tweak). ⚠ STILL OPEN 2026-07-13** —
+  deferred until a real food/drink item exists (run it then, or with the tweak below).
+  Temporarily add
   `Hunger = 25, Thirst = 25, Stamina = 25` to the Healing Injection's `restores` in
   `Data/ConsumableStats`, let hunger/thirst tick down a bit and drain some stamina, then
   use an injection.

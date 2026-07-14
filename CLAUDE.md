@@ -3,46 +3,45 @@ Read @docs/CODEBASE.md for context on the codebase.
 We are currently focusing on fixing detected bugs. Read @docs/BUGS.md and @docs/BUGFIX_STRATEGY.md
 For how to verify fixes in-engine, read @docs/PLAYTEST_VERIFICATION.md
 
-## Vitals rewrite (Tier 3, started 2026-07-06 on branch `vitals-rewrite`)
+## Vitals rewrite (Tier 3) — ✅ DONE, merged to `main`, playtest-verified 2026-07-13
 
-The sanctioned server-authoritative vitals rewrite is underway on `vitals-rewrite`
-(cut from `fable-5-gonna-fix-it-all` @ `adc0eb1`). Full plan: docs/VITALS_REWRITE_PLAN.md.
+The sanctioned server-authoritative vitals rewrite is complete (built on the now-deleted
+`vitals-rewrite` branch, merged via `ebcfcf1`). Full plan: docs/VITALS_REWRITE_PLAN.md.
 Architecture: shared `Data/VitalsConfig` + pure `Sim/VitalsSim`; server `VitalsSystem_Server/
 VitalsService` (one Heartbeat tick, player-attribute replication, `restore()` mutation API);
-client managers become views.
+client managers are views (`StaminaManager` = VitalsSim prediction + attribute reconciliation;
+movement speed set server-side via the `MovementIntent` remote — mode name only).
 
-- ✅ **Batch V0** — config + pure sim + `VitalsSim.spec`/`VitalsConfig.spec` (commit `0b0beba`).
-  ⚠ Specs not yet run in-engine.
-- 🟡 **Batch V1** — server hunger/thirst + starvation damage (C9/M12/M13), client
-  `HungerThirstManager` rewritten as attribute-driven view (M11), `hungerThirstDamage`
-  listener deleted, `RespawnPlayerCharacter` gated dead-only + rate limit (C16). Code
-  complete; **playtest gate OPEN** (PLAYTEST_VERIFICATION.md → Tier 3 Batch V1).
-- 🟡 **Batch V2** — stamina authority + movement intent (C2, M7–M10). Server: stamina in
-  `VitalsService` (`Stamina` attribute; sprint gated on server pool; drain only while the
-  server observes movement; jump cost on `StateChanged→Jumping`; swing cost in
-  `MeleeReceiver.Swing`). New `MovementIntent` remote (mode name only, created at runtime
-  by `MovementAndStaminaSystem_Server/Main.server.lua`) replaces the deleted
-  `ChangeHumanoidWalkSpeed` handler (Studio remote now inert). Client: `StaminaManager` =
-  VitalsSim prediction + attribute reconciliation; Sprint/Crouch fire intents; Melee cost
-  reads VitalsConfig. `SprintReceiver.lua` stub (L5) deleted. Specs extended. Plus a
-  2026-07-08 addendum: breathing GUI pulse fixed (TimeLength was captured at require time
-  while still 0 → blue-ramp-then-snap-to-white; now read lazily in the render step) and
-  the `GuiBreathingSync` binding is unbound in `Destroy` (dying below 50% stamina leaked
-  it and errored the next life's bind). Code complete; **playtest gate OPEN**
-  (PLAYTEST_VERIFICATION.md → Tier 3 Batch V2, incl. addendum).
-- 🟡 **Batch V3** — restore path (M12's missing food/drink feature). `ConsumableStats`
-  entries reshaped: `healAmount` → `restores = {Health/Hunger/Thirst/Stamina = n}`;
-  `ConsumableReceiver.heal` applies Health to the humanoid and routes the rest through
-  `VitalsService.restore`. Healing Injection unchanged in behavior (Health 25 only — no
-  food/drink item exists yet; the hunger/thirst leg is playtested via a temporary config
-  tweak). `ConsumableStats.spec` rewritten (restore-key whitelist catches typos). Code
-  complete; **playtest gate OPEN** (PLAYTEST_VERIFICATION.md → Tier 3 Batch V3).
+- ✅ **Batch V0** — config + pure sim + `VitalsSim.spec`/`VitalsConfig.spec` (`0b0beba`).
+  Specs green in-engine (part of the 73/73 suite).
+- ✅ **Batch V1** — server hunger/thirst + starvation (C9/M11/M12/M13); `hungerThirstDamage`
+  listener deleted; `RespawnPlayerCharacter` gated dead-only + rate limit (C16).
+  Playtest-verified 2026-07-13.
+- ✅ **Batch V2** — stamina authority + movement intent (C2, M7–M10); `ChangeHumanoidWalkSpeed`
+  handler deleted; incl. the 2026-07-08 breathing-pulse addendum (lazy TimeLength +
+  `GuiBreathingSync` unbind on death). Playtest-verified 2026-07-13.
+- 🟡 **Batch V3** — restore path: `ConsumableStats` reshaped to
+  `restores = {Health/Hunger/Thirst/Stamina = n}`, routed through `VitalsService.restore`.
+  **Heal leg playtest-verified 2026-07-13**; the food/drink restore leg (M12) is the ONE
+  remaining open vitals check — no food/drink item exists yet. Run it when one is added
+  (PLAYTEST_VERIFICATION.md → Batch V3 M12 has a config-tweak recipe to test sooner).
 
 Note: `npc-system-v2` had uncommitted Phase 3.4 WIP when this branch was cut — it is in
 `git stash` ("npc-system-v2 WIP: Phase 3.4 target re-evaluation"); pop it when back on
 that branch.
 
-## Where we left off (updated 2026-07-05)
+## Where we left off (updated 2026-07-13)
+
+**Session 2026-07-13:** the home-base↔wasteland loop scaffold (branch `home-base-loop`) was
+**scrapped** — removed in `3bedb0e`, history preserved before that commit. Salvaged from it:
+the pure `ItemSerializer` now lives at `ItemSystem_ScriptStorage/ItemSerializer.lua` (attribute
+whitelist in `Data/ItemPersistence.lua`, spec green) as the foundation for future inventory
+persistence. Place stubs (BunkerTemplates, WastelandArrival) deleted via MCP. Branches
+consolidated: **everything is on `main`** (26+ commits ahead of origin, still nothing pushed);
+`home-base-loop`, `vitals-rewrite`, and `fable-5-gonna-fix-it-all` are deleted locally
+(`origin/fable-5-gonna-fix-it-all` is stale on the remote). Consequence of the scrap:
+**C5 (client-CFrame teleport) is back on the Tier 2 open list** — TravelService would have
+replaced it. Vitals rewrite + Tier 2 Batch 5 playtest gates closed this session (see above).
 
 **Plan of record:** targeted rewrites inside a refactor — NOT a ground-up rewrite. See the
 "Approach" section in BUGFIX_STRATEGY.md. Two sanctioned rewrites: the server-authority boundary
@@ -88,15 +87,13 @@ that branch.
   Ownership.lua TODO corrected (WornItems is under Backpack). ✅ Playtest-verified 2026-06-20.
 - 🔵 Also fixed this session (outside the Tier 2 batches): the looting infinite-yield
   (`GetChangeReplicatorRemote` M17 + `ToolSpawner` H4) — see `cc66952`.
-- 🟡 Tier 2 Batch 5 — **Consumable remotes** (C3/C4), committed 2026-07-03. `Heal` ignores both
+- ✅ Tier 2 Batch 5 — **Consumable remotes** (C3/C4), committed 2026-07-03. `Heal` ignores both
   client args: heals the sender's own humanoid only, by `Data/ConsumableStats` amount for the
   *equipped* consumable, per-player `useCooldown`, server consumes the item; `Dispose` honored
   only for the tool the server just consumed (it's just the all-clients cleanup echo trigger).
-  `ConsumableStats.spec` green (2026-07-05, in the 69/69 suite run). **⚠ Playtest gate OPEN** —
-  the batch is NOT verified yet: run the Batch 5 checks in PLAYTEST_VERIFICATION.md (heal
-  works + item consumed + cooldown caps spam). The can't-heal-others/negative checks are
-  satisfied by inspection (the handler no longer reads those args). **The bugfix workstream is
-  paused here** (2026-07-05) while NPC System v2 is built on branch `npc-system-v2`.
+  ✅ Playtest-verified 2026-07-13 via the Tier 3 Batch V3 heal-regression run (same flow); the
+  can't-heal-others/negative checks are satisfied by inspection (the handler no longer reads
+  those args). (NPC System v2 remains parked on branch `npc-system-v2` with its WIP stash.)
 
 **Important working-session detail:** connect Rojo with **`test.project.json`** (not
 `default.project.json`) during Tier 2 dev, so DevPackages + tests sync and specs can run in-session.
@@ -110,16 +107,16 @@ sourcemap untrack), `53bffc1` (Batch 0), `6de7cdf` (Batch 1), `cc66952` (looting
 + this Batch 4 commit.
 
 **Next steps (pick up here):**
-1. **Verify Batch 5 in-engine** (see the ⚠ open gate above) — then the still-open Tier 2
-   remotes (each has a design question in BUGFIX_STRATEGY.md → Tier 2):
-   - Vitals/respawn **C9/C16** — but C9 (hunger/thirst authority) overlaps the Tier 3 vitals rewrite;
-     decide whether to do an interim cap or fold into Tier 3.
+1. **Still-open Tier 2 remotes** (each has a design question in BUGFIX_STRATEGY.md → Tier 2):
+   - **C5** teleport-to-spawn (Q4) — back open after the home-base scrap; server should pick the
+     spawn CFrame itself instead of trusting the client.
    - **C14** sound whitelist/rate-limit (Q8) — `PlaySound` only has a type guard so far.
    - Looting **C8/C12** — gated on first deep-reviewing `CorpseLootable.lua` / `StandardLootable.lua`
      (still unreviewed). Also the looting `ToggleWornWearableAccessory` remote (corpse-side twin of
      C13, in `LootingSystemExecutor`) needs the same treatment.
-2. **Open manual gate:** Batch 0 gun regression smoke test was never run (equip Beretta, empty a mag
+2. **Open manual gates:** Batch 0 gun regression smoke test was never run (equip Beretta, empty a mag
    into a dummy, reload; confirm unchanged) — low risk since it was a pure relocation, but unticked.
+   And the V3 food/drink restore leg (see the vitals section above).
 3. The looting redesign (registration/readiness, and whether loot-change replication should be on a
-   reliable rather than Unreliable remote) is noted as a **Tier 3** item — see the diagnosis in this
-   session's discussion of `GetChangeReplicatorRemote`.
+   reliable rather than Unreliable remote) is noted as a **Tier 3** item — see the diagnosis in the
+   2026-06-20 session's discussion of `GetChangeReplicatorRemote`.
