@@ -27,6 +27,8 @@ local validateReload = require(ServerChecks.validateReload)
 -- Shared server-authority boundary (Receivers/Validation). Gun-specific TypeValidation was
 -- migrated here so every receiver shares one source of truth.
 local Validation = require(script.Parent.Parent.Parent.Validation)
+-- Kill attribution: XP is credited right after lethal damage (docs/XP_SYSTEM_RESEARCH.md).
+local XPService = require(game:GetService("ServerScriptService").RojoManaged_SSS.XPSystem_Server.XPService)
 
 return function()
     --LEGACY CODE
@@ -132,9 +134,10 @@ return function()
 
             -- Apply damage and fire any relevant events
             taggedHumanoid:TakeDamage(damage)
+            XPService.notifyDamageDealt(player, taggedHumanoid)
             -- taggedEvent:Fire(player, taggedHumanoid, damage)
 
-            --TODO: implement kill banner & xp bar
+            --TODO: implement kill banner (XP side is done via XPService)
             -- if taggedHumanoid.Health <= 0 then
             --     eliminatedEvent:Fire(player, taggedHumanoid, damage)
             -- end

@@ -6,13 +6,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local playerStatsInfo = require(ReplicatedStorage:FindFirstChild("PlayerStatsInfo", true))
 
 local dataStores = {}
---initialize data store table
-for _, stat in playerStatsInfo.getAll() do
+--initialize data store table (getPersisted = pickup stats + progression stats like XP)
+for _, stat in playerStatsInfo.getPersisted() do
     dataStores[stat.name] = DataStoreService:GetDataStore(stat.name)
 end
 
 Players.PlayerAdded:Connect(function(player)
-    for _, stat in playerStatsInfo.getAll() do
+    for _, stat in playerStatsInfo.getPersisted() do
         local success, statValue = pcall(function()
             return dataStores[stat.name]:GetAsync(player.UserId)
         end)
@@ -25,7 +25,7 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 local function savePlayerData(player)
-    for _, stat in playerStatsInfo.getAll() do
+    for _, stat in playerStatsInfo.getPersisted() do
         local success, errorMessage = pcall(function()
             dataStores[stat.name]:SetAsync(player.UserId, player:GetAttribute(stat.name))
         end)

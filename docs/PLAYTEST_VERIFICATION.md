@@ -542,6 +542,37 @@ temporary config tweak.
 
 ---
 
+## XP & Level system — scaffold (2026-07-13)
+
+Server-authoritative progression per docs/XP_SYSTEM_RESEARCH.md. XP is the persisted
+stat (`PlayerStatsInfo` → DataSaveSystem); `Level` is derived via the pure `XPCurve`;
+kill XP is credited at the validated damage sites (no remotes exist at all).
+
+- **Unit (automated):** `XPCurve.spec` (requirement growth, cumulative thresholds,
+  round-trips, clamps, progress fractions, XP-past-cap) and `XPConfig.spec` (curve/award
+  shape). Run via `test.project.json` → Play (or the MCP).
+
+- **Kill XP lands (playtest).** Check your Player's `XP`/`Level` attributes in the
+  Explorer, then kill an NPC/dummy with the melee and another with the gun.
+  - ✅ `XP` rises by the `KillNPC` amount (50) exactly once per kill, from either weapon;
+    `Level` updates when a threshold crosses. Output clean.
+  - ❌ No change (service not initialized — check for an `XPService`/`Main` require error),
+    double credit per kill, or XP granted for damaging without killing.
+
+- **★ Player kill XP (2-client).** Player A kills Player B.
+  - ✅ A gains the `KillPlayer` amount (150); B gains nothing; dying to starvation/falls
+    awards nobody.
+  - ❌ Wrong amount (classified as NPC), or the victim/bystander gains XP.
+
+- **Persistence (playtest).** Note your XP, Stop, re-enter.
+  - ✅ XP and the derived Level survive the restart (DataSaveSystem round-trip).
+  - ❌ XP resets to 0 (stat missing from `getPersisted`) or Level doesn't re-derive.
+
+- **No client grant path (inspection/remote test).** There is no XP remote to fire; the
+  only mutators are server calls (`XPService.award`/`notifyDamageDealt`).
+
+---
+
 ## Item serialization (salvaged from the scrapped home-base loop)
 
 The home-base↔wasteland loop scaffold was scrapped 2026-07-13 (history on branch

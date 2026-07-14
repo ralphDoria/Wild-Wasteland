@@ -16,6 +16,8 @@ local CombatStats = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptSt
 -- Swing remote (the client only predicts it).
 local VitalsConfig = require(ReplicatedStorage.RojoManaged_RS.VitalsSystem_ScriptStorage.Data.VitalsConfig)
 local VitalsService = require(game:GetService("ServerScriptService").RojoManaged_SSS.VitalsSystem_Server.VitalsService)
+-- Kill attribution: XP is credited right after lethal damage (docs/XP_SYSTEM_RESEARCH.md).
+local XPService = require(game:GetService("ServerScriptService").RojoManaged_SSS.XPSystem_Server.XPService)
 
 return function()
     -- Swing-rate limit state: player -> (target humanoid -> last-hit os.clock()). Keyed per target
@@ -80,6 +82,7 @@ return function()
             end
         end
         humanoid:TakeDamage(stats.damage)
+        XPService.notifyDamageDealt(player, humanoid)
     end)
     remotes.Swing.OnServerEvent:Connect(function(player: Player, tool: Tool, trail : Trail, toggle : boolean)
         local character = player.Character

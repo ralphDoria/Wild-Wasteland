@@ -22,6 +22,11 @@ local PlayerStatsInfo = {
     ATTRIBUTE_ENERGY_AMMO = {
         name = "EnergyAmmo",
         icon = "http://www.roblox.com/asset/?id=18507047762"
+    },
+    -- Progression stat (XPService) — persisted like the others but NOT a world pickup,
+    -- so it is deliberately absent from getAll()/getAmmo() (no icon, no pickup wiring).
+    ATTRIBUTE_XP = {
+        name = "XP"
     }
 }
 
@@ -34,6 +39,13 @@ function PlayerStatsInfo.getAll()
         PlayerStatsInfo.ATTRIBUTE_SHELLS,
         PlayerStatsInfo.ATTRIBUTE_ENERGY_AMMO
     }
+end
+
+-- Every stat DataSaveSystem persists: the pickup stats plus progression-only stats.
+function PlayerStatsInfo.getPersisted()
+    local stats = PlayerStatsInfo.getAll()
+    table.insert(stats, PlayerStatsInfo.ATTRIBUTE_XP)
+    return stats
 end
 
 function PlayerStatsInfo.getAmmo()

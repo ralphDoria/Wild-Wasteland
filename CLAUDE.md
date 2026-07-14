@@ -30,6 +30,27 @@ Note: `npc-system-v2` had uncommitted Phase 3.4 WIP when this branch was cut —
 `git stash` ("npc-system-v2 WIP: Phase 3.4 target re-evaluation"); pop it when back on
 that branch.
 
+## XP & Level system (scaffolded 2026-07-13) — CURRENT WORKSTREAM
+
+Server-authoritative persistent progression; design + rationale in docs/XP_SYSTEM_RESEARCH.md.
+Bugfix tiers are ON HOLD while this is built.
+
+- Shared: `XPSystem_ScriptStorage/Data/XPConfig.lua` (curve + `awards` table) and pure
+  `Sim/XPCurve.lua` (level DERIVED from cumulative XP — XP is the only stored stat).
+- Server: `XPSystem_Server/XPService.lua` — `award(player, awardName)` is the single grant
+  surface (NO remotes exist); `notifyDamageDealt(attacker, humanoid)` does killing-blow
+  attribution, called after `TakeDamage` in `MeleeReceiver.Hit` and `GunReceiver`;
+  `levelUp` GoodSignal for future server listeners.
+- Persistence: `PlayerStatsInfo.ATTRIBUTE_XP` + new `getPersisted()` (DataSaveSystem
+  re-pointed to it; `getAll()` still means "world pickup stats" for CapsAndAmmoPickUp).
+- **Expandability contract:** new XP-granting action = one `XPConfig.awards` key + one
+  server-side `XPService.award` call. Nothing else.
+- ✅ Specs green in-engine 2026-07-13 (86/86 incl. `XPCurve.spec`/`XPConfig.spec`); require
+  chain verified. **Playtest gate OPEN** (PLAYTEST_VERIFICATION.md → "XP & Level system"):
+  kill XP via both weapons, 2-client player-kill classification, persistence across Stop.
+- Deferred (see research doc): XP bar / level-up UI, kill banner, assists/damage-share,
+  per-source rate limits, ProfileStore consolidation.
+
 ## Where we left off (updated 2026-07-13)
 
 **Session 2026-07-13:** the home-base↔wasteland loop scaffold (branch `home-base-loop`) was
