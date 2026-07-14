@@ -39,7 +39,7 @@ function HungerThirstManager.new(option: "Hunger" | "Thirst"): hungerThirstObjec
 	local config = VitalsConfig[option]
 	local thresholds = config.thresholds
 	local statGuiObject = References.StatGuiManager.new(
-		References.VitalsGui:WaitForChild("Frame"):WaitForChild(option),
+		References.VitalsGui:WaitForChild("Container"):WaitForChild("Frame"):WaitForChild(option),
 		option,
 		statColors[option]
 	)

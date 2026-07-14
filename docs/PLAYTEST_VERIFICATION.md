@@ -571,6 +571,41 @@ kill XP is credited at the validated damage sites (no remotes exist at all).
 - **No client grant path (inspection/remote test).** There is no XP remote to fire; the
   only mutators are server calls (`XPService.award`/`notifyDamageDealt`).
 
+### XP bar UI (wired 2026-07-14) ✅ VERIFIED 2026-07-14
+
+The XP bar lives in the place at `StarterGui.VitalsGui.Container.XPBar` (fill +
+"x / y XP" readout + "Level N" label), grouped with the vitals icons under a shared
+`Container` (vertical UIListLayout) so `VitalsManager`'s touch/desktop repositioning
+moves both as one unit. `XPGuiManager` (in `XPSystem_ScriptStorage`, init'd by the
+`XPGuiExecutor` client script) is a pure view of the `XP` attribute via `XPCurve` and
+re-attaches to each life's fresh VitalsGui instance (ResetOnSpawn). The vitals managers'
+GUI lookups were repointed through `Container` — a regression here shows up as a vitals
+require/infinite-yield error, not just a broken XP bar. `XPGuiManager.levelUp`
+(client GoodSignal, `(newLevel, oldLevel)`) is the hook for the future level-up animation.
+
+- **Bar renders + no overlap (playtest).** Spawn and watch the bottom-left.
+  - ✅ The XP bar sits under the vitals icons and STAYS there (the pre-fix bug: the
+    vitals frame slid down over the bar at runtime, because `VitalsManager` force-set
+    its position every spawn); fill/label match your persisted XP.
+  - ❌ Overlap returns, or the bar shows placeholder values.
+
+- **Vitals regression (playtest).** Health/hunger/stamina/thirst bars, labels, and
+  threshold sounds all still work.
+  - ❌ fail signature: infinite yield / require error from `HealthManager`/
+    `StaminaManager`/`HungerThirstManager` (their GUI paths now go through `Container`).
+
+- **XP gain renders (playtest).** Award XP (kill an NPC, or server command bar →
+  `XPService.award`).
+  - ✅ Fill tweens up; "x / y XP" and "Level N" update; crossing a threshold flips the
+    level label (fill visibly rewinds — expected until the level-up animation exists).
+
+- **Respawn re-attach (playtest).** Die, respawn, award again.
+  - ✅ The new life's bar renders current XP and keeps updating (fresh VitalsGui
+    instance re-attached). No duplicate-connection double tweens.
+
+- **Touch layout (playtest, device emulator).** Vitals icons AND the XP bar relocate
+  to the top-left together as one block.
+
 ---
 
 ## Item serialization (salvaged from the scrapped home-base loop)

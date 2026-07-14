@@ -99,7 +99,7 @@ local Health = {}
 
 function Health.new(): HealthObject
     local trove = References.Trove.new()
-    local statGuiObject = StatGuiManager.new(References.VitalsGui:WaitForChild("Frame"):WaitForChild("Health"), "Health", Color3.fromRGB(255, 0, 0))
+    local statGuiObject = StatGuiManager.new(References.VitalsGui:WaitForChild("Container"):WaitForChild("Frame"):WaitForChild("Health"), "Health", Color3.fromRGB(255, 0, 0))
 
     local self: HealthObject = {
         trove = trove,

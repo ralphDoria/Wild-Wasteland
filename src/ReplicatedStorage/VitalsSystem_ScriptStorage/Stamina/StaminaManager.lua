@@ -113,7 +113,7 @@ local proportionMarkers = {
 
 function StaminaManager.new(): StaminaObject
     assert(References.character, "VitalsSystem References.Character is nil, cannot initialize new StaminaObject")
-    local statGuiObject = References.StatGuiManager.new(References.VitalsGui:WaitForChild("Frame"):WaitForChild("Stamina"), "Stamina", Color3.fromRGB(0, 150, 255))
+    local statGuiObject = References.StatGuiManager.new(References.VitalsGui:WaitForChild("Container"):WaitForChild("Frame"):WaitForChild("Stamina"), "Stamina", Color3.fromRGB(0, 150, 255))
     local self = {
         _associatedCharacter = References.character,
         statGuiObject = statGuiObject,

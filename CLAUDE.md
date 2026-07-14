@@ -48,8 +48,16 @@ Bugfix tiers are ON HOLD while this is built.
 - ✅ Specs green in-engine 2026-07-13 (86/86 incl. `XPCurve.spec`/`XPConfig.spec`); require
   chain verified. **Playtest gate OPEN** (PLAYTEST_VERIFICATION.md → "XP & Level system"):
   kill XP via both weapons, 2-client player-kill classification, persistence across Stop.
-- Deferred (see research doc): XP bar / level-up UI, kill banner, assists/damage-share,
-  per-source rate limits, ProfileStore consolidation.
+- ✅ **XP bar UI wired + playtest-verified 2026-07-14** (PLAYTEST_VERIFICATION.md → "XP bar
+  UI"): bar lives in the place at `VitalsGui.Container.XPBar` (grouped with the vitals icons
+  under a shared UIListLayout `Container` so `VitalsManager`'s touch/desktop repositioning
+  moves both — the vitals managers' GUI lookups were repointed through `Container`);
+  `XPSystem_ScriptStorage/XPGuiManager.lua` is a pure view of the `XP` attribute via
+  `XPCurve.progress`, re-attaching per life (VitalsGui is ResetOnSpawn). Its client-side
+  `levelUp` GoodSignal is the hook for the upcoming user-built level-up animation.
+- Deferred (see research doc): level-up UI/animation (user is building the animation — wire
+  it to `XPGuiManager.levelUp`), kill banner, assists/damage-share, per-source rate limits,
+  ProfileStore consolidation.
 
 ## Where we left off (updated 2026-07-13)
 

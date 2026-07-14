@@ -37,14 +37,15 @@ function VitalsManager.new(character: Model): VitalsObj
 		local minScreenSize = math.min(References.VitalsGui.AbsoluteSize.X, References.VitalsGui.AbsoluteSize.Y)
 		local isSmallScreen = minScreenSize < 500 -- This may be incorporated later
 	
+		-- Container wraps the icons grid + the XP bar (UIListLayout), so both move as one.
 		if touchControlsEnabled and References.InputCategorizer.getLastInputCategory() == References.InputCategorizer.InputCategory.Touch then
 			-- Position gui in upper left corner
-			References.VitalsGui.Frame.AnchorPoint = Vector2.new(0, 0)
-			References.VitalsGui.Frame.Position = UDim2.fromScale(0, 0)
+			References.VitalsGui.Container.AnchorPoint = Vector2.new(0, 0)
+			References.VitalsGui.Container.Position = UDim2.fromScale(0, 0)
 		else
 			 -- Position gui in bottom right corner
-			 References.VitalsGui.Frame.AnchorPoint = Vector2.new(0, 1)
-			 References.VitalsGui.Frame.Position = UDim2.fromScale(0, 1)
+			 References.VitalsGui.Container.AnchorPoint = Vector2.new(0, 1)
+			 References.VitalsGui.Container.Position = UDim2.fromScale(0, 1)
 		end
 	end
 
