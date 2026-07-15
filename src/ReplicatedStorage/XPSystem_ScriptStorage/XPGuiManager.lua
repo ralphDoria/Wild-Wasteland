@@ -46,7 +46,10 @@ type BarRefs = {
 local currentRefs: BarRefs? = nil
 local currentLevel: number? = nil
 
-local function render(refs: BarRefs, totalXP: number, animate: boolean)
+-- `isReal` = the XP attribute actually existed (persisted data has arrived). Placeholder
+-- renders (attribute still nil) must NOT record a level: otherwise the initial data load
+-- looks like a jump from level 1 and fires a spurious levelUp at session start.
+local function render(refs: BarRefs, totalXP: number, animate: boolean, isReal: boolean)
 	local progress = XPCurve.progress(XPConfig.curve, totalXP)
 
 	local fillSize = UDim2.fromScale(progress.fraction, 1)
@@ -62,15 +65,18 @@ local function render(refs: BarRefs, totalXP: number, animate: boolean)
 		refs.xpText.Text = `{progress.intoLevel} / {progress.required} XP`
 	end
 
+	if not isReal then
+		return
+	end
 	if currentLevel ~= nil and progress.level > currentLevel then
 		XPGuiManager.levelUp:Fire(progress.level, currentLevel)
 	end
 	currentLevel = progress.level
 end
 
-local function getTotalXP(player: Player): number
+local function getTotalXP(player: Player): number?
 	local totalXP = player:GetAttribute(XP_ATTRIBUTE)
-	return if typeof(totalXP) == "number" then totalXP else 0
+	return if typeof(totalXP) == "number" then totalXP else nil
 end
 
 -- Resolve the bar inside a (fresh) VitalsGui instance and paint the current state.
@@ -84,7 +90,8 @@ local function attach(player: Player, vitalsGui: Instance)
 		levelLabel = xpBar:WaitForChild("LevelLabel") :: TextLabel,
 	}
 	currentRefs = refs
-	render(refs, getTotalXP(player), false) -- snap, don't tween, on a fresh instance
+	local totalXP = getTotalXP(player)
+	render(refs, totalXP or 0, false, totalXP ~= nil) -- snap, don't tween, on a fresh instance
 end
 
 function XPGuiManager.init()
@@ -95,7 +102,10 @@ function XPGuiManager.init()
 	player:GetAttributeChangedSignal(XP_ATTRIBUTE):Connect(function()
 		local refs = currentRefs
 		if refs and refs.fill.Parent ~= nil then
-			render(refs, getTotalXP(player), true)
+			local totalXP = getTotalXP(player)
+			-- First real value = the persisted load, not a gain: snap, no levelUp.
+			local isFirstData = currentLevel == nil
+			render(refs, totalXP or 0, not isFirstData, totalXP ~= nil)
 		end
 	end)
 

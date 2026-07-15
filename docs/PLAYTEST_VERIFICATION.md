@@ -651,6 +651,38 @@ XPBannerFeed.lua` formats it ("Killed {detail} — +50 XP") and calls the banner
     banner itself is cosmetic: a spoofing client can only lie to its own screen.)
   - ❌ Any server-side effect at all.
 
+### Level-up presentation — terminal typewriter (wired 2026-07-14) ✅ VERIFIED 2026-07-14
+
+`Utility/TerminalTypewriterManager.lua` drives the place-built
+`IndicatorBannerGui.TerminalTypewriter` (right-anchored 14px cells; `cursor` block +
+`TemplateLetter` + `TerminalKeyboardSingleKeystroke` sound). API: `play(message)` from
+any client code. Letters are cloned invisibly up front (letter k of n at
+`UDim2.new(1, -(n-k+1)*cellWidth, 0, 0)`); the cursor starts SOLID on the first cell,
+jumps one cell right per reveal (keystroke sound each), lands exactly at
+`UDim2.new(1, 0, 0, 0)`, then blinks while idle, holds ~2.5 s, and fades out. A new
+`play()` cancels a run in progress (generation counter). `XPGuiExecutor` connects
+`XPGuiManager.levelUp` → `play("LEVEL {n}")` + the `Jungle Jazz Room Sting` heard
+locally via PlaySoundUtil.
+
+- **Level-up moment (playtest).** From level 1, earn 100+ XP (e.g. 3 NPC kills).
+  - ✅ "LEVEL 2" types out left-of-center with a keystroke sound per letter, cursor
+    solid while typing then blinking at `(1, 0)`, sting plays once; the line holds and
+    fades. XP bar/banner behavior unchanged alongside.
+  - ❌ No typewriter (executor connect error / `TerminalTypewriter` renamed), cursor
+    blinking mid-type, letters left of the frame for long text, or silence
+    (keystroke/sting sound moved — one-time warn in Output names which).
+
+- **No spurious level-up at session start (playtest, regression).** With a saved
+  level ≥ 2, restart the playtest.
+  - ✅ Silence at spawn: the persisted-XP load snaps the bar with NO typewriter/sting
+    (placeholder renders record no level; the first real value is a load, not a gain).
+  - ❌ The typewriter/sting plays behind the loading screen at spawn (the pre-fix
+    bug: nil-attribute render recorded level 1, and the data load "leveled up").
+
+- **Cancel/replace (playtest, command bar).** Call `play` twice ~1 s apart.
+  - ✅ The second message replaces the first cleanly (no orphaned letters, no double
+    cursor, no stray fade).
+
 ---
 
 ## Item serialization (salvaged from the scrapped home-base loop)

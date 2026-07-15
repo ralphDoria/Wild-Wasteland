@@ -63,8 +63,15 @@ Bugfix tiers are ON HOLD while this is built.
   (no server listener — not a grant surface) and `XPBannerFeed` renders it
   ("Killed {name} — +50 XP"). ⚠ `BannerList` must stay a plain clipping Frame, NOT a
   CanvasGroup (composite clipping dies at low graphics quality).
-- Deferred (see research doc): level-up UI/animation (user is building the animation — wire
-  it to `XPGuiManager.levelUp`), assists/damage-share, per-source rate limits,
+- ✅ **Level-up presentation wired + playtest-verified 2026-07-14**
+  (PLAYTEST_VERIFICATION.md → "Level-up presentation"): `Utility/
+  TerminalTypewriterManager.lua` (`play(message)`, terminal-style typing into the
+  place-built `IndicatorBannerGui.TerminalTypewriter`: solid cursor while typing,
+  blinks when idle, keystroke sound per letter, hold-then-fade) connected to
+  `XPGuiManager.levelUp` in `XPGuiExecutor` ("LEVEL {n}" + Jungle Jazz Room Sting).
+  `XPGuiManager` no longer fires levelUp off the initial persisted-XP load (the
+  session-start false level-up).
+- Deferred (see research doc): assists/damage-share, per-source rate limits,
   ProfileStore consolidation.
 
 ## Where we left off (updated 2026-07-13)
