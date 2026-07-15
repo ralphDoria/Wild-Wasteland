@@ -606,6 +606,51 @@ require/infinite-yield error, not just a broken XP bar. `XPGuiManager.levelUp`
 - **Touch layout (playtest, device emulator).** Vitals icons AND the XP bar relocate
   to the top-left together as one block.
 
+### Indicator banners + XP award feed (wired 2026-07-14) ✅ VERIFIED 2026-07-14
+
+General-purpose event feed right of the crosshair: `Utility/IndicatorBannerManager.lua`
+drives `StarterGui.IndicatorBannerGui` (place-built; `BannerList` clipping Frame +
+hidden `Template`). API: `show(actionText, gainText?)` from any client code. Stacking
+is code-driven (NO UIListLayout): new banners slide in from the clipped left edge into
+slot 0 at crosshair height, live banners tween a slot down, slots 4+ fade
+(`SLOT_TRANSPARENCY`), and each banner slides back out ~2 s after arriving. Every show
+plays `SoundService.SoundStorage.Game.Experience.ExperienceGained` locally via
+PlaySoundUtil. XP hookup: `XPService.award` fires the outbound-only `XPAwarded`
+remote (runtime `XPSystem_Storage` folder; NO OnServerEvent listener — not a grant
+surface) with `(awardName, amount, detail)`; client `XPSystem_ScriptStorage/
+XPBannerFeed.lua` formats it ("Killed {detail} — +50 XP") and calls the banner API.
+
+> ⚠ `BannerList` must stay a plain **Frame** with ClipsDescendants — a CanvasGroup's
+> clipping comes from its composite and silently stops working when the engine falls
+> back to direct rendering (low graphics quality), letting the slide-in show offscreen.
+
+- **Kill banner, both weapons (playtest).** Kill an NPC/dummy with melee, another with
+  the gun.
+  - ✅ "Killed [model name] — +50 XP" slides in from the left edge at crosshair height,
+    holds ~2 s, slides back out; the chime plays; the XP bar tweens up simultaneously.
+  - ❌ No banner (`XPBannerFeed`/`XPService` init error, or the `XPAwarded` remote
+    missing), raw award key shown for a kill, or the banner pops in mid-screen
+    (clipping regression — see the Frame-not-CanvasGroup warning above).
+
+- **Stacking + fade (playtest).** Score several awards quickly (multi-kill, or spam
+  `XPService.award` from the server command bar).
+  - ✅ Existing banners shift smoothly down one slot per new banner; banners in slots
+    4+ appear progressively faded; overflow past the last slot disappears outright;
+    each banner still leaves on its own ~2 s timer.
+  - ❌ Overlapping banners, banners stuck on screen, or a dismissed banner erroring
+    (double-dismiss guard failure).
+
+- **Sound (playtest).** Any banner.
+  - ✅ ExperienceGained chime plays once per banner, locally only.
+  - ❌ Silence + a one-time "banners will be silent" warn (sound moved/renamed in the
+    place), or errors from PlaySoundUtil.
+
+- **No client grant path (inspection/remote test).** From a client, fire
+  `ReplicatedStorage.XPSystem_Storage.XPAwarded:FireServer(...)`.
+  - ✅ Nothing happens — the remote has no server listener; XP is untouched. (The
+    banner itself is cosmetic: a spoofing client can only lie to its own screen.)
+  - ❌ Any server-side effect at all.
+
 ---
 
 ## Item serialization (salvaged from the scrapped home-base loop)

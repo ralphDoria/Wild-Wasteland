@@ -55,8 +55,16 @@ Bugfix tiers are ON HOLD while this is built.
   `XPSystem_ScriptStorage/XPGuiManager.lua` is a pure view of the `XP` attribute via
   `XPCurve.progress`, re-attaching per life (VitalsGui is ResetOnSpawn). Its client-side
   `levelUp` GoodSignal is the hook for the upcoming user-built level-up animation.
+- ✅ **Indicator banners + XP feed wired + playtest-verified 2026-07-14**
+  (PLAYTEST_VERIFICATION.md → "Indicator banners"): general-purpose
+  `Utility/IndicatorBannerManager.lua` (`show(actionText, gainText?)`, code-driven
+  slide-in/stack/fade/slide-out, ExperienceGained chime) drives the place-built
+  `IndicatorBannerGui`; `XPService.award` now fires the outbound-only `XPAwarded` remote
+  (no server listener — not a grant surface) and `XPBannerFeed` renders it
+  ("Killed {name} — +50 XP"). ⚠ `BannerList` must stay a plain clipping Frame, NOT a
+  CanvasGroup (composite clipping dies at low graphics quality).
 - Deferred (see research doc): level-up UI/animation (user is building the animation — wire
-  it to `XPGuiManager.levelUp`), kill banner, assists/damage-share, per-source rate limits,
+  it to `XPGuiManager.levelUp`), assists/damage-share, per-source rate limits,
   ProfileStore consolidation.
 
 ## Where we left off (updated 2026-07-13)
