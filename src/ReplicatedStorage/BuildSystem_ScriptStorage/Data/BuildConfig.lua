@@ -59,6 +59,9 @@ export type BuildConfig = {
 	-- Runtime workspace folder holding every placed structure (server-created; the
 	-- client watches it to preview occupancy).
 	placedFolderName: string,
+	-- CollectionService tag every placed structure carries: the damage receivers and
+	-- the melee client identify structure targets by it.
+	structureTag: string,
 }
 
 local panelSize = Vector3.new(8, 0.205, 8)
@@ -86,6 +89,7 @@ local BuildConfig: BuildConfig = {
 	storageFolderName = "BuildSystem_Storage",
 	templateName = "RustyMetalSheet",
 	placedFolderName = "PlacedStructures",
+	structureTag = "BuildStructure",
 }
 
 return BuildConfig

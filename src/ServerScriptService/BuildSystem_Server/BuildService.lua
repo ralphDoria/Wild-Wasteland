@@ -45,7 +45,7 @@ local Validation = require(
 	game:GetService("ServerScriptService").RojoManaged_SSS.ItemSystem_Server.Revamp.Receivers.Validation
 )
 
-local STRUCTURE_TAG = "BuildStructure"
+local STRUCTURE_TAG = BuildConfig.structureTag
 local PLACED_FOLDER_NAME = BuildConfig.placedFolderName
 -- Place-built Sound next to the panel template; played AT the structure on every
 -- placement (server-side clone -> replicates spatially to all clients).

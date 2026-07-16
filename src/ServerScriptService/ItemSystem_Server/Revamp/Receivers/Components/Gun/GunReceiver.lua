@@ -1,3 +1,4 @@
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -29,6 +30,10 @@ local validateReload = require(ServerChecks.validateReload)
 local Validation = require(script.Parent.Parent.Parent.Validation)
 -- Kill attribution: XP is credited right after lethal damage (docs/XP_SYSTEM_RESEARCH.md).
 local XPService = require(game:GetService("ServerScriptService").RojoManaged_SSS.XPSystem_Server.XPService)
+-- Placed build structures are shootable: BuildService.damageStructure is the ONLY
+-- structure-health mutator (build system v1).
+local BuildConfig = require(ReplicatedStorage.RojoManaged_RS.BuildSystem_ScriptStorage.Data.BuildConfig)
+local BuildService = require(game:GetService("ServerScriptService").RojoManaged_SSS.BuildSystem_Server.BuildService)
 
 return function()
     --LEGACY CODE
@@ -141,6 +146,20 @@ return function()
             -- if taggedHumanoid.Health <= 0 then
             --     eliminatedEvent:Fire(player, taggedHumanoid, damage)
             -- end
+        end
+
+        -- Structure damage: unlike humanoids there is NO client claim involved — the
+        -- server's own recast decides. Any ray that ended on a placed structure (and
+        -- wasn't validated onto a humanoid) damages it; each pellet of a multi-ray shot
+        -- counts separately.
+        for _, rayResult in rayResults do
+            if
+                not rayResult.taggedHumanoid
+                and rayResult.instance
+                and CollectionService:HasTag(rayResult.instance, BuildConfig.structureTag)
+            then
+                BuildService.damageStructure(rayResult.instance, damage)
+            end
         end
 
         -- Apply physics impulse

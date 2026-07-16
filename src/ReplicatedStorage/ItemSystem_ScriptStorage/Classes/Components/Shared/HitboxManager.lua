@@ -21,7 +21,10 @@ export type HitboxManager = {
     connections : {RBXScriptConnection},
     _tool : Tool,
     _raycastParams : RaycastParams,
-    _onHitCallbacks : {(hit: BasePart, humanoid: Humanoid, raycastResult: RaycastResult) -> ()},
+    -- PartMode: OnHit fires once per PART per swing and never resolves a humanoid
+    -- itself — callbacks receive humanoid = nil and do their own target resolution
+    -- (needed so melee can hit non-humanoid targets like placed structures).
+    _onHitCallbacks : {(hit: BasePart, humanoid: Humanoid?, raycastResult: RaycastResult) -> ()},
 }
 
 local HitboxManager = {}
@@ -49,6 +52,7 @@ local function rebuild(self: HitboxManager)
 
     local raycastHitbox = RaycastHitbox.new(self._tool)
     raycastHitbox.RaycastParams = self._raycastParams
+    raycastHitbox.DetectionMode = RaycastHitbox.DetectionMode.PartMode
     for _, onHit in self._onHitCallbacks do
         table.insert(self.connections, raycastHitbox.OnHit:Connect(onHit))
     end
@@ -74,11 +78,12 @@ function HitboxManager.new(tool: Tool, descendantsToIgnore: {Instance}) : Hitbox
         _onHitCallbacks = {},
     }
     self.RaycastHitbox.RaycastParams = params
+    self.RaycastHitbox.DetectionMode = RaycastHitbox.DetectionMode.PartMode
 
     return self
 end
 
-function HitboxManager.ConnectOnHit(self: HitboxManager, OnHit: (hit: BasePart, humanoid: Humanoid, raycastResult: RaycastResult) -> ())
+function HitboxManager.ConnectOnHit(self: HitboxManager, OnHit: (hit: BasePart, humanoid: Humanoid?, raycastResult: RaycastResult) -> ())
     table.insert(self._onHitCallbacks, OnHit)
     if isDead(self.RaycastHitbox) then
         rebuild(self) -- reconnects every stored callback (including the one just added)

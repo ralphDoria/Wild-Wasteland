@@ -85,8 +85,18 @@ cellSize·√2 to span the cell diagonal, **3×3×3 build region** centered on t
 HumanoidRootPart's cell (client clamps the preview into it, server enforces), **no
 floating pieces** (must touch map geometry/terrain/another structure — shared
 `isSlotSupported` probe; characters never count as support), health is server-side
-with `BuildService.damageStructure` as the ONLY mutator (no weapon integration yet —
-one call per damage site when it comes).
+with `BuildService.damageStructure` as the ONLY mutator.
+
+**Weapon damage wired (2026-07-16):** structures are tagged `BuildConfig.structureTag`
+("BuildStructure"). Gun: `GunReceiver` damages any structure the SERVER's own recast
+hit (no client claim; per pellet; weapon's damage attribute). Melee: the hitbox now
+runs RaycastHitbox **PartMode** (fires per PART, humanoid always nil — `Melee.lua`
+resolves targets itself with a per-swing per-character dedupe, `_swingHitHumanoids`)
+so swings report structure parts; the validated `Hit` remote accepts a
+structure-part target and `MeleeReceiver` routes it to `damageStructure` (distance
+vs panel center + cellSize·0.75 slack, same per-target rate limit). ⚠ The PartMode
+switch changes melee HUMANOID hit plumbing too — regression-check normal combat
+(one hit/hitmarker per character per swing).
 
 - Shared: `BuildSystem_ScriptStorage/Data/BuildConfig.lua` (**`panelSize` is THE knob**
   — the grid derives from it, and BuildMath DETECTS the panel's thin axis from it, so

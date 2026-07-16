@@ -1,5 +1,6 @@
 --!strict
 -- local ContextActionService = game:GetService("ContextActionService")
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local References_ItemSystem = require(game:GetService("ReplicatedStorage").RojoManaged_RS.ItemSystem_ScriptStorage.References_ItemSystem)
 
@@ -31,6 +32,9 @@ local impactEffect = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptS
 -- Single source of truth for weapon damage (server reads the same table and is authoritative; the
 -- value the client sends with the Hit remote is ignored — BUGS.md C6).
 local CombatStats = require(ReplicatedStorage.RojoManaged_RS.ItemSystem_ScriptStorage.Data.CombatStats)
+-- Placed build structures are melee-hittable (identified by their CollectionService tag);
+-- their metal impact sound lives next to the panel template in the build storage folder.
+local BuildConfig = require(ReplicatedStorage.RojoManaged_RS.BuildSystem_ScriptStorage.Data.BuildConfig)
 
 export type MeleeObject = Item.ItemObject & {
     damage : number,
@@ -39,7 +43,11 @@ export type MeleeObject = Item.ItemObject & {
     HitboxManager : HitboxManager.HitboxManager,
     trail : Trail,
     staminaObject: StaminaManager.StaminaObject,
-    trailsTransparencyUpdater: RBXScriptConnection
+    trailsTransparencyUpdater: RBXScriptConnection,
+    -- Characters already hit during the current swing. The hitbox runs in PartMode
+    -- (fires once per PART), so without this a swing across several limbs would hit
+    -- the same character multiple times.
+    _swingHitHumanoids: {[Humanoid]: boolean}
 }
 
 local Melee =  {}
@@ -52,6 +60,7 @@ function Melee.new(tool : Tool) : MeleeObject
     self.staminaCost = VitalsConfig.Stamina.swingCost
     self.swingSpeed = 1
     self.HitboxManager = HitboxManager.new(tool, {References_ItemSystem.character, References_ItemSystem.viewmodelManagerObject.viewmodel})
+    self._swingHitHumanoids = {}
     self.trail = tool:FindFirstChildWhichIsA("Trail", true):: Trail
     self.staminaObject = StaminaManager.waitForStaminaObject(References_ItemSystem.character)
 
@@ -123,6 +132,7 @@ function Melee.initialize(self : MeleeObject)
             if status == "start" then
 
                 References_ItemSystem.remotes.PlaySound:FireServer(self.soundObjects.swing, self.bodyAttach, 0)
+                table.clear(self._swingHitHumanoids)
                 HitboxManager.HitStart(self.HitboxManager)
                 Melee.toggleSwingTrail(self, true)
             elseif status == "end" then
@@ -132,21 +142,43 @@ function Melee.initialize(self : MeleeObject)
         end
     end)
 
-    HitboxManager.ConnectOnHit(self.HitboxManager, function(hit: BasePart, humanoid: Humanoid, raycastResult: RaycastResult)
+    -- PartMode fires once per PART per swing with humanoid = nil; resolve the target
+    -- ourselves so swings can hit BOTH characters and placed build structures.
+    HitboxManager.ConnectOnHit(self.HitboxManager, function(hit: BasePart, _neverResolved: Humanoid?, raycastResult: RaycastResult)
+        local model = hit:FindFirstAncestorOfClass("Model")
+        local humanoid = model and model:FindFirstChildOfClass("Humanoid")
 
-        local hitCharacter = humanoid.Parent :: Model
-        -- warn("hit ", hitCharacter.Name)
-        local impactSounds = self.soundObjects.impact
-        local fleshSound = impactSounds.flesh
+        if humanoid then
+            -- One hit per CHARACTER per swing (PartMode dedupes per part, and a swing
+            -- sweeps across several limbs of the same rig).
+            if self._swingHitHumanoids[humanoid] then
+                return
+            end
+            self._swingHitHumanoids[humanoid] = true
 
-        References_ItemSystem.remotes.PlaySound:FireServer(fleshSound, self.bodyAttach, 0)
-
-        References_ItemSystem.CrosshairGuiManager.showHitmarker(References_ItemSystem.crosshairGuiObject, function()  
-            References_ItemSystem.remotes.PlaySound:FireServer(hitmarkerSound, self.bodyAttach, 0)
-        end)
-        camShake:ShakeOnce(3, 5, 0.2, 0.2)
-        meleeRemotes.Hit:FireServer(humanoid, self.damage, particles.blood, raycastResult.Position, raycastResult.Normal)
-        impactEffect(raycastResult.Position, raycastResult.Normal, true, nil, nil) -- this is replicated to other players via the remote event above
+            References_ItemSystem.remotes.PlaySound:FireServer(self.soundObjects.impact.flesh, self.bodyAttach, 0)
+            References_ItemSystem.CrosshairGuiManager.showHitmarker(References_ItemSystem.crosshairGuiObject, function()
+                References_ItemSystem.remotes.PlaySound:FireServer(hitmarkerSound, self.bodyAttach, 0)
+            end)
+            camShake:ShakeOnce(3, 5, 0.2, 0.2)
+            meleeRemotes.Hit:FireServer(humanoid, self.damage, particles.blood, raycastResult.Position, raycastResult.Normal)
+            impactEffect(raycastResult.Position, raycastResult.Normal, true, nil, nil) -- this is replicated to other players via the remote event above
+        elseif CollectionService:HasTag(hit, BuildConfig.structureTag) then
+            -- Placed structure: same validated Hit remote, structure part as the target
+            -- (the server routes it to BuildService.damageStructure; the damage value is
+            -- ignored there just like for humanoids). PartMode already dedupes the part.
+            local metalSound = ReplicatedStorage:FindFirstChild(BuildConfig.storageFolderName)
+            local impactSound = metalSound and metalSound:FindFirstChild("hl2 metal impact")
+            if impactSound then
+                References_ItemSystem.remotes.PlaySound:FireServer(impactSound, self.bodyAttach, 0)
+            end
+            References_ItemSystem.CrosshairGuiManager.showHitmarker(References_ItemSystem.crosshairGuiObject, function()
+                References_ItemSystem.remotes.PlaySound:FireServer(hitmarkerSound, self.bodyAttach, 0)
+            end)
+            camShake:ShakeOnce(3, 5, 0.2, 0.2)
+            meleeRemotes.Hit:FireServer(hit, self.damage, particles.blood, raycastResult.Position, raycastResult.Normal)
+            impactEffect(raycastResult.Position, raycastResult.Normal, false, nil, nil)
+        end
     end)
     --The bound action below is for testing purposes; to demonstrate how a faster swing animation somehow inadvertently increases the range
     -- ContextActionService:BindAction("ChangeSwingSpeed", function(actionName: string, inputState: Enum.UserInputState, inputObject: InputObject): Enum.ContextActionResult?  

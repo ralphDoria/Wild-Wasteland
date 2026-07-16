@@ -80,6 +80,7 @@ return function()
 			expect(#BuildConfig.storageFolderName > 0).to.equal(true)
 			expect(#BuildConfig.templateName > 0).to.equal(true)
 			expect(#BuildConfig.placedFolderName > 0).to.equal(true)
+			expect(#BuildConfig.structureTag > 0).to.equal(true)
 		end)
 	end)
 end

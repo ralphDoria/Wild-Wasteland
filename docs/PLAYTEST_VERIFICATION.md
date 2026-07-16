@@ -849,3 +849,29 @@ without them.
 - **Output clean (playtest).** Whole session: no errors from
   `BuildService`/`BuildModeManager`, and no `[BuildModeManager]` warns once the place
   GUI prereq exists.
+
+- **[R] Weapon damage — melee (playtest).** Build a wall (let it finish), equip the
+  Raider Axe, swing at it three times; also swing at open air near it.
+  - ✅ Each swing knocks 50 off the wall's `Health` attribute (hitmarker + metal
+    impact sound per landed hit); the third swing destroys it, freeing the slot for
+    rebuilding. Swinging faster than the cooldown (remote spam) can't exceed one hit
+    per `swingCooldown` per structure. Air swings do nothing.
+  - ❌ Health never moves (PartMode/OnHit rework not reporting the part, or the
+    receiver branch rejecting — check Output), a single swing multi-hits one wall, or
+    the wall dies to a client-spoofed `Hit:FireServer` with a huge damage number
+    (damage must come from CombatStats server-side).
+
+- **[R] Weapon damage — gun (playtest).** Build a wall, shoot it with the Beretta.
+  - ✅ Each shot drops `Health` by the gun's damage attribute; enough shots destroy
+    it. Shooting THROUGH a gap past the wall doesn't damage it (only rays the SERVER
+    recast onto the structure count).
+  - ❌ No damage (GunReceiver structure loop not reached), or damage lands on a
+    structure the shot visibly missed.
+
+- **[R] Melee combat regression (playtest — IMPORTANT, the hitbox detection mode
+  changed).** Fight a dummy/NPC normally with the axe; cleave two adjacent NPCs.
+  - ✅ Exactly ONE hit (one hitmarker, one damage tick of 50) per character per
+    swing — even when the swing sweeps across several limbs; cleaving still damages
+    each distinct NPC once; kill XP still awards.
+  - ❌ Multiple hitmarkers/damage per swing on one target (per-swing character dedupe
+    broken), or NPCs no longer take melee damage at all.

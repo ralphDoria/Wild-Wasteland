@@ -1,3 +1,4 @@
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local ItemSystem_Storage = ReplicatedStorage:FindFirstChild("ItemSystem_Storage", true)
@@ -18,18 +19,39 @@ local VitalsConfig = require(ReplicatedStorage.RojoManaged_RS.VitalsSystem_Scrip
 local VitalsService = require(game:GetService("ServerScriptService").RojoManaged_SSS.VitalsSystem_Server.VitalsService)
 -- Kill attribution: XP is credited right after lethal damage (docs/XP_SYSTEM_RESEARCH.md).
 local XPService = require(game:GetService("ServerScriptService").RojoManaged_SSS.XPSystem_Server.XPService)
+-- Placed build structures are melee-hittable: BuildService.damageStructure is the ONLY
+-- structure-health mutator (build system v1).
+local BuildConfig = require(ReplicatedStorage.RojoManaged_RS.BuildSystem_ScriptStorage.Data.BuildConfig)
+local BuildService = require(game:GetService("ServerScriptService").RojoManaged_SSS.BuildSystem_Server.BuildService)
 
 return function()
-    -- Swing-rate limit state: player -> (target humanoid -> last-hit os.clock()). Keyed per target
-    -- so it caps single-target DPS WITHOUT blocking one swing from cleaving multiple distinct
-    -- targets (RaycastHitbox fires Hit once per humanoid). Inner tables are weak-keyed so dead
-    -- NPC humanoids get collected instead of accumulating forever.
-    local lastHitTimes: { [Player]: { [Humanoid]: number } } = {}
+    -- Swing-rate limit state: player -> (target -> last-hit os.clock()). Targets are
+    -- humanoids OR placed-structure parts, keyed per target so it caps single-target DPS
+    -- WITHOUT blocking one swing from cleaving multiple distinct targets. Inner tables
+    -- are weak-keyed so dead humanoids/destroyed structures get collected.
+    local lastHitTimes: { [Player]: { [Instance]: number } } = {}
     Players.PlayerRemoving:Connect(function(player: Player)
         lastHitTimes[player] = nil
     end)
 
-    remotes.Hit.OnServerEvent:Connect(function(player: Player, humanoid: Humanoid, _clientDamage: number?, particles: ParticleEmitter, position: Vector3, normal: Vector3)
+    -- Shared per-(player, target) swing-rate limit. Returns false when the hit lands
+    -- faster than the equipped weapon's cooldown allows.
+    local function passesRateLimit(player: Player, target: Instance, swingCooldown: number): boolean
+        local now = os.clock()
+        local playerHits = lastHitTimes[player]
+        if not playerHits then
+            playerHits = setmetatable({}, { __mode = "k" }) :: any
+            lastHitTimes[player] = playerHits
+        end
+        local last = playerHits[target]
+        if last and now - last < swingCooldown then
+            return false
+        end
+        playerHits[target] = now
+        return true
+    end
+
+    remotes.Hit.OnServerEvent:Connect(function(player: Player, target: Instance, _clientDamage: number?, particles: ParticleEmitter, position: Vector3, normal: Vector3)
         -- Sender must be alive.
         local playerChar = Validation.getAliveCharacter(player)
         if not playerChar then
@@ -48,41 +70,54 @@ return function()
             return -- equipped tool isn't a known melee weapon
         end
 
-        -- Target must be a real, living Humanoid in a real character that isn't the attacker.
-        if not Validation.isInstance(humanoid, "Humanoid") or humanoid.Health <= 0 then
-            return
-        end
-        local targetChar = humanoid.Parent
-        if not targetChar or not targetChar:IsA("Model") or targetChar == playerChar then
-            return
-        end
-
-        -- Distance sanity check (attacker character to target character).
-        local distance = (playerChar:GetPivot().Position - targetChar:GetPivot().Position).Magnitude
-        if distance > stats.maxRange then
-            return
-        end
-
-        -- Swing-rate limit: reject hits on the SAME target faster than the weapon's cooldown.
-        local now = os.clock()
-        local playerHits = lastHitTimes[player]
-        if not playerHits then
-            playerHits = setmetatable({}, { __mode = "k" }) :: any
-            lastHitTimes[player] = playerHits
-        end
-        local last = playerHits[humanoid]
-        if last and now - last < stats.swingCooldown then
-            return
-        end
-        playerHits[humanoid] = now
-
-        for _, v in Players:GetPlayers() do
-            if v ~= player then
-                remotes.ReplicateHit:FireClient(v, particles, position, normal)
+        if Validation.isInstance(target, "Humanoid") then
+            local humanoid = target :: Humanoid
+            -- Target must be a real, living Humanoid in a real character that isn't the attacker.
+            if humanoid.Health <= 0 then
+                return
             end
+            local targetChar = humanoid.Parent
+            if not targetChar or not targetChar:IsA("Model") or targetChar == playerChar then
+                return
+            end
+
+            -- Distance sanity check (attacker character to target character).
+            local distance = (playerChar:GetPivot().Position - targetChar:GetPivot().Position).Magnitude
+            if distance > stats.maxRange then
+                return
+            end
+
+            if not passesRateLimit(player, humanoid, stats.swingCooldown) then
+                return
+            end
+
+            for _, v in Players:GetPlayers() do
+                if v ~= player then
+                    remotes.ReplicateHit:FireClient(v, particles, position, normal)
+                end
+            end
+            humanoid:TakeDamage(stats.damage)
+            XPService.notifyDamageDealt(player, humanoid)
+        elseif Validation.isInstance(target, "BasePart") and CollectionService:HasTag(target, BuildConfig.structureTag) then
+            local structure = target :: BasePart
+            -- Distance vs the PANEL CENTER: an 8x8 panel's center can sit up to half a
+            -- cell diagonal (~5.7 studs) from the edge actually struck, hence the slack.
+            local distance = (playerChar:GetPivot().Position - structure.Position).Magnitude
+            if distance > stats.maxRange + BuildConfig.cellSize * 0.75 then
+                return
+            end
+
+            if not passesRateLimit(player, structure, stats.swingCooldown) then
+                return
+            end
+
+            for _, v in Players:GetPlayers() do
+                if v ~= player then
+                    remotes.ReplicateHit:FireClient(v, particles, position, normal)
+                end
+            end
+            BuildService.damageStructure(structure, stats.damage)
         end
-        humanoid:TakeDamage(stats.damage)
-        XPService.notifyDamageDealt(player, humanoid)
     end)
     remotes.Swing.OnServerEvent:Connect(function(player: Player, tool: Tool, trail : Trail, toggle : boolean)
         local character = player.Character
