@@ -130,6 +130,45 @@ local function lookQuadrantToWallOrient(quadrant: number): number
 	return 1 - quadrant % 2
 end
 
+-- Looking up more steeply than this makes the priority FLOOR slot the cell's ceiling
+-- plane instead of the one at the feet (a deadzone so level glances don't flip it).
+local FLOOR_PITCH_UP_THRESHOLD = math.rad(15)
+
+--[[
+	The PRIORITY slot: the one belonging to the builder's own cell (the cell containing
+	the HumanoidRootPart), picked purely from the cursor direction — walls take the cell
+	face in the yaw quadrant you look toward, floors take the feet plane (or the ceiling
+	plane when pitched up), stairs take the cell itself ascending away. Selection starts
+	here and only expands to the aim-driven 3x3x3 search when this slot is occupied.
+]]
+function BuildMath.primarySlot(config: BuildConfigLike, kind: string, center: Cell, cameraYaw: number, cameraPitch: number): Slot
+	local quadrant = BuildMath.yawToOrient(cameraYaw)
+	if kind == "Floor" then
+		local y = if cameraPitch > FLOOR_PITCH_UP_THRESHOLD then center.y + 1 else center.y
+		return { kind = kind, x = center.x, y = y, z = center.z, orient = 0 }
+	elseif kind == "Wall" then
+		-- Quadrant look vectors are (-Z, -X, +Z, +X) for q = 0..3; the wall goes on the
+		-- cell face in that direction (+ faces are the boundary planes at index + 1).
+		if quadrant == 0 then
+			return { kind = kind, x = center.x, y = center.y, z = center.z, orient = 1 }
+		elseif quadrant == 1 then
+			return { kind = kind, x = center.x, y = center.y, z = center.z, orient = 0 }
+		elseif quadrant == 2 then
+			return { kind = kind, x = center.x, y = center.y, z = center.z + 1, orient = 1 }
+		end
+		return { kind = kind, x = center.x + 1, y = center.y, z = center.z, orient = 0 }
+	elseif kind == "Stairs" then
+		return {
+			kind = kind,
+			x = center.x,
+			y = center.y,
+			z = center.z,
+			orient = lookQuadrantToStairsOrient(quadrant),
+		}
+	end
+	error(`[BuildMath] Unknown structure kind "{kind}"`)
+end
+
 --[[
 	Snap an aim point (plus the camera yaw, for oriented kinds) to the slot it selects.
 	The caller should nudge the aim point slightly toward the camera before calling

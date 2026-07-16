@@ -65,6 +65,7 @@ local template: BasePart? = nil
 local placeRemote: RemoteEvent? = nil
 
 local ghost: BasePart? = nil
+local ghostHighlight: Highlight? = nil
 local previewConnection: RBXScriptConnection? = nil
 local currentSlot: BuildMath.Slot? = nil
 local currentSlotValid = false
@@ -103,8 +104,14 @@ local function getGhost(): BasePart?
 	newGhost.CanQuery = false -- the aim raycast must never hit the preview
 	newGhost.CanTouch = false
 	newGhost.CastShadow = false
-	newGhost.Color = BuildConfig.previewColor
 	newGhost.Transparency = BuildConfig.previewTransparency
+	-- The preview look is a Highlight (default settings, fill colored by validity) so
+	-- the ghost reads clearly as "not built yet" next to real translucent structures.
+	local highlight = Instance.new("Highlight")
+	highlight.FillColor = BuildConfig.previewColor
+	highlight.Adornee = newGhost
+	highlight.Parent = newGhost
+	ghostHighlight = highlight
 	ghost = newGhost
 	return newGhost
 end
@@ -137,25 +144,30 @@ local function onPreviewStep()
 
 	local origin = camera.CFrame.Position
 	local look = camera.CFrame.LookVector
-
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.IgnoreWater = true
-	params.FilterDescendantsInstances = { camera, character :: Instance }
-
-	-- Hits snap to the NEAR side of the surface (the small pull toward the camera); no
-	-- hit means aiming at open air. Either way the selection then CLAMPS into the build
-	-- region around the root part's cell, so the ghost always previews near the player.
-	local result = Workspace:Raycast(origin, look * BuildConfig.maxBuildRange, params)
-	local aimPoint = if result then result.Position - look * 0.1 else origin + look * BuildConfig.maxBuildRange
-
 	local cameraYaw = math.atan2(-look.X, -look.Z)
 	local centerCell = BuildMath.cellOfPoint(BuildConfig, rootPart.Position)
-	local slot = BuildMath.clampSlotToRegion(
-		BuildConfig,
-		BuildMath.worldToSlot(BuildConfig, kind, aimPoint, cameraYaw),
-		centerCell
-	)
+
+	-- The builder's OWN cell takes priority, oriented by the cursor (walls by yaw face,
+	-- floors by pitch, stairs by ascent yaw). Only when that slot is already occupied
+	-- does selection expand to the aim-driven search over the full 3x3x3 region.
+	local slot = BuildMath.primarySlot(BuildConfig, kind, centerCell, cameraYaw, math.asin(look.Y))
+	if occupiedKeys[BuildMath.slotKey(slot)] then
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.IgnoreWater = true
+		params.FilterDescendantsInstances = { camera, character :: Instance }
+
+		-- Hits snap to the NEAR side of the surface (the small pull toward the camera);
+		-- no hit means aiming at open air. Either way the selection then CLAMPS into
+		-- the build region, so the ghost always previews near the player.
+		local result = Workspace:Raycast(origin, look * BuildConfig.maxBuildRange, params)
+		local aimPoint = if result then result.Position - look * 0.1 else origin + look * BuildConfig.maxBuildRange
+		slot = BuildMath.clampSlotToRegion(
+			BuildConfig,
+			BuildMath.worldToSlot(BuildConfig, kind, aimPoint, cameraYaw),
+			centerCell
+		)
+	end
 	currentSlot = slot
 
 	local slotKey = BuildMath.slotKey(slot)
@@ -165,7 +177,9 @@ local function onPreviewStep()
 		activeGhost.Size = BuildMath.slotSize(BuildConfig, slot)
 		activeGhost.CFrame = BuildMath.slotToCFrame(BuildConfig, slot)
 		currentSlotValid = not occupiedKeys[slotKey] and isSlotSupported(slot)
-		activeGhost.Color = if currentSlotValid then BuildConfig.previewColor else BuildConfig.previewInvalidColor
+		if ghostHighlight then
+			ghostHighlight.FillColor = if currentSlotValid then BuildConfig.previewColor else BuildConfig.previewInvalidColor
+		end
 	end
 end
 

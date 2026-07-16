@@ -160,6 +160,46 @@ return function()
 		end)
 	end)
 
+	describe("primarySlot (the builder's own cell takes priority)", function()
+		local center = { x = 2, y = 0, z = -3 }
+		it("walls take the cell face in the yaw direction", function()
+			local negZ = BuildMath.primarySlot(config, "Wall", center, LOOK_NEG_Z, 0)
+			expect(negZ.orient).to.equal(1)
+			expect(negZ.z).to.equal(-3) -- the -Z face is the plane at the cell's own index
+			local posZ = BuildMath.primarySlot(config, "Wall", center, LOOK_POS_Z, 0)
+			expect(posZ.orient).to.equal(1)
+			expect(posZ.z).to.equal(-2) -- the +Z face is the next boundary plane
+			local negX = BuildMath.primarySlot(config, "Wall", center, LOOK_NEG_X, 0)
+			expect(negX.orient).to.equal(0)
+			expect(negX.x).to.equal(2)
+			local posX = BuildMath.primarySlot(config, "Wall", center, LOOK_POS_X, 0)
+			expect(posX.orient).to.equal(0)
+			expect(posX.x).to.equal(3)
+		end)
+		it("floors use pitch: feet plane when level or looking down, ceiling when pitched up", function()
+			expect(BuildMath.primarySlot(config, "Floor", center, LOOK_NEG_Z, 0).y).to.equal(0)
+			expect(BuildMath.primarySlot(config, "Floor", center, LOOK_NEG_Z, -0.5).y).to.equal(0)
+			expect(BuildMath.primarySlot(config, "Floor", center, LOOK_NEG_Z, math.rad(30)).y).to.equal(1)
+			-- small upward glances stay on the feet plane (deadzone)
+			expect(BuildMath.primarySlot(config, "Floor", center, LOOK_NEG_Z, math.rad(10)).y).to.equal(0)
+		end)
+		it("stairs take the cell itself, ascending away from the builder", function()
+			local slot = BuildMath.primarySlot(config, "Stairs", center, LOOK_NEG_Z, 0)
+			expect(slot.x).to.equal(2)
+			expect(slot.y).to.equal(0)
+			expect(slot.z).to.equal(-3)
+			expect(slot.orient).to.equal(2) -- look -Z ascends -Z
+		end)
+		it("is always inside the build region", function()
+			for _, kind in { "Wall", "Floor", "Stairs" } do
+				for _, yaw in { LOOK_NEG_Z, LOOK_NEG_X, LOOK_POS_Z, LOOK_POS_X } do
+					local slot = BuildMath.primarySlot(config, kind, center, yaw, math.rad(30))
+					expect(BuildMath.isSlotInRegion(config, slot, center)).to.equal(true)
+				end
+			end
+		end)
+	end)
+
 	describe("slotToCFrame + slotSize geometry (Y-thin panel, like RustyMetalSheet)", function()
 		it("wall orient 0 sits ON the X boundary plane with the panel's thin (Y) axis along world X", function()
 			local slot = { kind = "Wall", x = 1, y = 0, z = 0, orient = 0 }

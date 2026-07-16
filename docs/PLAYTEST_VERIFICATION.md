@@ -721,10 +721,12 @@ without them.
   boundary-plane dedup, floor plane snap, stairs cell + ascent orient, stairs edges
   landing exactly on cell edges, Y-thin/Z-thin panel-basis detection, region
   clamp/in-region rules incl. boundary planes reaching one past the region, slotKey
-  rules, validateSlot rejecting NaN/huge/fractional/out-of-bounds/bad-orient) and
+  rules, validateSlot rejecting NaN/huge/fractional/out-of-bounds/bad-orient,
+  primarySlot own-cell priority: wall faces per yaw quadrant, floor feet/ceiling by
+  pitch with a 15° deadzone, stairs ascent, always in-region) and
   `BuildConfig.spec` (grid derives from panelSize whatever its thin axis, three
   structures with sane stats, positive finite tunables, region radius a whole number,
-  distinct preview colors). ✅ 126/126 green in-engine 2026-07-16. Run via
+  distinct preview colors). ✅ 130/130 green in-engine 2026-07-16. Run via
   `test.project.json` → Play — NOTE: a bare `execute_luau` TestBootstrap re-run reports
   STALE results (the MCP plugin VM caches `require`); use a Play session or the
   loadstring fresh-require runner.
@@ -742,19 +744,29 @@ without them.
     and hides the ghost.
   - ❌ Two toggles lit at once, or a ghost lingers with nothing selected.
 
-- **[R] Ghost preview — real piece + region clamp (playtest).** Select each structure
-  and look around: near, far, at the ground, existing parts, and the sky.
-  - ✅ The ghost is the RustyMetalSheet (blue-tinted, transparent) and snaps to the
-    8-stud grid. Wall: stands upright on the cell boundary you're facing, flips
-    orientation with 90° camera turns. Floor: lies flat, never rotates. Stairs: 45°
-    ramp ascending AWAY from you, bottom/top edges meeting the cell's bottom/top
-    edges. Aiming FAR (or at the sky) keeps the ghost pinned to the edge of the 3×3×3
-    region around you — it never previews beyond one cell away. No hitching while
-    sweeping the camera.
+- **[R] Ghost preview — real piece, Highlight look, own-cell priority (playtest).**
+  Select each structure on open ground and look around: level turns through all four
+  directions, up, down, far away, at the sky.
+  - ✅ The ghost is the RustyMetalSheet wrapped in a blue **Highlight** (default look:
+    colored fill + outline, visible through geometry) — clearly distinct from the
+    translucent under-construction pieces. With your own cell's slot free, the ghost
+    STAYS on your own cell no matter how far away you aim: Wall = your cell's face in
+    the 90°-snapped direction you look; Floor = the plane at your feet, flipping to
+    your cell's ceiling when you pitch up past ~15°; Stairs = your cell, ascending
+    away from you with edges meeting the cell's bottom/top edges.
   - ❌ The ghost is a plain grey Part (template resolution failed — check for a
-    `[getPanelTemplate]` warn), lies in the wrong plane / stands on edge (panel-basis
-    detection wrong for the union's axes), escapes the 3×3×3 region, jitters between
-    two slots every frame, or sits inside the surface you aimed at.
+    `[getPanelTemplate]` warn), has no Highlight / is only color-tinted, lies in the
+    wrong plane or stands on edge (panel-basis detection wrong for the union's axes),
+    or wanders off your cell while the own-cell slot is still free.
+
+- **[R] Occupied-cell expansion to the 3×3×3 (playtest).** Place a wall on your cell's
+  facing side, keep facing it; then aim at neighboring cells; then far away.
+  - ✅ Once the own-cell slot is taken, the ghost expands to aim-driven selection over
+    the surrounding 3×3×3 — neighbor faces highlight where you aim, and aiming FAR (or
+    at the sky) pins the ghost to the region's edge, never beyond one cell away. Aiming
+    back at the occupied slot shows the RED highlight and clicks do nothing.
+  - ❌ The ghost stays stuck red on the occupied own-cell slot regardless of aim, or
+    escapes the 3×3×3 region, or jitters between two slots every frame.
 
 - **Placement + construction ramp (playtest). ✅ base flow verified 2026-07-16**
   Select Wall, click on open ground.
