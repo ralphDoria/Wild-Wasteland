@@ -56,7 +56,7 @@ return function()
 
 	describe("tunables", function()
 		it("timing, range, and probe knobs are positive finite numbers", function()
-			for _, key in { "buildTime", "maxBuildRange", "groundContactMargin", "placementCooldown", "rampTickInterval", "maxCellIndex", "cellSize" } do
+			for _, key in { "buildTime", "maxBuildRange", "groundContactMargin", "floorSelectionAnchorYOffset", "placementCooldown", "rampTickInterval", "maxCellIndex", "cellSize" } do
 				expect(isPositiveFinite(BuildConfig[key])).to.equal(true)
 			end
 		end)

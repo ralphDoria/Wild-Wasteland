@@ -156,14 +156,19 @@ local function onPreviewStep()
 	params.FilterDescendantsInstances = { camera, character :: Instance }
 
 	-- Anything solid stops the aim ray (built structures, map geometry, terrain) —
-	-- slots strictly behind the hit are unreachable. The small slack keeps a grid
-	-- plane coinciding with the hit surface countable as crossed.
+	-- slots strictly behind the hit are unreachable (plane-coincidence slack lives
+	-- inside BuildMath, scoped to plane crossings only).
 	local result = Workspace:Raycast(origin, look * BuildConfig.maxBuildRange, params)
-	local maxDistance = if result then result.Distance + 0.25 else BuildConfig.maxBuildRange
+	local maxDistance = if result then result.Distance else BuildConfig.maxBuildRange
 
 	-- Ray-march selection: every in-region slot the ray passes through is a candidate;
-	-- the one closest to the HumanoidRootPart wins (ties: first crossed).
-	local slot = BuildMath.selectSlotAlongRay(BuildConfig, kind, origin, look, maxDistance, centerCell, cameraYaw, rootPart.Position)
+	-- the one closest to the anchor wins (ties: first crossed). Floors anchor at the
+	-- FEET so the plane underfoot beats the ceiling.
+	local anchorPoint = rootPart.Position
+	if kind == "Floor" then
+		anchorPoint -= Vector3.new(0, BuildConfig.floorSelectionAnchorYOffset, 0)
+	end
+	local slot = BuildMath.selectSlotAlongRay(BuildConfig, kind, origin, look, maxDistance, centerCell, cameraYaw, anchorPoint)
 	currentSlot = slot
 
 	local slotKey = BuildMath.slotKey(slot)

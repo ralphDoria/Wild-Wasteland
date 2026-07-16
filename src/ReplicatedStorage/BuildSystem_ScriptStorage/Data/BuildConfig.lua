@@ -36,6 +36,9 @@ export type BuildConfig = {
 	-- A placement must TOUCH something (map geometry, terrain, or another structure):
 	-- the contact probe expands the piece's box by this many studs on every side.
 	groundContactMargin: number,
+	-- FLOOR selection measures candidate distance from this many studs BELOW the
+	-- HumanoidRootPart (i.e. the feet), so the plane underfoot beats the ceiling.
+	floorSelectionAnchorYOffset: number,
 	-- Min seconds between honored placements per player (server rate limit + client debounce).
 	placementCooldown: number,
 	-- Construction-ramp update cadence (one Heartbeat accumulator, VitalsService pattern).
@@ -73,6 +76,7 @@ local BuildConfig: BuildConfig = {
 	maxBuildRange = 40,
 	buildRegionRadiusCells = 1,
 	groundContactMargin = 0.5,
+	floorSelectionAnchorYOffset = 2,
 	placementCooldown = 0.15,
 	rampTickInterval = 0.1,
 	maxCellIndex = 5000,

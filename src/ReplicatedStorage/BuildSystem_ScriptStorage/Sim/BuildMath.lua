@@ -134,6 +134,12 @@ end
 -- EARLIER along the ray wins, per the selection rule.
 local DISTANCE_TIE_EPSILON = 1e-3
 
+-- Plane crossings only: a panel sitting ON the surface that stopped the ray (a built
+-- wall's own grid plane) must still count as crossed despite the hit landing a hair in
+-- front of it. Deliberately NOT applied to stairs cell entries — a cell that starts
+-- exactly at a blocked boundary is on the far side of whatever blocked it.
+local PLANE_CROSSING_SLACK = 0.25
+
 --[[
 	Snap an aim point (plus the camera yaw, for oriented kinds) to the slot it selects.
 	The caller should nudge the aim point slightly toward the camera before calling
@@ -321,15 +327,17 @@ end
 	the aim ray passes through — wall/floor slots where the ray crosses their grid
 	plane, stairs slots for each region cell the ray's segment enters — with the ray
 	capped at maxDistance (the caller stops it at the first solid hit: built structures,
-	map geometry, and terrain all block). The surface that stopped the ray stays
-	selectable even when it sits off the grid planes (terrain): the nudged ray end is
-	snapped in as a final candidate. Of the candidates, the one whose panel center is
-	CLOSEST to anchorPoint (the builder's HumanoidRootPart) wins; a tie goes to the
-	candidate crossed earlier along the ray. Occupancy is NOT considered here — an
-	occupied winner previews red and the click is rejected.
+	map geometry, and terrain all block; nothing past the hit is ever a candidate).
+	FLOORS additionally offer both planes bounding the aim point's (region-clamped)
+	cell, so ground sitting between grid planes stays selectable and a level aim still
+	has a feet-plane option. Of the candidates, the one whose panel center is CLOSEST
+	to anchorPoint wins (the caller passes the HumanoidRootPart — biased down to the
+	feet for floors); a tie goes to the candidate crossed earlier along the ray.
+	Occupancy is NOT considered here — an occupied winner previews red and the click is
+	rejected.
 
-	Aiming somewhere with no reachable slot at all (e.g. straight up at the sky)
-	degrades to clamping the snapped ray end into the region, so a slot is always
+	Aiming somewhere with no reachable slot at all (e.g. straight up at the sky with a
+	wall) degrades to clamping the snapped ray end into the region, so a slot is always
 	returned and the ghost never disappears.
 ]]
 function BuildMath.selectSlotAlongRay(
@@ -363,11 +371,11 @@ function BuildMath.selectSlotAlongRay(
 		makeSlot: (planeIndex: number, point: Vector3) -> Slot
 	)
 		if math.abs(axisDirection) < 1e-6 then
-			return -- ray parallel to the family; the terminal snap still applies
+			return -- ray parallel to the family
 		end
 		for planeIndex = loPlane, hiPlane do
 			local t = (planeIndex * c - axisOrigin) / axisDirection
-			if t >= 0 and t <= maxDistance then
+			if t >= 0 and t <= maxDistance + PLANE_CROSSING_SLACK then
 				addCandidate(makeSlot(planeIndex, origin + direction * t), t)
 			end
 		end
@@ -409,14 +417,27 @@ function BuildMath.selectSlotAlongRay(
 		end
 	end
 
-	-- The nudged ray end: the hit surface's own snap (terrain that sits between grid
-	-- planes still selects its nearest slot, exactly like the pre-ray-march behavior).
+	-- Terminal candidates at the nudged ray end (per kind — the snap must never reach
+	-- PAST the surface that stopped the ray):
+	-- - Floors: BOTH planes bounding the aim point's cell, clamped into the region
+	--   (ground between grid planes stays selectable; the feet-biased anchor then
+	--   prefers the plane underfoot). Vertical-only snap — can't tunnel a wall.
+	-- - Walls: NONE. worldToSlot ROUNDS the facing axis, which can jump up to half a
+	--   cell beyond the hit surface; the crossing enumeration already covers every
+	--   wall plane actually reached.
+	-- - Stairs: NONE needed — the cell traversal already includes the (in-region)
+	--   cell the ray ends in.
 	local terminalPoint = origin + direction * math.max(maxDistance - 0.1, 0)
-	local terminalSlot = BuildMath.worldToSlot(config, kind, terminalPoint, cameraYaw)
-	addCandidate(terminalSlot, maxDistance)
+	if kind == "Floor" then
+		local cellX = math.clamp(math.floor(terminalPoint.X / c), center.x - r, center.x + r)
+		local cellY = math.clamp(math.floor(terminalPoint.Y / c), center.y - r, center.y + r)
+		local cellZ = math.clamp(math.floor(terminalPoint.Z / c), center.z - r, center.z + r)
+		addCandidate({ kind = kind, x = cellX, y = cellY, z = cellZ, orient = 0 }, maxDistance)
+		addCandidate({ kind = kind, x = cellX, y = cellY + 1, z = cellZ, orient = 0 }, maxDistance)
+	end
 
 	if #candidates == 0 then
-		return BuildMath.clampSlotToRegion(config, terminalSlot, center)
+		return BuildMath.clampSlotToRegion(config, BuildMath.worldToSlot(config, kind, terminalPoint, cameraYaw), center)
 	end
 
 	table.sort(candidates, function(a, b)

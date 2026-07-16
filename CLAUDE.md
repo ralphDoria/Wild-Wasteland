@@ -111,10 +111,14 @@ one call per damage site when it comes).
   (`BuildMath.selectSlotAlongRay`): the camera ray — stopped by the FIRST solid hit
   (structures, map geometry, terrain), capped at maxBuildRange — collects every
   in-region slot it passes through (wall/floor grid-plane crossings, stairs cell
-  traversal, plus the nudged hit-surface snap so off-plane terrain stays selectable),
-  and the candidate closest to the HumanoidRootPart wins (ties → first crossed;
-  no candidates → clamp fallback, ghost never vanishes). Occupied slots ARE selectable
-  and preview red. Ghost look is a **Highlight** on an OPAQUE ghost (Highlights don't
+  traversal; floors also offer BOTH planes of the region-clamped aim cell so off-plane
+  terrain and level aims stay selectable), and the candidate closest to the anchor wins
+  — the HumanoidRootPart, biased DOWN by `floorSelectionAnchorYOffset` (2) for floors
+  so the feet plane beats the ceiling (ties → first crossed; no candidates → clamp
+  fallback, ghost never vanishes). Selection can never reach PAST the surface that
+  stopped the ray: walls have no rounding terminal snap, stairs cell entries get no
+  slack (plane-coincidence slack is scoped inside BuildMath). Occupied slots ARE
+  selectable and preview red. Ghost look is a **Highlight** on an OPAQUE ghost (Highlights don't
   render on transparent parts; default settings, FillColor = previewColor /
   previewInvalidColor for occupied-or-unsupported — occupancy from SlotKey attributes
   on PlacedStructures children); invalid clicks aren't sent. Inert-with-warn if the

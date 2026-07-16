@@ -765,12 +765,16 @@ without them.
   cell's facing side and keep aiming at it; also stand near a large map wall/hill and
   aim through it.
   - ✅ Aiming at the placed wall selects IT (red highlight, clicks do nothing) — slots
-    behind it are unreachable because the built piece stops the ray. Map geometry and
-    terrain block the same way (no selecting slots on the far side of a hill). Aiming
-    above/past the placed wall's edge selects the next slot the ray crosses (e.g. the
-    wall above it) — chain-building upward works by aiming up.
-  - ❌ The selection tunnels through built pieces or terrain, or an occupied slot
-    can't be aimed at all (selection skips it — spec says select-and-red).
+    behind it are unreachable because the built piece stops the ray, and the selection
+    snap can never round PAST a blocking surface (walls pressed close included).
+    Map geometry and terrain block the same way (no selecting slots on the far side of
+    a hill). Aiming above/past the placed wall's edge selects the next slot the ray
+    crosses (e.g. the wall above it) — chain-building upward works by aiming up.
+    FLOORS: with a level aim on open ground the ghost picks the plane at your FEET,
+    not the ceiling (feet-biased anchor).
+  - ❌ The selection tunnels through built pieces or terrain, a level floor aim
+    previews overhead, or an occupied slot can't be aimed at all (selection skips it —
+    spec says select-and-red).
 
 - **Placement + construction ramp (playtest). ✅ base flow verified 2026-07-16**
   Select Wall, click on open ground.

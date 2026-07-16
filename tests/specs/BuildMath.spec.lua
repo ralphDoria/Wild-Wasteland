@@ -182,13 +182,23 @@ return function()
 			expect(slot.y).to.equal(1) -- the crossing point is in the layer above
 		end)
 
+		-- Floors anchor at the FEET (HRP - floorSelectionAnchorYOffset), like the manager passes.
+		local feetAnchor = Vector3.new(4, 2, 4)
+
 		it("floors: aiming down picks the feet plane, aiming up picks the ceiling", function()
-			local down = BuildMath.selectSlotAlongRay(config, "Floor", eye, Vector3.new(1, -1, 0).Unit, FAR, center, LOOK_POS_X, anchor)
+			local down = BuildMath.selectSlotAlongRay(config, "Floor", eye, Vector3.new(1, -1, 0).Unit, FAR, center, LOOK_POS_X, feetAnchor)
 			expect(down.y).to.equal(0)
 			expect(down.x).to.equal(1) -- the cell the crossing point lands in
-			local up = BuildMath.selectSlotAlongRay(config, "Floor", eye, Vector3.new(1, 1, 0).Unit, FAR, center, LOOK_POS_X, anchor)
+			local up = BuildMath.selectSlotAlongRay(config, "Floor", eye, Vector3.new(1, 1, 0).Unit, FAR, center, LOOK_POS_X, feetAnchor)
 			expect(up.y).to.equal(1)
 			expect(up.x).to.equal(0) -- closest ceiling, not the higher plane also crossed
+		end)
+
+		it("floors: a LEVEL aim selects the plane at the feet, never the ceiling", function()
+			-- A level ray crosses no horizontal plane; the terminal cell offers both of
+			-- its bounding planes and the feet anchor decides.
+			local slot = BuildMath.selectSlotAlongRay(config, "Floor", eye, Vector3.new(1, 0, 0), FAR, center, LOOK_POS_X, feetAnchor)
+			expect(slot.y).to.equal(0)
 		end)
 
 		it("stairs: the own cell (distance 0) beats every farther traversed cell", function()
@@ -206,6 +216,23 @@ return function()
 			expect(unblocked.x).to.equal(2) -- x=2 wins on distance when reachable
 			local blocked = BuildMath.selectSlotAlongRay(config, "Wall", eye, direction, 5, center, LOOK_POS_X, nearAnchor)
 			expect(blocked.x).to.equal(1) -- ray stopped before the x=2 crossing (t ~ 12)
+		end)
+
+		it("walls never snap past the surface that stopped the ray", function()
+			-- Blocker at ~8.5 studs, just past the x=8 plane; the x=16 plane is behind
+			-- it. Even with an anchor that would prefer the far plane, it must not leak.
+			local direction = Vector3.new(1, -0.05, 0).Unit
+			local farAnchor = Vector3.new(13, 4, 4)
+			local slot = BuildMath.selectSlotAlongRay(config, "Wall", eye, direction, 8.5, center, LOOK_POS_X, farAnchor)
+			expect(slot.x).to.equal(1)
+		end)
+
+		it("stairs never claim the cell behind a blocked boundary", function()
+			-- A wall on the x=8 boundary stops the ray at ~3.9; the far cell's entry is
+			-- exactly at the boundary and must be excluded (no slack for cell entries).
+			local farAnchor = Vector3.new(14, 4, 4) -- would prefer the far cell if it leaked
+			local slot = BuildMath.selectSlotAlongRay(config, "Stairs", eye, Vector3.new(1, 0, 0), 3.9, center, LOOK_POS_X, farAnchor)
+			expect(slot.x).to.equal(0)
 		end)
 
 		it("an exact distance tie goes to the candidate crossed first", function()
