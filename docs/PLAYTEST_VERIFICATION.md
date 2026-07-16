@@ -699,52 +699,93 @@ lives at `ItemSystem_ScriptStorage/ItemSerializer.lua` (whitelist config in
 
 ---
 
-## Build system v1 (scaffolded 2026-07-16, branch `build-system`) — gate OPEN
+## Build system v1 (scaffolded 2026-07-16, branch `build-system`) — gate OPEN for the region/grounding round
 
 Fortnite-style grid building (Wall/Floor/Stairs). Server-authoritative: the client's
 `PlaceStructure` remote carries five flat scalars (kind, x, y, z, orient) and the server
-re-derives all geometry through the same pure `BuildMath` the preview used. Prereq in the
-place: ONE `Inventory.Hotbar.TempBuildButton` (delete the current duplicate) with an
-`innerFrame` child (TouchBackpackSlot anatomy) — the manager warns and stays inert
-without it.
+re-derives all geometry through the same pure `BuildMath` the preview used. Selection is
+CLAMPED to the 3×3×3 cell region around the HumanoidRootPart's cell and pieces must touch
+something (map geometry/terrain/another structure — never a character). The piece is the
+place-built `ReplicatedStorage.BuildSystem_Storage.RustyMetalSheet` union (Y-thin;
+BuildMath detects the panel's axes from `panelSize`). Prereqs in the place: ONE
+`Inventory.Hotbar.TempBuildButton` with an `innerFrame` child (✅ user fixed 2026-07-16)
+and the RustyMetalSheet in the storage folder — the manager warns and stays inert
+without them.
+
+> First playtest round (2026-07-16, pre-region/template swap): button toggle, V/B/N
+> binds, ghost snapping, placement + ramp verified by the user. The checks below marked
+> **[R]** are the still-open round for the region clamp, grounding, red ghost, and the
+> real union.
 
 - **Unit (automated):** `BuildMath.spec` (yaw→orient quadrants/wraparound, wall
   boundary-plane dedup, floor plane snap, stairs cell + ascent orient, stairs edges
-  landing exactly on cell edges, slotKey rules, validateSlot rejecting
-  NaN/huge/fractional/out-of-bounds/bad-orient) and `BuildConfig.spec` (grid derives
-  from panelSize, three structures with sane stats, positive finite tunables). Run via
-  `test.project.json` → Play (or the MCP).
+  landing exactly on cell edges, Y-thin/Z-thin panel-basis detection, region
+  clamp/in-region rules incl. boundary planes reaching one past the region, slotKey
+  rules, validateSlot rejecting NaN/huge/fractional/out-of-bounds/bad-orient) and
+  `BuildConfig.spec` (grid derives from panelSize whatever its thin axis, three
+  structures with sane stats, positive finite tunables, region radius a whole number,
+  distinct preview colors). ✅ 126/126 green in-engine 2026-07-16. Run via
+  `test.project.json` → Play — NOTE: a bare `execute_luau` TestBootstrap re-run reports
+  STALE results (the MCP plugin VM caches `require`); use a Play session or the
+  loadstring fresh-require runner.
 
-- **Build mode toggle (playtest).** Click TempBuildButton; click again.
+- **Build mode toggle (playtest). ✅ VERIFIED 2026-07-16** Click TempBuildButton; click again.
   - ✅ A UICorner (corner scale 1) appears on `innerFrame` while active and disappears
     when toggled off; the V/B/N action frames appear in ActionGui2 only while active.
   - ❌ No UICorner (button wiring failed — check for a `[BuildModeManager]` warn naming
     which GUI piece is missing), or binds outlive the toggle.
 
-- **Structure selection is mutually exclusive (playtest).** Press V, then B, then N;
-  press the active key again.
+- **Structure selection is mutually exclusive (playtest). ✅ VERIFIED 2026-07-16**
+  Press V, then B, then N; press the active key again.
   - ✅ Exactly one of Wall/Floor/Stairs is ever selected (selecting one visibly
     deselects the previous in the action GUI); re-pressing the active key deselects it
     and hides the ghost.
   - ❌ Two toggles lit at once, or a ghost lingers with nothing selected.
 
-- **Ghost preview (playtest).** Select each structure and look around, near and far,
-  at the ground, existing parts, and the sky.
-  - ✅ A transparent blue panel snaps to the 8-stud grid. Wall: stands upright on the
-    cell boundary you're facing, flips orientation with 90° camera turns. Floor: lies
-    flat, never rotates. Stairs: 45° ramp ascending AWAY from you, bottom/top edges
-    meeting the cell's bottom/top edges. Sky-aim previews at max range (air-building).
-    No hitching while sweeping the camera (slot updates only on cell change).
-  - ❌ Ghost jitters between two slots every frame, sits inside the surface you aimed
-    at (near-side nudge broken), or the raycast hits the ghost itself (runaway ghost).
+- **[R] Ghost preview — real piece + region clamp (playtest).** Select each structure
+  and look around: near, far, at the ground, existing parts, and the sky.
+  - ✅ The ghost is the RustyMetalSheet (blue-tinted, transparent) and snaps to the
+    8-stud grid. Wall: stands upright on the cell boundary you're facing, flips
+    orientation with 90° camera turns. Floor: lies flat, never rotates. Stairs: 45°
+    ramp ascending AWAY from you, bottom/top edges meeting the cell's bottom/top
+    edges. Aiming FAR (or at the sky) keeps the ghost pinned to the edge of the 3×3×3
+    region around you — it never previews beyond one cell away. No hitching while
+    sweeping the camera.
+  - ❌ The ghost is a plain grey Part (template resolution failed — check for a
+    `[getPanelTemplate]` warn), lies in the wrong plane / stands on edge (panel-basis
+    detection wrong for the union's axes), escapes the 3×3×3 region, jitters between
+    two slots every frame, or sits inside the surface you aimed at.
 
-- **Placement + construction ramp (playtest).** Select Wall, click on open ground.
+- **Placement + construction ramp (playtest). ✅ base flow verified 2026-07-16**
+  Select Wall, click on open ground.
   - ✅ A structure appears INSTANTLY at the ghost's spot, semi-transparent, and turns
     fully opaque over ~5 s. In Explorer: it lives in `workspace.PlacedStructures`,
     tagged `BuildStructure`, with `Health` ramping from 15 to `MaxHealth` 150 and
-    `StructureType`/`SlotKey`/`OwnerUserId` set. The ghost stays up for chain-building.
+    `StructureType`/`SlotKey`/`OwnerUserId` set. The ghost stays up for chain-building
+    (and **[R]** turns red over the slot you just filled).
   - ❌ Nothing spawns (check server Output for a BuildService require error), the
     structure pops in opaque, or Health never reaches MaxHealth.
+
+- **[R] Grounding — no floating pieces (playtest).** Stand on flat ground. (a) Place a
+  floor at your feet, then aim up and place the ceiling floor one layer above — it's
+  detached from everything → red. (b) Build a wall, then a floor that touches only that
+  wall's top edge → blue/accepted (structures support structures). (c) Jump and try to
+  place a floor mid-air beneath you with nothing adjacent.
+  - ✅ (a) the detached overhead floor previews RED and clicks do nothing (spoofing the
+    remote from the command bar is also rejected server-side); (b) the wall-supported
+    floor places; (c) nothing places mid-jump — your own character never counts as
+    support.
+  - ❌ A detached piece places (client red but server accepts = client-only check
+    leaking; both accepting = probe broken), or a legitimately-touching piece is
+    rejected (margin too tight), or placing on terrain fails (voxel probe broken).
+
+- **[R] Region enforcement (remote test, client command bar).** With the region being
+  3×3×3 around you:
+    `game.ReplicatedStorage.BuildSystem_Storage.PlaceStructure:FireServer("Stairs", cellX + 2, cellY, cellZ, 0)`
+  (two cells away horizontally — compute your cell as `math.floor(pos / 8)`).
+  - ✅ Rejected: nothing spawns two cells out even though it's well within the old
+    40-stud range; the same call one cell out (a slot the ghost can reach) works.
+  - ❌ A structure lands outside the 3×3×3 neighborhood.
 
 - **Occupancy (playtest).** Place a wall; click the same spot again. Then walk around
   to the far side of that wall and try to place a wall on the same boundary from there.
@@ -754,10 +795,10 @@ without it.
 
 - **Server validation (remote test, client command bar).**
     `game.ReplicatedStorage.BuildSystem_Storage.PlaceStructure:FireServer("Wall", 9999, 0, 0, 0)`
-    (out of range), `("Wall", 1.5, 0, 0, 0)`, `("Wall", 0/0, 0, 0, 0)`, `("Roof", 0, 0, 0, 0)`,
-    and a rapid FireServer loop.
+    (far outside the region), `("Wall", 1.5, 0, 0, 0)`, `("Wall", 0/0, 0, 0, 0)`,
+    `("Roof", 0, 0, 0, 0)`, and a rapid FireServer loop.
   - ✅ Nothing spawns for any of them; no server errors; the rapid loop places at most
-    ~6-7/s (placementCooldown) all within build range of the character.
+    ~6-7/s (placementCooldown), all inside the sender's 3×3×3 region.
   - ❌ A structure appears far from the player, at a non-grid position, or Output errors.
 
 - **Damage API + destruction (server command bar).**

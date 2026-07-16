@@ -20,6 +20,18 @@
 	  the cell's bottom boundary, top edge on the opposite top boundary
 	  (c*sqrt(2) * cos(45) == c both vertically and horizontally).
 
+	Build region (Fortnite-style): slots are only selectable/placeable in the cube of
+	cells buildRegionRadiusCells around the cell containing the builder's
+	HumanoidRootPart (radius 1 = the 3x3x3 neighborhood). A boundary-panel slot (wall/
+	floor) is in-region when a cell it borders is; a stairs slot when its cell is. The
+	client CLAMPS its aim into the region (clampSlotToRegion), the server verifies with
+	isSlotInRegion.
+
+	Panel orientation: geometry is computed in a canonical frame (local X/Y = the square
+	face, Z = the thin axis) and then corrected for the real panel piece, whose thin axis
+	is DETECTED from config.panelSize (the RustyMetalSheet union is Y-thin) — so swapping
+	or re-orienting the piece only means updating panelSize.
+
 	The wire format is the five scalars (kind, x, y, z, orient) — never a CFrame. The server
 	re-derives all geometry through validateSlot/slotToCFrame, so a client can only ever
 	request "a legal slot", not "a position".
@@ -35,10 +47,17 @@ export type Slot = {
 	orient: number,
 }
 
+export type Cell = {
+	x: number,
+	y: number,
+	z: number,
+}
+
 type BuildConfigLike = {
 	cellSize: number,
 	panelSize: Vector3,
 	maxCellIndex: number,
+	buildRegionRadiusCells: number,
 	structures: { [string]: any },
 }
 
@@ -60,6 +79,36 @@ local function isBoundedInt(value: any, bound: number): boolean
 		and value >= -bound
 		and value <= bound
 		and value % 1 == 0
+end
+
+--[[
+	Correction from the real panel's local axes to the canonical frame (X/Y face,
+	Z thin), keyed on which panelSize component is smallest. Returns the rotation R
+	(so a slot's world CFrame is canonicalCFrame * R) and a size mapper taking
+	canonical extents (faceA, faceB/long, thickness) to the part's local Size.
+]]
+local function panelBasis(config: BuildConfigLike): (CFrame, (number, number, number) -> Vector3)
+	local s = config.panelSize
+	if s.Z <= s.X and s.Z <= s.Y then
+		-- Z-thin: already canonical.
+		return CFrame.identity, function(a: number, b: number, t: number)
+			return Vector3.new(a, b, t)
+		end
+	elseif s.Y <= s.X and s.Y <= s.Z then
+		-- Y-thin (RustyMetalSheet): part Y -> canonical Z, part Z -> canonical -Y.
+		return CFrame.Angles(HALF_PI, 0, 0), function(a: number, b: number, t: number)
+			return Vector3.new(a, t, b)
+		end
+	end
+	-- X-thin: part X -> canonical Z, part Z -> canonical -X.
+	return CFrame.Angles(0, -HALF_PI, 0), function(a: number, b: number, t: number)
+		return Vector3.new(t, b, a)
+	end
+end
+
+local function panelThickness(config: BuildConfigLike): number
+	local s = config.panelSize
+	return math.min(s.X, s.Y, s.Z)
 end
 
 -- Snap a yaw (radians, Roblox convention: 0 looks toward -Z) to its nearest 90-degree
@@ -84,9 +133,10 @@ end
 --[[
 	Snap an aim point (plus the camera yaw, for oriented kinds) to the slot it selects.
 	The caller should nudge the aim point slightly toward the camera before calling
-	(~0.1 studs) so a ray that lands ON an existing surface snaps to the near side of it.
-	Assumes kind is valid — the client only ever passes its own three names; the server
-	entry point is validateSlot, not this.
+	(~0.1 studs) so a ray that lands ON an existing surface snaps to the near side of it,
+	then clamp the result into the build region with clampSlotToRegion. Assumes kind is
+	valid — the client only ever passes its own three names; the server entry point is
+	validateSlot, not this.
 ]]
 function BuildMath.worldToSlot(config: BuildConfigLike, kind: string, aimPoint: Vector3, cameraYaw: number): Slot
 	local c = config.cellSize
@@ -114,6 +164,56 @@ function BuildMath.worldToSlot(config: BuildConfigLike, kind: string, aimPoint: 
 	error(`[BuildMath] Unknown structure kind "{kind}"`)
 end
 
+-- The cell containing a world point (used with the character's HumanoidRootPart to
+-- anchor the build region).
+function BuildMath.cellOfPoint(config: BuildConfigLike, point: Vector3): Cell
+	local c = config.cellSize
+	return {
+		x = math.floor(point.X / c),
+		y = math.floor(point.Y / c),
+		z = math.floor(point.Z / c),
+	}
+end
+
+--[[
+	Clamp a slot into the build region around a center cell (the client's "always
+	preview near you" behavior). Boundary panels are in-region when EITHER cell they
+	border is a region cell, hence the +1 on the boundary-plane axis; the panel's span
+	axes clamp to region cells directly. Orientation is never changed.
+]]
+function BuildMath.clampSlotToRegion(config: BuildConfigLike, slot: Slot, center: Cell): Slot
+	local r = config.buildRegionRadiusCells
+	local xLo, xHi = center.x - r, center.x + r
+	local yLo, yHi = center.y - r, center.y + r
+	local zLo, zHi = center.z - r, center.z + r
+
+	local x, y, z
+	if slot.kind == "Wall" and slot.orient == 0 then
+		x = math.clamp(slot.x, xLo, xHi + 1) -- boundary planes bounding region cells
+		y = math.clamp(slot.y, yLo, yHi)
+		z = math.clamp(slot.z, zLo, zHi)
+	elseif slot.kind == "Wall" then
+		x = math.clamp(slot.x, xLo, xHi)
+		y = math.clamp(slot.y, yLo, yHi)
+		z = math.clamp(slot.z, zLo, zHi + 1)
+	elseif slot.kind == "Floor" then
+		x = math.clamp(slot.x, xLo, xHi)
+		y = math.clamp(slot.y, yLo, yHi + 1)
+		z = math.clamp(slot.z, zLo, zHi)
+	else -- Stairs occupy a region cell outright
+		x = math.clamp(slot.x, xLo, xHi)
+		y = math.clamp(slot.y, yLo, yHi)
+		z = math.clamp(slot.z, zLo, zHi)
+	end
+	return { kind = slot.kind, x = x, y = y, z = z, orient = slot.orient }
+end
+
+-- Server-side region gate: a slot is in-region iff clamping wouldn't move it.
+function BuildMath.isSlotInRegion(config: BuildConfigLike, slot: Slot, center: Cell): boolean
+	local clamped = BuildMath.clampSlotToRegion(config, slot, center)
+	return clamped.x == slot.x and clamped.y == slot.y and clamped.z == slot.z
+end
+
 -- Occupancy key. Stairs deliberately EXCLUDE orient: two stairs in one cell always
 -- overlap, so any rotation claims the whole cell. Wall keys include orient because the
 -- two boundary planes through one corner triple are different physical slots.
@@ -139,14 +239,14 @@ local function slotPosition(config: BuildConfigLike, slot: Slot): Vector3
 	return Vector3.new((slot.x + 0.5) * c, (slot.y + 0.5) * c, (slot.z + 0.5) * c)
 end
 
--- Center of the slot's panel (server range checks; cheaper than the full CFrame).
+-- Center of the slot's panel (server range/region anchoring; cheaper than the full CFrame).
 function BuildMath.slotCenter(config: BuildConfigLike, slot: Slot): Vector3
 	return slotPosition(config, slot)
 end
 
 --[[
-	World CFrame for the slot's panel. The panel's native axes: X and Y are the square
-	face, Z is the thin axis.
+	World CFrame for the slot's panel, in the real piece's axes (canonical placement *
+	panel-basis correction).
 	- Wall orient 0 turns the thin axis onto world X; orient 1 keeps it on Z.
 	- Floor pitches the panel flat (thin axis vertical).
 	- Stairs yaw to their ascent direction, then pitch 45 degrees; with the stretched
@@ -154,25 +254,36 @@ end
 	  opposite top edge.
 ]]
 function BuildMath.slotToCFrame(config: BuildConfigLike, slot: Slot): CFrame
+	local correction = panelBasis(config)
 	local position = slotPosition(config, slot)
+	local canonical: CFrame
 	if slot.kind == "Wall" then
 		if slot.orient == 0 then
-			return CFrame.new(position) * CFrame.Angles(0, HALF_PI, 0)
+			canonical = CFrame.new(position) * CFrame.Angles(0, HALF_PI, 0)
+		else
+			canonical = CFrame.new(position)
 		end
-		return CFrame.new(position)
 	elseif slot.kind == "Floor" then
-		return CFrame.new(position) * CFrame.Angles(HALF_PI, 0, 0)
+		canonical = CFrame.new(position) * CFrame.Angles(HALF_PI, 0, 0)
+	else
+		canonical = CFrame.new(position)
+			* CFrame.Angles(0, slot.orient * HALF_PI, 0)
+			* CFrame.Angles(math.rad(45), 0, 0)
 	end
-	return CFrame.new(position) * CFrame.Angles(0, slot.orient * HALF_PI, 0) * CFrame.Angles(math.rad(45), 0, 0)
+	return canonical * correction
 end
 
--- Physical size of the placed panel. Walls/floors are the raw panel; stairs stretch the
--- long (Y) axis to the cell diagonal so the 45-degree ramp spans the full cell.
+-- Physical Size of the placed panel in the real piece's axes. Walls/floors are the
+-- face-sized panel; stairs stretch the long axis to the cell diagonal so the 45-degree
+-- ramp spans the full cell.
 function BuildMath.slotSize(config: BuildConfigLike, slot: Slot): Vector3
+	local _, mapSize = panelBasis(config)
+	local face = config.cellSize
+	local thickness = panelThickness(config)
 	if slot.kind == "Stairs" then
-		return Vector3.new(config.cellSize, config.cellSize * math.sqrt(2), config.panelSize.Z)
+		return mapSize(face, face * math.sqrt(2), thickness)
 	end
-	return config.panelSize
+	return mapSize(face, face, thickness)
 end
 
 --[[

@@ -1,50 +1,42 @@
 --!strict
 --[[
 	Resolves the structure panel template both sides clone from. Canonical location:
-	ReplicatedStorage[storageFolderName][templateName] — the SERVER puts it there in
-	BuildService.init (a clone of the user's real union from
-	ReplicatedStorage[assetsFolderName][templateName] if it exists, otherwise a generated
-	placeholder Part of BuildConfig.panelSize). The client just waits for that one spot,
-	so it never needs to know which source won.
+	ReplicatedStorage[storageFolderName][templateName] — the place-built RustyMetalSheet
+	union lives there. If it's ever missing (fresh place, renamed piece), the SERVER
+	generates a placeholder Part of BuildConfig.panelSize in the same spot in
+	BuildService.init, so the system still runs and the client never needs to know which
+	source won.
 ]]
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local BuildConfig = require(script.Parent.Parent.Data.BuildConfig)
 
 local getPanelTemplate = {}
 
--- Server: make sure the canonical template exists under the runtime storage folder and
--- return it. Idempotent (re-init reuses the existing child).
+-- Server: make sure the canonical template exists under the storage folder and return
+-- it. Idempotent (the place-built union or a previous init's placeholder is reused).
 function getPanelTemplate.ensure(storage: Folder): BasePart
 	local existing = storage:FindFirstChild(BuildConfig.templateName)
 	if existing and existing:IsA("BasePart") then
+		existing.Anchored = true
 		return existing
 	end
 
-	local template: BasePart
-	local assetsFolder = ReplicatedStorage:FindFirstChild(BuildConfig.assetsFolderName)
-	local realUnion = assetsFolder and assetsFolder:FindFirstChild(BuildConfig.templateName)
-	if realUnion and realUnion:IsA("BasePart") then
-		template = realUnion:Clone()
-	else
-		-- Placeholder until the real union lands (see BuildConfig header).
-		local part = Instance.new("Part")
-		part.Size = BuildConfig.panelSize
-		part.Material = Enum.Material.Concrete
-		part.TopSurface = Enum.SurfaceType.Smooth
-		part.BottomSurface = Enum.SurfaceType.Smooth
-		template = part
-	end
-	template.Name = BuildConfig.templateName
-	template.Anchored = true
-	template.Parent = storage
-	return template
+	warn(`[getPanelTemplate] {BuildConfig.templateName} missing from {storage:GetFullName()} — generating a placeholder panel`)
+	local part = Instance.new("Part")
+	part.Name = BuildConfig.templateName
+	part.Size = BuildConfig.panelSize
+	part.Material = Enum.Material.Concrete
+	part.TopSurface = Enum.SurfaceType.Smooth
+	part.BottomSurface = Enum.SurfaceType.Smooth
+	part.Anchored = true
+	part.Parent = storage
+	return part
 end
 
--- Client: wait for the server-published template (nil + warn on timeout so callers can
--- degrade gracefully instead of erroring).
+-- Client: wait for the template (nil + warn on timeout so callers can degrade
+-- gracefully instead of erroring).
 function getPanelTemplate.waitForTemplate(timeout: number?): BasePart?
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local storage = ReplicatedStorage:WaitForChild(BuildConfig.storageFolderName, timeout or 10)
 	if not storage then
 		warn("[getPanelTemplate] BuildSystem storage folder never replicated — is BuildService running?")

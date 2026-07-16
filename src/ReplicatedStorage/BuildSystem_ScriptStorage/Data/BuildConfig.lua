@@ -4,10 +4,11 @@
 	VitalsConfig/CombatStats). Read by the client preview (BuildModeManager) and the server
 	authority (BuildSystem_Server/BuildService) — so both sides always agree.
 
-	`panelSize` is THE knob: the structure piece is one 8x8x0.1 union (placeholder until the
-	real union lands in ReplicatedStorage.BuildSystem_Assets.StructurePanel), and the grid
-	cell size derives from its face dimension. Resize the union → update panelSize → the
-	whole grid follows. BuildConfig.spec pins the derivation.
+	`panelSize` is THE knob: the structure piece is the RustyMetalSheet union at
+	ReplicatedStorage.BuildSystem_Storage (place-built), and the grid cell size derives
+	from its square face. The union's thin axis can be any of X/Y/Z — BuildMath detects it
+	from panelSize — so replacing or resizing the piece only means updating panelSize here.
+	BuildConfig.spec pins the derivation.
 ]]
 
 export type StructureStats = {
@@ -15,7 +16,8 @@ export type StructureStats = {
 }
 
 export type BuildConfig = {
-	-- Dimensions of the structure panel (X/Y = the square face, Z = thickness).
+	-- Dimensions of the structure panel. Two equal components form the square face; the
+	-- smallest is the thickness (RustyMetalSheet is Y-thin: 8 x 0.205 x 8).
 	panelSize: Vector3,
 	-- Grid cell edge length, derived from the panel face. Never set independently.
 	cellSize: number,
@@ -25,36 +27,42 @@ export type BuildConfig = {
 	buildTime: number,
 	-- Fraction of maxHealth a structure has the instant it is placed.
 	spawnHealthFraction: number,
-	-- How far (studs) the placement ray reaches / the server allows a slot from the builder.
+	-- Length of the client aim ray. Selection is then CLAMPED into the build region, so
+	-- this only decides how far away a surface can steer the preview.
 	maxBuildRange: number,
-	-- Extra server-side range slack: the client measures camera→hit while the server measures
-	-- character-pivot→slot-CENTER, which can legitimately differ by up to ~a cell diagonal.
-	rangeSlack: number,
+	-- Build region half-extent in cells around the cell containing the character's
+	-- HumanoidRootPart: 1 = the Fortnite-style 3x3x3 neighborhood.
+	buildRegionRadiusCells: number,
+	-- A placement must TOUCH something (map geometry, terrain, or another structure):
+	-- the contact probe expands the piece's box by this many studs on every side.
+	groundContactMargin: number,
 	-- Min seconds between honored placements per player (server rate limit + client debounce).
 	placementCooldown: number,
 	-- Construction-ramp update cadence (one Heartbeat accumulator, VitalsService pattern).
 	rampTickInterval: number,
 	-- |cell index| bound accepted from the wire (keeps slots inside sane world coordinates).
 	maxCellIndex: number,
-	-- Client preview ghost appearance.
+	-- Client preview ghost appearance (valid slot / invalid slot = occupied or floating).
 	previewColor: Color3,
+	previewInvalidColor: Color3,
 	previewTransparency: number,
 	-- Transparency a structure spawns with; eases to 0 as the build completes.
 	constructionStartTransparency: number,
-	-- The real union goes in ReplicatedStorage[assetsFolderName][templateName]; until it
-	-- exists the server generates a plain Part of panelSize. Either way the server parents
-	-- the canonical template into the runtime storage folder so the client ghost clones
-	-- the exact same instance.
-	assetsFolderName: string,
-	templateName: string,
+	-- The panel piece lives at ReplicatedStorage[storageFolderName][templateName]
+	-- (place-built union; the server generates a panelSize placeholder Part there if
+	-- it's ever missing, so the system still runs in a fresh place).
 	storageFolderName: string,
+	templateName: string,
+	-- Runtime workspace folder holding every placed structure (server-created; the
+	-- client watches it to preview occupancy).
+	placedFolderName: string,
 }
 
-local panelSize = Vector3.new(8, 8, 0.1)
+local panelSize = Vector3.new(8, 0.205, 8)
 
 local BuildConfig: BuildConfig = {
 	panelSize = panelSize,
-	cellSize = panelSize.X,
+	cellSize = math.max(panelSize.X, panelSize.Y, panelSize.Z),
 	structures = {
 		Wall = { maxHealth = 150 },
 		Floor = { maxHealth = 140 },
@@ -63,16 +71,18 @@ local BuildConfig: BuildConfig = {
 	buildTime = 5,
 	spawnHealthFraction = 0.1,
 	maxBuildRange = 40,
-	rangeSlack = panelSize.X * 1.75,
+	buildRegionRadiusCells = 1,
+	groundContactMargin = 0.5,
 	placementCooldown = 0.15,
 	rampTickInterval = 0.1,
 	maxCellIndex = 5000,
 	previewColor = Color3.fromRGB(70, 130, 255),
+	previewInvalidColor = Color3.fromRGB(235, 70, 60),
 	previewTransparency = 0.6,
 	constructionStartTransparency = 0.5,
-	assetsFolderName = "BuildSystem_Assets",
-	templateName = "StructurePanel",
 	storageFolderName = "BuildSystem_Storage",
+	templateName = "RustyMetalSheet",
+	placedFolderName = "PlacedStructures",
 }
 
 return BuildConfig

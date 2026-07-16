@@ -76,35 +76,50 @@ Bugfix tiers are ON HOLD while this is built.
 
 ## Build system v1 (scaffolded 2026-07-16, branch `build-system`) — CURRENT WORKSTREAM
 
-Fortnite-style grid building: Wall/Floor/Stairs, all clones of ONE 8×8×0.1 panel
-(placeholder Part until the user's real union lands in
-`ReplicatedStorage.BuildSystem_Assets.StructurePanel`). Design decisions: 5 s
-Fortnite-style ramp-up (spawns instantly translucent at 10% health, ramps to max),
-orientation auto-faces camera yaw (90° snap), stairs stretched to cellSize·√2 to span
-the cell diagonal, health is server-side with `BuildService.damageStructure` as the
-ONLY mutator (no weapon integration yet — one call per damage site when it comes).
+Fortnite-style grid building: Wall/Floor/Stairs, all clones of the place-built
+**RustyMetalSheet union** (`ReplicatedStorage.BuildSystem_Storage.RustyMetalSheet`,
+8×0.205×8 — Y-thin; a placeholder Part is generated if it's ever missing). Design
+decisions: 5 s Fortnite-style ramp-up (spawns instantly translucent at 10% health,
+ramps to max), orientation auto-faces camera yaw (90° snap), stairs stretched to
+cellSize·√2 to span the cell diagonal, **3×3×3 build region** centered on the
+HumanoidRootPart's cell (client clamps the preview into it, server enforces), **no
+floating pieces** (must touch map geometry/terrain/another structure — shared
+`isSlotSupported` probe; characters never count as support), health is server-side
+with `BuildService.damageStructure` as the ONLY mutator (no weapon integration yet —
+one call per damage site when it comes).
 
 - Shared: `BuildSystem_ScriptStorage/Data/BuildConfig.lua` (**`panelSize` is THE knob**
-  — the grid derives from it) + pure `Sim/BuildMath.lua` (slot model: walls live on
-  cell-boundary planes so both sides of a face are ONE slot; stairs occupancy ignores
-  orient). `Components/getPanelTemplate.lua` resolves the shared template.
+  — the grid derives from it, and BuildMath DETECTS the panel's thin axis from it, so
+  re-orienting/resizing the piece is config-only) + pure `Sim/BuildMath.lua` (slot
+  model: walls live on cell-boundary planes so both sides of a face are ONE slot;
+  stairs occupancy ignores orient; `clampSlotToRegion`/`isSlotInRegion` for the build
+  region). `Components/getPanelTemplate.lua` resolves the template;
+  `Components/isSlotSupported.lua` is the grounding probe (GetPartBoundsInBox +
+  terrain-voxel read; humanoid-model parts filtered out).
 - Server: `BuildSystem_Server/BuildService.lua` — the `PlaceStructure` remote (runtime
   `BuildSystem_Storage` folder) carries five flat scalars (kind, x, y, z, orient);
   geometry is re-derived server-side via `BuildMath.validateSlot`/`slotToCFrame`
-  (validated: alive sender, rate limit, range, occupancy). ONE Heartbeat accumulator
-  ramps construction; ONE ChildRemoved listener on `workspace.PlacedStructures` frees
-  occupancy; structures are tagged `BuildStructure`, state in attributes.
+  (validated: alive sender, rate limit, in-region vs the sender's HRP cell, occupancy,
+  supported). ONE Heartbeat accumulator ramps construction; ONE ChildRemoved listener
+  on `workspace.PlacedStructures` frees occupancy; structures are tagged
+  `BuildStructure`, state in attributes.
 - Client: `BuildModeManager.lua` — TEMPORARY entry via the place-built
   `Inventory.Hotbar.TempBuildButton` (UICorner scale 1 on `innerFrame` = active);
   V/B/N ActionManager toggles (mutually exclusive via forceToggle), MouseButton1/tap
   "Place Structure" bind, ONE reused CanQuery=false ghost on a RenderStepped loop that
-  runs only while a structure is selected. Inert-with-warn if the button GUI is missing.
-- ⚠ Place-side TODO (user): the Hotbar currently has TWO duplicate `TempBuildButton`
-  frames and neither has an `innerFrame` yet — delete the dupe, add innerFrame
-  (TouchBackpackSlot anatomy). Icon IDs for the touch buttons still to come (empty
-  strings for now).
-- Playtest gate OPEN (PLAYTEST_VERIFICATION.md → "Build system v1"); specs
-  `BuildMath.spec`/`BuildConfig.spec` need an in-engine run.
+  runs only while a structure is selected. Ghost clamps into the region and turns RED
+  (previewInvalidColor) when the slot is occupied (client occupancy view: SlotKey
+  attributes on PlacedStructures children) or unsupported; invalid clicks aren't sent.
+  Inert-with-warn if the button GUI is missing.
+- ⚠ In-engine spec runs via `execute_luau` must fresh-load modules: the MCP plugin VM
+  CACHES `require` results across calls, so a plain TestBootstrap re-run reports stale
+  results (the 2026-07-16 session hit this — use the loadstring fresh-require runner,
+  or a real Play session).
+- Icon IDs for the touch buttons still to come (empty strings for now).
+- First playtest round (2026-07-16, pre-region/template): button + binds + ghost +
+  placement verified by the user. Gate for the region/grounding/red-ghost/template
+  round still OPEN (PLAYTEST_VERIFICATION.md → "Build system v1"); specs green
+  in-engine 126/126 (2026-07-16).
 
 ## Where we left off (updated 2026-07-13)
 

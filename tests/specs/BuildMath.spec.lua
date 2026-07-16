@@ -1,25 +1,39 @@
 --!nocheck
 --[[
 	Pins the pure build-grid math (BuildSystem_ScriptStorage/Sim/BuildMath): snapping,
-	the boundary-plane wall dedup guarantee, stairs geometry spanning the cell, occupancy
-	keys, and the validateSlot trust boundary.
+	the boundary-plane wall dedup guarantee, panel-basis detection (the RustyMetalSheet
+	union is Y-thin), stairs geometry spanning the cell, the 3x3x3 build-region clamp,
+	occupancy keys, and the validateSlot trust boundary.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local BuildMath = require(ReplicatedStorage.RojoManaged_RS.BuildSystem_ScriptStorage.Sim.BuildMath)
 
--- Small deterministic test config (cell = 8) so specs don't drift with live tuning.
+-- Small deterministic test config (cell = 8, Y-thin panel like the live piece) so specs
+-- don't drift with live tuning.
 local config = {
+	cellSize = 8,
+	panelSize = Vector3.new(8, 0.205, 8),
+	maxCellIndex = 100,
+	buildRegionRadiusCells = 1,
+	structures = { Wall = { maxHealth = 1 }, Floor = { maxHealth = 1 }, Stairs = { maxHealth = 1 } },
+}
+
+-- A Z-thin variant proving the panel basis is detected, not assumed.
+local zThinConfig = {
 	cellSize = 8,
 	panelSize = Vector3.new(8, 8, 0.1),
 	maxCellIndex = 100,
-	structures = { Wall = { maxHealth = 1 }, Floor = { maxHealth = 1 }, Stairs = { maxHealth = 1 } },
+	buildRegionRadiusCells = 1,
+	structures = config.structures,
 }
 
 local LOOK_NEG_Z = 0 -- yaw 0 looks toward -Z
 local LOOK_NEG_X = math.pi / 2
 local LOOK_POS_Z = math.pi
 local LOOK_POS_X = -math.pi / 2
+
+local CENTER = { x = 0, y = 0, z = 0 }
 
 local function near(a: number, b: number, eps: number?): boolean
 	return math.abs(a - b) <= (eps or 1e-4)
@@ -101,40 +115,100 @@ return function()
 		end)
 	end)
 
-	describe("slotToCFrame + slotSize geometry", function()
-		it("wall orient 0 sits ON the X boundary plane with its thin axis along X", function()
+	describe("cellOfPoint", function()
+		it("returns the containing cell, including negatives", function()
+			local cell = BuildMath.cellOfPoint(config, Vector3.new(12, -0.5, 8))
+			expect(cell.x).to.equal(1)
+			expect(cell.y).to.equal(-1)
+			expect(cell.z).to.equal(1)
+		end)
+	end)
+
+	describe("clampSlotToRegion / isSlotInRegion (radius 1 = 3x3x3)", function()
+		it("stairs clamp to the region's cells on every axis", function()
+			local slot = { kind = "Stairs", x = 5, y = 0, z = -9, orient = 2 }
+			local clamped = BuildMath.clampSlotToRegion(config, slot, CENTER)
+			expect(clamped.x).to.equal(1)
+			expect(clamped.y).to.equal(0)
+			expect(clamped.z).to.equal(-1)
+			expect(clamped.orient).to.equal(2) -- orientation never changes
+			expect(BuildMath.isSlotInRegion(config, slot, CENTER)).to.equal(false)
+			expect(BuildMath.isSlotInRegion(config, clamped, CENTER)).to.equal(true)
+		end)
+		it("wall boundary planes reach one past the region cells on their normal axis", function()
+			-- orient 0 planes bounding cells -1..1 are x = -1..2.
+			local farPlane = { kind = "Wall", x = 2, y = 0, z = 0, orient = 0 }
+			expect(BuildMath.isSlotInRegion(config, farPlane, CENTER)).to.equal(true)
+			local tooFar = { kind = "Wall", x = 3, y = 0, z = 0, orient = 0 }
+			expect(BuildMath.isSlotInRegion(config, tooFar, CENTER)).to.equal(false)
+			expect(BuildMath.clampSlotToRegion(config, tooFar, CENTER).x).to.equal(2)
+			-- but the SPAN axes clamp to region cells directly
+			local spanOut = { kind = "Wall", x = 0, y = 4, z = -2, orient = 0 }
+			local clamped = BuildMath.clampSlotToRegion(config, spanOut, CENTER)
+			expect(clamped.y).to.equal(1)
+			expect(clamped.z).to.equal(-1)
+		end)
+		it("floor planes reach one past the region cells vertically", function()
+			expect(BuildMath.isSlotInRegion(config, { kind = "Floor", x = 0, y = 2, z = 0, orient = 0 }, CENTER)).to.equal(true)
+			expect(BuildMath.isSlotInRegion(config, { kind = "Floor", x = 0, y = 3, z = 0, orient = 0 }, CENTER)).to.equal(false)
+			expect(BuildMath.clampSlotToRegion(config, { kind = "Floor", x = 0, y = 3, z = 0, orient = 0 }, CENTER).y).to.equal(2)
+		end)
+		it("region follows the center cell", function()
+			local center = { x = 10, y = -3, z = 10 }
+			expect(BuildMath.isSlotInRegion(config, { kind = "Stairs", x = 9, y = -4, z = 11, orient = 0 }, center)).to.equal(true)
+			expect(BuildMath.isSlotInRegion(config, { kind = "Stairs", x = 8, y = -3, z = 10, orient = 0 }, center)).to.equal(false)
+		end)
+	end)
+
+	describe("slotToCFrame + slotSize geometry (Y-thin panel, like RustyMetalSheet)", function()
+		it("wall orient 0 sits ON the X boundary plane with the panel's thin (Y) axis along world X", function()
 			local slot = { kind = "Wall", x = 1, y = 0, z = 0, orient = 0 }
 			local cf = BuildMath.slotToCFrame(config, slot)
 			expect(near(cf.Position.X, 8)).to.equal(true)
 			expect(near(cf.Position.Y, 4)).to.equal(true)
 			expect(near(cf.Position.Z, 4)).to.equal(true)
-			-- Thin axis (local Z) must point along world X for a plane perpendicular to X.
-			expect(near(math.abs(cf.ZVector.X), 1)).to.equal(true)
+			expect(near(math.abs(cf.YVector.X), 1)).to.equal(true)
 		end)
-		it("floor lies flat with its thin axis vertical", function()
+		it("floor lies flat with the thin (Y) axis vertical", function()
 			local slot = { kind = "Floor", x = 0, y = 1, z = 0, orient = 0 }
 			local cf = BuildMath.slotToCFrame(config, slot)
 			expect(near(cf.Position.Y, 8)).to.equal(true)
-			expect(near(math.abs(cf.ZVector.Y), 1)).to.equal(true)
+			expect(near(math.abs(cf.YVector.Y), 1)).to.equal(true)
 		end)
 		it("stairs bottom and top edges land exactly on the cell's edges", function()
 			local slot = { kind = "Stairs", x = 0, y = 0, z = 0, orient = 0 } -- ascends +Z
 			local cf = BuildMath.slotToCFrame(config, slot)
 			local size = BuildMath.slotSize(config, slot)
-			-- The panel's long axis is local Y; its ends are center +/- YVector * size.Y/2.
-			local top = cf.Position + cf.YVector * (size.Y / 2)
-			local bottom = cf.Position - cf.YVector * (size.Y / 2)
+			-- The long axis is the panel's local Z for a Y-thin piece.
+			local endA = cf.Position + cf.ZVector * (size.Z / 2)
+			local endB = cf.Position - cf.ZVector * (size.Z / 2)
+			local bottom = if endA.Y < endB.Y then endA else endB
+			local top = if endA.Y < endB.Y then endB else endA
 			expect(near(bottom.Y, 0)).to.equal(true) -- cell bottom
 			expect(near(bottom.Z, 0)).to.equal(true) -- near edge
 			expect(near(top.Y, 8)).to.equal(true) -- cell top
 			expect(near(top.Z, 8)).to.equal(true) -- far edge (ascends +Z)
 		end)
-		it("stairs are stretched to the cell diagonal; walls and floors keep the panel size", function()
+		it("sizes map to the piece's axes: stairs stretch local Z, walls/floors keep panelSize", function()
 			local stairs = BuildMath.slotSize(config, { kind = "Stairs", x = 0, y = 0, z = 0, orient = 0 })
-			expect(near(stairs.Y, 8 * math.sqrt(2))).to.equal(true)
+			expect(near(stairs.Z, 8 * math.sqrt(2))).to.equal(true)
 			expect(near(stairs.X, 8)).to.equal(true)
+			expect(near(stairs.Y, 0.205)).to.equal(true)
 			local wall = BuildMath.slotSize(config, { kind = "Wall", x = 0, y = 0, z = 0, orient = 0 })
 			expect(wall).to.equal(config.panelSize)
+		end)
+	end)
+
+	describe("panel basis detection (Z-thin variant)", function()
+		it("a Z-thin panel keeps its thin axis on local Z", function()
+			local slot = { kind = "Wall", x = 1, y = 0, z = 0, orient = 0 }
+			local cf = BuildMath.slotToCFrame(zThinConfig, slot)
+			expect(near(math.abs(cf.ZVector.X), 1)).to.equal(true)
+		end)
+		it("a Z-thin panel stretches stairs along local Y", function()
+			local stairs = BuildMath.slotSize(zThinConfig, { kind = "Stairs", x = 0, y = 0, z = 0, orient = 0 })
+			expect(near(stairs.Y, 8 * math.sqrt(2))).to.equal(true)
+			expect(near(stairs.Z, 0.1)).to.equal(true)
 		end)
 	end)
 

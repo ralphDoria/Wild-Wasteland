@@ -37,6 +37,7 @@ local BuildSystem_ScriptStorage = ReplicatedStorage.RojoManaged_RS.BuildSystem_S
 local BuildConfig = require(BuildSystem_ScriptStorage.Data.BuildConfig)
 local BuildMath = require(BuildSystem_ScriptStorage.Sim.BuildMath)
 local getPanelTemplate = require(BuildSystem_ScriptStorage.Components.getPanelTemplate)
+local isSlotSupported = require(BuildSystem_ScriptStorage.Components.isSlotSupported)
 
 -- Shared server-authority boundary (Tier 2 layer) for the alive-sender check.
 local Validation = require(
@@ -44,7 +45,7 @@ local Validation = require(
 )
 
 local STRUCTURE_TAG = "BuildStructure"
-local PLACED_FOLDER_NAME = "PlacedStructures"
+local PLACED_FOLDER_NAME = BuildConfig.placedFolderName
 
 local HEALTH_ATTRIBUTE = "Health"
 local MAX_HEALTH_ATTRIBUTE = "MaxHealth"
@@ -150,15 +151,25 @@ local function onPlaceRequest(player: Player, kind: unknown, x: unknown, y: unkn
 		return
 	end
 
-	-- Range: character pivot to slot CENTER (the client measured camera->hit, hence the
-	-- slack — see BuildConfig).
-	local distance = (character:GetPivot().Position - BuildMath.slotCenter(BuildConfig, slot)).Magnitude
-	if distance > BuildConfig.maxBuildRange + BuildConfig.rangeSlack then
+	-- Build region: the slot must sit in the 3x3x3 cell neighborhood around the cell
+	-- containing the sender's HumanoidRootPart (same clamp the client previews with).
+	local rootPart = character:FindFirstChild("HumanoidRootPart")
+	if not rootPart or not rootPart:IsA("BasePart") then
+		return
+	end
+	local centerCell = BuildMath.cellOfPoint(BuildConfig, rootPart.Position)
+	if not BuildMath.isSlotInRegion(BuildConfig, slot, centerCell) then
 		return
 	end
 
 	local slotKey = BuildMath.slotKey(slot)
 	if occupied[slotKey] then
+		return
+	end
+
+	-- No floating structures: the piece must touch world geometry, terrain, or another
+	-- structure (checked last — it's the expensive spatial query).
+	if not isSlotSupported(slot) then
 		return
 	end
 

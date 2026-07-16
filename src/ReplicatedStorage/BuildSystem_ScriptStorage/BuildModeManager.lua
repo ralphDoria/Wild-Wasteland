@@ -11,9 +11,13 @@
 
 	The preview is ONE reused ghost clone of the shared panel template, updated on a
 	RenderStepped connection that exists only while a structure is selected. Snapping runs
-	the same pure BuildMath the server validates with, so what the ghost shows is exactly
-	what the server will build. The ghost has CanQuery = false, so the aim raycast can
-	never hit it.
+	the same pure BuildMath the server validates with — including the Fortnite-style clamp
+	into the 3x3x3 cell region around the HumanoidRootPart's cell, so the ghost always
+	previews near the player. The ghost turns previewInvalidColor (red) when the slot is
+	occupied (client-side occupancy view: SlotKey attributes on the PlacedStructures
+	folder's children) or unsupported (isSlotSupported — the shared "no floating pieces"
+	probe), and invalid clicks aren't even sent. The ghost has CanQuery = false, so
+	neither the aim raycast nor the support probe can ever hit it.
 
 	This manager is a VIEW + request source only: it sends five scalars to the
 	PlaceStructure remote and owns no authority (BuildService validates everything).
@@ -27,6 +31,7 @@ local Workspace = game:GetService("Workspace")
 local BuildConfig = require(script.Parent.Data.BuildConfig)
 local BuildMath = require(script.Parent.Sim.BuildMath)
 local getPanelTemplate = require(script.Parent.Components.getPanelTemplate)
+local isSlotSupported = require(script.Parent.Components.isSlotSupported)
 local ActionManager = require(ReplicatedStorage.RojoManaged_RS.ActionManagerSystem.ActionManager)
 
 local PLACE_ACTION = "Place Structure"
@@ -62,8 +67,16 @@ local placeRemote: RemoteEvent? = nil
 local ghost: BasePart? = nil
 local previewConnection: RBXScriptConnection? = nil
 local currentSlot: BuildMath.Slot? = nil
+local currentSlotValid = false
 local lastGhostSlotKey: string? = nil
 local lastPlacementRequest = 0
+
+-- Client-side occupancy view: SlotKey attribute -> occupied, maintained from the
+-- replicated PlacedStructures folder so the ghost can flag taken slots without asking
+-- the server. validityDirty forces a re-check when the folder changes under a
+-- stationary aim (e.g. our own placement landing in the previewed slot).
+local occupiedKeys: { [string]: boolean } = {}
+local validityDirty = false
 
 local function actionNameForKind(kind: string): string?
 	for _, info in STRUCTURE_ACTIONS do
@@ -105,6 +118,7 @@ local function stopPreview()
 		ghost.Parent = nil
 	end
 	currentSlot = nil
+	currentSlotValid = false
 	lastGhostSlotKey = nil
 end
 
@@ -115,6 +129,11 @@ local function onPreviewStep()
 	if not kind or not camera or not activeGhost then
 		return
 	end
+	local character = player.Character
+	local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+	if not rootPart or not rootPart:IsA("BasePart") then
+		return
+	end
 
 	local origin = camera.CFrame.Position
 	local look = camera.CFrame.LookVector
@@ -122,26 +141,31 @@ local function onPreviewStep()
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.IgnoreWater = true
-	local exclude: { Instance } = { camera }
-	if player.Character then
-		table.insert(exclude, player.Character)
-	end
-	params.FilterDescendantsInstances = exclude
+	params.FilterDescendantsInstances = { camera, character :: Instance }
 
-	-- Hits snap to the NEAR side of the surface (the small pull toward the camera);
-	-- no hit means air-building at max range, Fortnite-style.
+	-- Hits snap to the NEAR side of the surface (the small pull toward the camera); no
+	-- hit means aiming at open air. Either way the selection then CLAMPS into the build
+	-- region around the root part's cell, so the ghost always previews near the player.
 	local result = Workspace:Raycast(origin, look * BuildConfig.maxBuildRange, params)
 	local aimPoint = if result then result.Position - look * 0.1 else origin + look * BuildConfig.maxBuildRange
 
 	local cameraYaw = math.atan2(-look.X, -look.Z)
-	local slot = BuildMath.worldToSlot(BuildConfig, kind, aimPoint, cameraYaw)
+	local centerCell = BuildMath.cellOfPoint(BuildConfig, rootPart.Position)
+	local slot = BuildMath.clampSlotToRegion(
+		BuildConfig,
+		BuildMath.worldToSlot(BuildConfig, kind, aimPoint, cameraYaw),
+		centerCell
+	)
 	currentSlot = slot
 
 	local slotKey = BuildMath.slotKey(slot)
-	if slotKey ~= lastGhostSlotKey then
+	if slotKey ~= lastGhostSlotKey or validityDirty then
 		lastGhostSlotKey = slotKey
+		validityDirty = false
 		activeGhost.Size = BuildMath.slotSize(BuildConfig, slot)
 		activeGhost.CFrame = BuildMath.slotToCFrame(BuildConfig, slot)
+		currentSlotValid = not occupiedKeys[slotKey] and isSlotSupported(slot)
+		activeGhost.Color = if currentSlotValid then BuildConfig.previewColor else BuildConfig.previewInvalidColor
 	end
 end
 
@@ -149,7 +173,7 @@ local function requestPlacement()
 	local kind = selectedKind
 	local slot = currentSlot
 	local remote = placeRemote
-	if not kind or not slot or not remote then
+	if not kind or not slot or not remote or not currentSlotValid then
 		return
 	end
 	local now = os.clock()
@@ -334,6 +358,30 @@ function BuildModeManager.init()
 		return
 	end
 	placeRemote = remote
+
+	-- Occupancy view: mirror the replicated placed-structure folder into a SlotKey set
+	-- (attributes are set before parenting, so ChildAdded always sees them).
+	local placedFolder = Workspace:WaitForChild(BuildConfig.placedFolderName, 10)
+	if not placedFolder then
+		warn("[BuildModeManager] Placed-structures folder missing — build mode disabled")
+		return
+	end
+	local function onPlacedChanged(child: Instance, occupiedNow: boolean)
+		local slotKey = child:GetAttribute("SlotKey")
+		if typeof(slotKey) == "string" then
+			occupiedKeys[slotKey] = if occupiedNow then true else nil
+			validityDirty = true
+		end
+	end
+	placedFolder.ChildAdded:Connect(function(child)
+		onPlacedChanged(child, true)
+	end)
+	placedFolder.ChildRemoved:Connect(function(child)
+		onPlacedChanged(child, false)
+	end)
+	for _, child in placedFolder:GetChildren() do
+		onPlacedChanged(child, true)
+	end
 
 	-- Toggle from the button: prefer a real GuiButton inside innerFrame (TouchBackpackSlot
 	-- convention), fall back to presses anywhere on the frame.
