@@ -696,3 +696,89 @@ lives at `ItemSystem_ScriptStorage/ItemSerializer.lua` (whitelist config in
   attributes only, quantity defaults to 1, per-type whitelists (gun ammo), malformed
   persisted entries rejected (no crash), round-trip rehydrates an equivalent tool. Run via
   `test.project.json` → Play (or the MCP).
+
+---
+
+## Build system v1 (scaffolded 2026-07-16, branch `build-system`) — gate OPEN
+
+Fortnite-style grid building (Wall/Floor/Stairs). Server-authoritative: the client's
+`PlaceStructure` remote carries five flat scalars (kind, x, y, z, orient) and the server
+re-derives all geometry through the same pure `BuildMath` the preview used. Prereq in the
+place: ONE `Inventory.Hotbar.TempBuildButton` (delete the current duplicate) with an
+`innerFrame` child (TouchBackpackSlot anatomy) — the manager warns and stays inert
+without it.
+
+- **Unit (automated):** `BuildMath.spec` (yaw→orient quadrants/wraparound, wall
+  boundary-plane dedup, floor plane snap, stairs cell + ascent orient, stairs edges
+  landing exactly on cell edges, slotKey rules, validateSlot rejecting
+  NaN/huge/fractional/out-of-bounds/bad-orient) and `BuildConfig.spec` (grid derives
+  from panelSize, three structures with sane stats, positive finite tunables). Run via
+  `test.project.json` → Play (or the MCP).
+
+- **Build mode toggle (playtest).** Click TempBuildButton; click again.
+  - ✅ A UICorner (corner scale 1) appears on `innerFrame` while active and disappears
+    when toggled off; the V/B/N action frames appear in ActionGui2 only while active.
+  - ❌ No UICorner (button wiring failed — check for a `[BuildModeManager]` warn naming
+    which GUI piece is missing), or binds outlive the toggle.
+
+- **Structure selection is mutually exclusive (playtest).** Press V, then B, then N;
+  press the active key again.
+  - ✅ Exactly one of Wall/Floor/Stairs is ever selected (selecting one visibly
+    deselects the previous in the action GUI); re-pressing the active key deselects it
+    and hides the ghost.
+  - ❌ Two toggles lit at once, or a ghost lingers with nothing selected.
+
+- **Ghost preview (playtest).** Select each structure and look around, near and far,
+  at the ground, existing parts, and the sky.
+  - ✅ A transparent blue panel snaps to the 8-stud grid. Wall: stands upright on the
+    cell boundary you're facing, flips orientation with 90° camera turns. Floor: lies
+    flat, never rotates. Stairs: 45° ramp ascending AWAY from you, bottom/top edges
+    meeting the cell's bottom/top edges. Sky-aim previews at max range (air-building).
+    No hitching while sweeping the camera (slot updates only on cell change).
+  - ❌ Ghost jitters between two slots every frame, sits inside the surface you aimed
+    at (near-side nudge broken), or the raycast hits the ghost itself (runaway ghost).
+
+- **Placement + construction ramp (playtest).** Select Wall, click on open ground.
+  - ✅ A structure appears INSTANTLY at the ghost's spot, semi-transparent, and turns
+    fully opaque over ~5 s. In Explorer: it lives in `workspace.PlacedStructures`,
+    tagged `BuildStructure`, with `Health` ramping from 15 to `MaxHealth` 150 and
+    `StructureType`/`SlotKey`/`OwnerUserId` set. The ghost stays up for chain-building.
+  - ❌ Nothing spawns (check server Output for a BuildService require error), the
+    structure pops in opaque, or Health never reaches MaxHealth.
+
+- **Occupancy (playtest).** Place a wall; click the same spot again. Then walk around
+  to the far side of that wall and try to place a wall on the same boundary from there.
+  - ✅ Both repeat attempts are rejected silently (one part in PlacedStructures — the
+    two sides of a boundary are ONE slot). Placing in the neighboring cell still works.
+  - ❌ Two overlapping walls exist, or legitimate adjacent placement is rejected.
+
+- **Server validation (remote test, client command bar).**
+    `game.ReplicatedStorage.BuildSystem_Storage.PlaceStructure:FireServer("Wall", 9999, 0, 0, 0)`
+    (out of range), `("Wall", 1.5, 0, 0, 0)`, `("Wall", 0/0, 0, 0, 0)`, `("Roof", 0, 0, 0, 0)`,
+    and a rapid FireServer loop.
+  - ✅ Nothing spawns for any of them; no server errors; the rapid loop places at most
+    ~6-7/s (placementCooldown) all within build range of the character.
+  - ❌ A structure appears far from the player, at a non-grid position, or Output errors.
+
+- **Damage API + destruction (server command bar).**
+    `local p = workspace.PlacedStructures:FindFirstChildWhichIsA("BasePart")`
+    `require(game.ServerScriptService.RojoManaged_SSS.BuildSystem_Server.BuildService).damageStructure(p, 40)` then repeat with `(p, 999)`.
+  - ✅ First call drops the `Health` attribute by 40 (mid-ramp: the ramp keeps climbing
+    after the hit); the 999 call destroys the part, and the SAME slot can then be
+    rebuilt (occupancy freed via ChildRemoved).
+  - ❌ Health goes negative without destruction, the part survives 0 health, or the
+    slot stays blocked after destruction.
+
+- **Death / tool-equip teardown (playtest).** With a structure selected: die and
+  respawn. Separately: with a structure selected, equip the Beretta from the hotbar.
+  - ✅ Death closes build mode (ghost gone, V/B/N unbound, UICorner removed, no
+    errors); the button works again next life. Equipping a tool auto-deselects the
+    structure so MouseButton1 goes back to the weapon — firing works normally.
+  - ❌ Ghost/binds survive death, or clicking with a gun equipped places structures.
+
+- **★ Replication (2-client).** Player A places a wall.
+  - ✅ Player B sees it appear instantly and fade to opaque over the same ~5 s.
+
+- **Output clean (playtest).** Whole session: no errors from
+  `BuildService`/`BuildModeManager`, and no `[BuildModeManager]` warns once the place
+  GUI prereq exists.
