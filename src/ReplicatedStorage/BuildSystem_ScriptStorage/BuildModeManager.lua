@@ -15,12 +15,13 @@
 	(camera through the pointer's viewport position — the crosshair while first-person;
 	stopped by the first solid hit — built structures, map geometry, terrain) collects
 	every slot it passes through inside the 3x3x3 region around the HumanoidRootPart's
-	cell, and the candidate closest to the root part wins (ties: first crossed). The
-	ghost's Highlight turns previewInvalidColor (red) when the winning slot is occupied
-	(client-side occupancy view: SlotKey attributes on the PlacedStructures folder's
-	children) or unsupported (isSlotSupported — the shared "no floating pieces" probe),
-	and invalid clicks aren't even sent. The ghost has CanQuery = false, so neither the
-	aim raycast nor the support probe can ever hit it.
+	cell, ordered closest-to-the-root-part first (ties: first crossed). The selection is
+	the closest VALID candidate — unoccupied (client occupancy view: SlotKey attributes
+	on the PlacedStructures folder's children) AND supported (isSlotSupported — the
+	shared "no floating pieces" probe). When every candidate is invalid, the closest one
+	is previewed anyway: outline-only over an already-built piece, red fill when
+	floating; invalid clicks aren't even sent. The ghost has CanQuery = false, so
+	neither the aim raycast nor the support probe can ever hit it.
 
 	This manager is a VIEW + request source only: it sends five scalars to the
 	PlaceStructure remote and owns no authority (BuildService validates everything).
@@ -73,7 +74,9 @@ local ghostHighlight: Highlight? = nil
 local previewConnection: RBXScriptConnection? = nil
 local currentSlot: BuildMath.Slot? = nil
 local currentSlotValid = false
-local lastGhostSlotKey: string? = nil
+-- Key of the CLOSEST candidate last frame: selection re-evaluates when it changes
+-- (or the placed folder changes), so the support probes don't run every frame.
+local lastPrimaryKey: string? = nil
 local lastPlacementRequest = 0
 
 -- Client-side occupancy view: SlotKey attribute -> occupied, maintained from the
@@ -131,7 +134,7 @@ local function stopPreview()
 	end
 	currentSlot = nil
 	currentSlotValid = false
-	lastGhostSlotKey = nil
+	lastPrimaryKey = nil
 end
 
 local function onPreviewStep()
@@ -170,29 +173,41 @@ local function onPreviewStep()
 	local result = Workspace:Raycast(origin, look * BuildConfig.maxBuildRange, params)
 	local maxDistance = if result then result.Distance else BuildConfig.maxBuildRange
 
-	-- Ray-march selection: every in-region slot the ray passes through is a candidate;
-	-- the one closest to the anchor wins (ties: first crossed). Floors anchor at the
-	-- FEET so the plane underfoot beats the ceiling.
+	-- Ray-march selection: every in-region slot the ray passes through, ordered
+	-- closest-to-anchor first (ties: first crossed). Floors anchor at the FEET so the
+	-- plane underfoot beats the ceiling.
 	local anchorPoint = rootPart.Position
 	if kind == "Floor" then
 		anchorPoint -= Vector3.new(0, BuildConfig.floorSelectionAnchorYOffset, 0)
 	end
-	local slot = BuildMath.selectSlotAlongRay(BuildConfig, kind, origin, look, maxDistance, centerCell, cameraYaw, anchorPoint)
-	currentSlot = slot
+	local candidates = BuildMath.slotCandidatesAlongRay(BuildConfig, kind, origin, look, maxDistance, centerCell, cameraYaw, anchorPoint)
 
-	local slotKey = BuildMath.slotKey(slot)
-	if slotKey ~= lastGhostSlotKey or validityDirty then
-		lastGhostSlotKey = slotKey
+	local primaryKey = BuildMath.slotKey(candidates[1])
+	if primaryKey ~= lastPrimaryKey or validityDirty then
+		lastPrimaryKey = primaryKey
 		validityDirty = false
-		activeGhost.Size = BuildMath.slotSize(BuildConfig, slot)
-		activeGhost.CFrame = BuildMath.slotToCFrame(BuildConfig, slot)
-		local isOccupied = occupiedKeys[slotKey] == true
-		currentSlotValid = not isOccupied and isSlotSupported(slot)
+
+		-- The selection is the closest VALID candidate (unoccupied + supported); when
+		-- every candidate is invalid, fall back to the closest one and show WHY it's
+		-- invalid (outline-only over a built piece, red fill when floating).
+		local chosen = candidates[1]
+		local chosenValid = false
+		for _, candidate in candidates do
+			if occupiedKeys[BuildMath.slotKey(candidate)] == nil and isSlotSupported(candidate) then
+				chosen = candidate
+				chosenValid = true
+				break
+			end
+		end
+		currentSlot = chosen
+		currentSlotValid = chosenValid
+
+		activeGhost.Size = BuildMath.slotSize(BuildConfig, chosen)
+		activeGhost.CFrame = BuildMath.slotToCFrame(BuildConfig, chosen)
 		if ghostHighlight then
-			ghostHighlight.FillColor = if currentSlotValid then BuildConfig.previewColor else BuildConfig.previewInvalidColor
-			-- Selecting an already-built slot: the real piece is right there, so show
-			-- outline only instead of painting it over (0.5 = the Highlight default).
-			ghostHighlight.FillTransparency = if isOccupied then 1 else 0.5
+			local isOccupied = occupiedKeys[BuildMath.slotKey(chosen)] == true
+			ghostHighlight.FillColor = if chosenValid then BuildConfig.previewColor else BuildConfig.previewInvalidColor
+			ghostHighlight.FillTransparency = if isOccupied then 1 else 0.5 -- 0.5 = Highlight default
 		end
 	end
 end

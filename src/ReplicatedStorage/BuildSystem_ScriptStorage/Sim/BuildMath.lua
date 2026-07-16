@@ -330,17 +330,19 @@ end
 	map geometry, and terrain all block; nothing past the hit is ever a candidate).
 	FLOORS additionally offer both planes bounding the aim point's (region-clamped)
 	cell, so ground sitting between grid planes stays selectable and a level aim still
-	has a feet-plane option. Of the candidates, the one whose panel center is CLOSEST
-	to anchorPoint wins (the caller passes the HumanoidRootPart — biased down to the
-	feet for floors); a tie goes to the candidate crossed earlier along the ray.
-	Occupancy is NOT considered here — an occupied winner previews red and the click is
-	rejected.
+	has a feet-plane option.
 
-	Aiming somewhere with no reachable slot at all (e.g. straight up at the sky with a
-	wall) degrades to clamping the snapped ray end into the region, so a slot is always
-	returned and the ghost never disappears.
+	Returns the full candidate list ordered CLOSEST-first by panel-center distance to
+	anchorPoint (the caller passes the HumanoidRootPart — biased down to the feet for
+	floors), ties broken by which was crossed earlier along the ray, duplicates
+	dropped. The caller walks it for the first VALID slot (occupancy/support are the
+	caller's concern — not modeled here) and falls back to entry 1 when none qualify.
+
+	Never empty: aiming somewhere with no reachable slot at all (e.g. straight up at
+	the sky with a wall) degrades to the snapped ray end clamped into the region, so
+	there is always a slot to preview and the ghost never disappears.
 ]]
-function BuildMath.selectSlotAlongRay(
+function BuildMath.slotCandidatesAlongRay(
 	config: BuildConfigLike,
 	kind: string,
 	origin: Vector3,
@@ -349,15 +351,19 @@ function BuildMath.selectSlotAlongRay(
 	center: Cell,
 	cameraYaw: number,
 	anchorPoint: Vector3
-): Slot
+): { Slot }
 	local c = config.cellSize
 	local r = config.buildRegionRadiusCells
 	local quadrant = BuildMath.yawToOrient(cameraYaw)
-	local candidates: { { slot: Slot, t: number } } = {}
+	local candidates: { { slot: Slot, t: number, distance: number } } = {}
 
 	local function addCandidate(slot: Slot, t: number)
 		if BuildMath.isSlotInRegion(config, slot, center) then
-			table.insert(candidates, { slot = slot, t = t })
+			table.insert(candidates, {
+				slot = slot,
+				t = t,
+				distance = (BuildMath.slotCenter(config, slot) - anchorPoint).Magnitude,
+			})
 		end
 	end
 
@@ -437,23 +443,49 @@ function BuildMath.selectSlotAlongRay(
 	end
 
 	if #candidates == 0 then
-		return BuildMath.clampSlotToRegion(config, BuildMath.worldToSlot(config, kind, terminalPoint, cameraYaw), center)
+		return { BuildMath.clampSlotToRegion(config, BuildMath.worldToSlot(config, kind, terminalPoint, cameraYaw), center) }
 	end
 
-	table.sort(candidates, function(a, b)
-		return a.t < b.t
-	end)
-	local best = candidates[1]
-	local bestDistance = (BuildMath.slotCenter(config, best.slot) - anchorPoint).Magnitude
-	for i = 2, #candidates do
-		local candidate = candidates[i]
-		local distance = (BuildMath.slotCenter(config, candidate.slot) - anchorPoint).Magnitude
-		if distance < bestDistance - DISTANCE_TIE_EPSILON then
-			best = candidate
-			bestDistance = distance
+	-- Order closest-first by repeated min-extraction (the list is tiny — a handful of
+	-- planes/cells) so the tie rule stays exact: within DISTANCE_TIE_EPSILON, the
+	-- candidate crossed EARLIER along the ray comes first. Duplicate slots (a terminal
+	-- plane that was also a crossing) keep only their best-ranked occurrence.
+	local ordered: { Slot } = {}
+	local seenKeys: { [string]: boolean } = {}
+	while #candidates > 0 do
+		local bestIndex = 1
+		for i = 2, #candidates do
+			local a, b = candidates[i], candidates[bestIndex]
+			if
+				a.distance < b.distance - DISTANCE_TIE_EPSILON
+				or (math.abs(a.distance - b.distance) <= DISTANCE_TIE_EPSILON and a.t < b.t)
+			then
+				bestIndex = i
+			end
+		end
+		local best = table.remove(candidates, bestIndex)
+		local key = BuildMath.slotKey(best.slot)
+		if not seenKeys[key] then
+			seenKeys[key] = true
+			table.insert(ordered, best.slot)
 		end
 	end
-	return best.slot
+	return ordered
+end
+
+-- The single best candidate (see slotCandidatesAlongRay) — kept as the head of the
+-- ordered list for callers/specs that only need the winner.
+function BuildMath.selectSlotAlongRay(
+	config: BuildConfigLike,
+	kind: string,
+	origin: Vector3,
+	direction: Vector3,
+	maxDistance: number,
+	center: Cell,
+	cameraYaw: number,
+	anchorPoint: Vector3
+): Slot
+	return BuildMath.slotCandidatesAlongRay(config, kind, origin, direction, maxDistance, center, cameraYaw, anchorPoint)[1]
 end
 
 --[[

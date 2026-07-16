@@ -114,14 +114,15 @@ one call per damage site when it comes).
   capped at maxBuildRange — collects every
   in-region slot it passes through (wall/floor grid-plane crossings, stairs cell
   traversal; floors also offer BOTH planes of the region-clamped aim cell so off-plane
-  terrain and level aims stay selectable), and the candidate closest to the anchor wins
-  — the HumanoidRootPart, biased DOWN by `floorSelectionAnchorYOffset` (2) for floors
-  so the feet plane beats the ceiling (ties → first crossed; no candidates → clamp
-  fallback, ghost never vanishes). Selection can never reach PAST the surface that
-  stopped the ray: walls have no rounding terminal snap, stairs cell entries get no
-  slack (plane-coincidence slack is scoped inside BuildMath). Occupied slots ARE
-  selectable but preview OUTLINE-ONLY (FillTransparency 1 — the real piece is right
-  there); unsupported slots preview red. Every server placement plays the place-built
+  terrain and level aims stay selectable), ordered closest-to-anchor first — the
+  HumanoidRootPart, biased DOWN by `floorSelectionAnchorYOffset` (2) for floors so the
+  feet plane beats the ceiling (ties → first crossed; no candidates → clamp fallback,
+  ghost never vanishes). **Selection = the closest VALID candidate** (unoccupied +
+  supported), walking outward past invalid ones; only when EVERY candidate is invalid
+  does the closest one preview anyway — OUTLINE-ONLY (FillTransparency 1) over an
+  already-built piece, red fill when floating. Selection can never reach PAST the
+  surface that stopped the ray: walls have no rounding terminal snap, stairs cell
+  entries get no slack (plane-coincidence slack is scoped inside BuildMath). Every server placement plays the place-built
   `BuildSystem_Storage["hl2 metal impact"]` Sound at the structure (all clients,
   spatial; warn-and-silent if missing). Ghost look is a **Highlight** on an OPAQUE ghost (Highlights don't
   render on transparent parts; default settings, FillColor = previewColor /

@@ -248,6 +248,25 @@ return function()
 			expect(BuildMath.isSlotInRegion(config, slot, center)).to.equal(true)
 		end)
 
+		it("slotCandidatesAlongRay orders every crossed slot closest-first and dedupes", function()
+			local direction = Vector3.new(1, -0.05, 0).Unit -- crosses the x=1 and x=2 planes
+			local nearOrder = BuildMath.slotCandidatesAlongRay(config, "Wall", eye, direction, FAR, center, LOOK_POS_X, anchor)
+			expect(#nearOrder).to.equal(2)
+			expect(nearOrder[1].x).to.equal(1)
+			expect(nearOrder[2].x).to.equal(2)
+			-- An anchor near the far plane flips the order — same candidates, re-ranked.
+			local farOrder = BuildMath.slotCandidatesAlongRay(config, "Wall", eye, direction, FAR, center, LOOK_POS_X, Vector3.new(13, 4, 4))
+			expect(#farOrder).to.equal(2)
+			expect(farOrder[1].x).to.equal(2)
+			expect(farOrder[2].x).to.equal(1)
+		end)
+
+		it("slotCandidatesAlongRay is never empty (clamp fallback as the sole entry)", function()
+			local list = BuildMath.slotCandidatesAlongRay(config, "Wall", eye, Vector3.new(0, 1, 0), FAR, center, LOOK_NEG_Z, anchor)
+			expect(#list).to.equal(1)
+			expect(BuildMath.isSlotInRegion(config, list[1], center)).to.equal(true)
+		end)
+
 		it("always returns an in-region slot for every kind and direction", function()
 			for _, kind in { "Wall", "Floor", "Stairs" } do
 				for _, spec in {

@@ -764,8 +764,11 @@ without them.
 - **[R] Ray blocking + occupied slots preview red (playtest).** Place a wall on your
   cell's facing side and keep aiming at it; also stand near a large map wall/hill and
   aim through it.
-  - ✅ Aiming at the placed wall selects IT (outline-only highlight — fill transparent
-    over an already-built piece — and clicks do nothing) — slots
+  - ✅ Selection prefers the closest VALID slot: aiming at your placed wall while
+    another free slot sits on the same ray (e.g. aiming through its top edge region)
+    auto-advances to that free slot instead of sticking on the built one. Aiming
+    dead-on at the placed wall with nothing else reachable selects IT (outline-only
+    highlight, clicks do nothing) — slots
     behind it are unreachable because the built piece stops the ray, and the selection
     snap can never round PAST a blocking surface (walls pressed close included).
     Map geometry and terrain block the same way (no selecting slots on the far side of
