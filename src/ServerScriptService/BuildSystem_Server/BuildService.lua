@@ -38,6 +38,7 @@ local BuildConfig = require(BuildSystem_ScriptStorage.Data.BuildConfig)
 local BuildMath = require(BuildSystem_ScriptStorage.Sim.BuildMath)
 local getPanelTemplate = require(BuildSystem_ScriptStorage.Components.getPanelTemplate)
 local isSlotSupported = require(BuildSystem_ScriptStorage.Components.isSlotSupported)
+local playSound = require(ReplicatedStorage.RojoManaged_RS.Utility.PlaySoundUtil)
 
 -- Shared server-authority boundary (Tier 2 layer) for the alive-sender check.
 local Validation = require(
@@ -46,6 +47,9 @@ local Validation = require(
 
 local STRUCTURE_TAG = "BuildStructure"
 local PLACED_FOLDER_NAME = BuildConfig.placedFolderName
+-- Place-built Sound next to the panel template; played AT the structure on every
+-- placement (server-side clone -> replicates spatially to all clients).
+local PLACEMENT_SOUND_NAME = "hl2 metal impact"
 
 local HEALTH_ATTRIBUTE = "Health"
 local MAX_HEALTH_ATTRIBUTE = "MaxHealth"
@@ -64,6 +68,7 @@ local BuildService = {}
 
 local template: BasePart? = nil
 local placedFolder: Folder? = nil
+local placementSound: Sound? = nil
 
 -- Slot key -> the structure occupying it. Released centrally by ChildRemoved.
 local occupied: { [string]: BasePart } = {}
@@ -125,6 +130,9 @@ local function spawnStructure(player: Player, slot: BuildMath.Slot, slotKey: str
 
 	occupied[slotKey] = part
 	part.Parent = folder
+	if placementSound then
+		playSound(placementSound, part)
+	end
 	table.insert(underConstruction, {
 		part = part,
 		elapsed = 0,
@@ -223,6 +231,13 @@ function BuildService.init()
 		storage.Parent = ReplicatedStorage
 	end
 	template = getPanelTemplate.ensure(storage :: Folder)
+
+	local sound = (storage :: Folder):FindFirstChild(PLACEMENT_SOUND_NAME)
+	if sound and sound:IsA("Sound") then
+		placementSound = sound
+	else
+		warn(`[BuildService] {PLACEMENT_SOUND_NAME} missing from {(storage :: Folder):GetFullName()} — placements will be silent`)
+	end
 
 	local existingFolder = Workspace:FindFirstChild(PLACED_FOLDER_NAME)
 	local folder: Folder

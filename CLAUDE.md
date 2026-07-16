@@ -118,7 +118,10 @@ one call per damage site when it comes).
   fallback, ghost never vanishes). Selection can never reach PAST the surface that
   stopped the ray: walls have no rounding terminal snap, stairs cell entries get no
   slack (plane-coincidence slack is scoped inside BuildMath). Occupied slots ARE
-  selectable and preview red. Ghost look is a **Highlight** on an OPAQUE ghost (Highlights don't
+  selectable but preview OUTLINE-ONLY (FillTransparency 1 — the real piece is right
+  there); unsupported slots preview red. Every server placement plays the place-built
+  `BuildSystem_Storage["hl2 metal impact"]` Sound at the structure (all clients,
+  spatial; warn-and-silent if missing). Ghost look is a **Highlight** on an OPAQUE ghost (Highlights don't
   render on transparent parts; default settings, FillColor = previewColor /
   previewInvalidColor for occupied-or-unsupported — occupancy from SlotKey attributes
   on PlacedStructures children); invalid clicks aren't sent. Inert-with-warn if the

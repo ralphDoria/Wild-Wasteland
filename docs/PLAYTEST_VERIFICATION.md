@@ -764,7 +764,8 @@ without them.
 - **[R] Ray blocking + occupied slots preview red (playtest).** Place a wall on your
   cell's facing side and keep aiming at it; also stand near a large map wall/hill and
   aim through it.
-  - ✅ Aiming at the placed wall selects IT (red highlight, clicks do nothing) — slots
+  - ✅ Aiming at the placed wall selects IT (outline-only highlight — fill transparent
+    over an already-built piece — and clicks do nothing) — slots
     behind it are unreachable because the built piece stops the ray, and the selection
     snap can never round PAST a blocking surface (walls pressed close included).
     Map geometry and terrain block the same way (no selecting slots on the far side of
@@ -779,10 +780,12 @@ without them.
 - **Placement + construction ramp (playtest). ✅ base flow verified 2026-07-16**
   Select Wall, click on open ground.
   - ✅ A structure appears INSTANTLY at the ghost's spot, semi-transparent, and turns
-    fully opaque over ~5 s. In Explorer: it lives in `workspace.PlacedStructures`,
-    tagged `BuildStructure`, with `Health` ramping from 15 to `MaxHealth` 150 and
-    `StructureType`/`SlotKey`/`OwnerUserId` set. The ghost stays up for chain-building
-    (and **[R]** turns red over the slot you just filled).
+    fully opaque over ~5 s, with the "hl2 metal impact" placement sound playing AT the
+    structure (audible to other clients too — ★). In Explorer: it lives in
+    `workspace.PlacedStructures`, tagged `BuildStructure`, with `Health` ramping from
+    15 to `MaxHealth` 150 and `StructureType`/`SlotKey`/`OwnerUserId` set. The ghost
+    stays up for chain-building (and **[R]** drops to outline-only over the slot you
+    just filled).
   - ❌ Nothing spawns (check server Output for a BuildService require error), the
     structure pops in opaque, or Health never reaches MaxHealth.
 

@@ -177,9 +177,13 @@ local function onPreviewStep()
 		validityDirty = false
 		activeGhost.Size = BuildMath.slotSize(BuildConfig, slot)
 		activeGhost.CFrame = BuildMath.slotToCFrame(BuildConfig, slot)
-		currentSlotValid = not occupiedKeys[slotKey] and isSlotSupported(slot)
+		local isOccupied = occupiedKeys[slotKey] == true
+		currentSlotValid = not isOccupied and isSlotSupported(slot)
 		if ghostHighlight then
 			ghostHighlight.FillColor = if currentSlotValid then BuildConfig.previewColor else BuildConfig.previewInvalidColor
+			-- Selecting an already-built slot: the real piece is right there, so show
+			-- outline only instead of painting it over (0.5 = the Highlight default).
+			ghostHighlight.FillTransparency = if isOccupied then 1 else 0.5
 		end
 	end
 end
