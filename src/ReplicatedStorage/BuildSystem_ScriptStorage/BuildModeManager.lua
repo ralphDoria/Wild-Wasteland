@@ -104,9 +104,10 @@ local function getGhost(): BasePart?
 	newGhost.CanQuery = false -- the aim raycast must never hit the preview
 	newGhost.CanTouch = false
 	newGhost.CastShadow = false
-	newGhost.Transparency = BuildConfig.previewTransparency
-	-- The preview look is a Highlight (default settings, fill colored by validity) so
-	-- the ghost reads clearly as "not built yet" next to real translucent structures.
+	-- The ghost must stay OPAQUE: Roblox Highlights don't render on transparent parts
+	-- (only placed structures go translucent, during their construction ramp). The
+	-- Highlight (default settings, fill colored by validity) IS the preview look.
+	newGhost.Transparency = 0
 	local highlight = Instance.new("Highlight")
 	highlight.FillColor = BuildConfig.previewColor
 	highlight.Adornee = newGhost

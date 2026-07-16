@@ -42,10 +42,10 @@ export type BuildConfig = {
 	rampTickInterval: number,
 	-- |cell index| bound accepted from the wire (keeps slots inside sane world coordinates).
 	maxCellIndex: number,
-	-- Client preview ghost appearance (valid slot / invalid slot = occupied or floating).
+	-- Client preview Highlight fill (valid slot / invalid slot = occupied or floating).
+	-- The ghost part itself stays opaque — Highlights don't render on transparent parts.
 	previewColor: Color3,
 	previewInvalidColor: Color3,
-	previewTransparency: number,
 	-- Transparency a structure spawns with; eases to 0 as the build completes.
 	constructionStartTransparency: number,
 	-- The panel piece lives at ReplicatedStorage[storageFolderName][templateName]
@@ -78,7 +78,6 @@ local BuildConfig: BuildConfig = {
 	maxCellIndex = 5000,
 	previewColor = Color3.fromRGB(70, 130, 255),
 	previewInvalidColor = Color3.fromRGB(235, 70, 60),
-	previewTransparency = 0.6,
 	constructionStartTransparency = 0.5,
 	storageFolderName = "BuildSystem_Storage",
 	templateName = "RustyMetalSheet",
