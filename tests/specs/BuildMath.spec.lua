@@ -160,40 +160,75 @@ return function()
 		end)
 	end)
 
-	describe("primarySlot (the builder's own cell takes priority)", function()
-		local center = { x = 2, y = 0, z = -3 }
-		it("walls take the cell face in the yaw direction", function()
-			local negZ = BuildMath.primarySlot(config, "Wall", center, LOOK_NEG_Z, 0)
-			expect(negZ.orient).to.equal(1)
-			expect(negZ.z).to.equal(-3) -- the -Z face is the plane at the cell's own index
-			local posZ = BuildMath.primarySlot(config, "Wall", center, LOOK_POS_Z, 0)
-			expect(posZ.orient).to.equal(1)
-			expect(posZ.z).to.equal(-2) -- the +Z face is the next boundary plane
-			local negX = BuildMath.primarySlot(config, "Wall", center, LOOK_NEG_X, 0)
-			expect(negX.orient).to.equal(0)
-			expect(negX.x).to.equal(2)
-			local posX = BuildMath.primarySlot(config, "Wall", center, LOOK_POS_X, 0)
-			expect(posX.orient).to.equal(0)
-			expect(posX.x).to.equal(3)
-		end)
-		it("floors use pitch: feet plane when level or looking down, ceiling when pitched up", function()
-			expect(BuildMath.primarySlot(config, "Floor", center, LOOK_NEG_Z, 0).y).to.equal(0)
-			expect(BuildMath.primarySlot(config, "Floor", center, LOOK_NEG_Z, -0.5).y).to.equal(0)
-			expect(BuildMath.primarySlot(config, "Floor", center, LOOK_NEG_Z, math.rad(30)).y).to.equal(1)
-			-- small upward glances stay on the feet plane (deadzone)
-			expect(BuildMath.primarySlot(config, "Floor", center, LOOK_NEG_Z, math.rad(10)).y).to.equal(0)
-		end)
-		it("stairs take the cell itself, ascending away from the builder", function()
-			local slot = BuildMath.primarySlot(config, "Stairs", center, LOOK_NEG_Z, 0)
-			expect(slot.x).to.equal(2)
+	describe("selectSlotAlongRay (ray-march selection, closest to the builder wins)", function()
+		-- Builder standing in cell (0,0,0): root part at the cell center, eye slightly up.
+		local center = { x = 0, y = 0, z = 0 }
+		local anchor = Vector3.new(4, 4, 4)
+		local eye = Vector3.new(4, 5, 4)
+		local FAR = 40
+
+		it("level aim picks the own-cell wall even though the ray crosses farther planes", function()
+			local direction = Vector3.new(1, -0.05, 0).Unit -- toward +X
+			local slot = BuildMath.selectSlotAlongRay(config, "Wall", eye, direction, FAR, center, LOOK_POS_X, anchor)
+			expect(slot.orient).to.equal(0)
+			expect(slot.x).to.equal(1) -- your cell's +X face, not the x=2 plane also crossed
 			expect(slot.y).to.equal(0)
-			expect(slot.z).to.equal(-3)
-			expect(slot.orient).to.equal(2) -- look -Z ascends -Z
 		end)
-		it("is always inside the build region", function()
+
+		it("aiming up selects the higher wall the ray actually crosses", function()
+			local direction = Vector3.new(1, 1.2, 0).Unit
+			local slot = BuildMath.selectSlotAlongRay(config, "Wall", Vector3.new(4, 4, 4), direction, FAR, center, LOOK_POS_X, anchor)
+			expect(slot.x).to.equal(1)
+			expect(slot.y).to.equal(1) -- the crossing point is in the layer above
+		end)
+
+		it("floors: aiming down picks the feet plane, aiming up picks the ceiling", function()
+			local down = BuildMath.selectSlotAlongRay(config, "Floor", eye, Vector3.new(1, -1, 0).Unit, FAR, center, LOOK_POS_X, anchor)
+			expect(down.y).to.equal(0)
+			expect(down.x).to.equal(1) -- the cell the crossing point lands in
+			local up = BuildMath.selectSlotAlongRay(config, "Floor", eye, Vector3.new(1, 1, 0).Unit, FAR, center, LOOK_POS_X, anchor)
+			expect(up.y).to.equal(1)
+			expect(up.x).to.equal(0) -- closest ceiling, not the higher plane also crossed
+		end)
+
+		it("stairs: the own cell (distance 0) beats every farther traversed cell", function()
+			local slot = BuildMath.selectSlotAlongRay(config, "Stairs", eye, Vector3.new(1, 0, 0), FAR, center, LOOK_POS_X, anchor)
+			expect(slot.x).to.equal(0)
+			expect(slot.y).to.equal(0)
+			expect(slot.z).to.equal(0)
+			expect(slot.orient).to.equal(1) -- look +X ascends +X
+		end)
+
+		it("a blocker capping the ray excludes candidates beyond it", function()
+			local direction = Vector3.new(1, -0.05, 0).Unit
+			local nearAnchor = Vector3.new(13, 4, 4) -- closer to the x=2 plane than x=1
+			local unblocked = BuildMath.selectSlotAlongRay(config, "Wall", eye, direction, FAR, center, LOOK_POS_X, nearAnchor)
+			expect(unblocked.x).to.equal(2) -- x=2 wins on distance when reachable
+			local blocked = BuildMath.selectSlotAlongRay(config, "Wall", eye, direction, 5, center, LOOK_POS_X, nearAnchor)
+			expect(blocked.x).to.equal(1) -- ray stopped before the x=2 crossing (t ~ 12)
+		end)
+
+		it("an exact distance tie goes to the candidate crossed first", function()
+			local direction = Vector3.new(1, -0.05, 0).Unit
+			local midAnchor = Vector3.new(12, 4, 4) -- exactly between the x=1 and x=2 panels
+			local slot = BuildMath.selectSlotAlongRay(config, "Wall", eye, direction, FAR, center, LOOK_POS_X, midAnchor)
+			expect(slot.x).to.equal(1)
+		end)
+
+		it("no reachable candidate degrades to a clamped in-region slot (ghost never vanishes)", function()
+			-- Straight up: parallel to every wall plane, terminal snap far out of region.
+			local slot = BuildMath.selectSlotAlongRay(config, "Wall", eye, Vector3.new(0, 1, 0), FAR, center, LOOK_NEG_Z, anchor)
+			expect(BuildMath.isSlotInRegion(config, slot, center)).to.equal(true)
+		end)
+
+		it("always returns an in-region slot for every kind and direction", function()
 			for _, kind in { "Wall", "Floor", "Stairs" } do
-				for _, yaw in { LOOK_NEG_Z, LOOK_NEG_X, LOOK_POS_Z, LOOK_POS_X } do
-					local slot = BuildMath.primarySlot(config, kind, center, yaw, math.rad(30))
+				for _, spec in {
+					{ dir = Vector3.new(1, -0.3, 0.2).Unit, yaw = LOOK_POS_X },
+					{ dir = Vector3.new(0, -1, 0), yaw = LOOK_NEG_Z },
+					{ dir = Vector3.new(-0.5, 0.8, -1).Unit, yaw = LOOK_NEG_Z },
+				} do
+					local slot = BuildMath.selectSlotAlongRay(config, kind, eye, spec.dir, FAR, center, spec.yaw, anchor)
 					expect(BuildMath.isSlotInRegion(config, slot, center)).to.equal(true)
 				end
 			end

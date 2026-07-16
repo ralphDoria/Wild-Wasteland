@@ -722,11 +722,12 @@ without them.
   landing exactly on cell edges, Y-thin/Z-thin panel-basis detection, region
   clamp/in-region rules incl. boundary planes reaching one past the region, slotKey
   rules, validateSlot rejecting NaN/huge/fractional/out-of-bounds/bad-orient,
-  primarySlot own-cell priority: wall faces per yaw quadrant, floor feet/ceiling by
-  pitch with a 15° deadzone, stairs ascent, always in-region) and
+  selectSlotAlongRay ray-march: closest-to-builder wins among crossed slots, upward
+  aim reaches higher walls/ceilings, blocker capping, exact-tie → first crossed,
+  clamp fallback always in-region) and
   `BuildConfig.spec` (grid derives from panelSize whatever its thin axis, three
   structures with sane stats, positive finite tunables, region radius a whole number,
-  distinct preview colors). ✅ 130/130 green in-engine 2026-07-16. Run via
+  distinct preview colors). ✅ 134/134 green in-engine 2026-07-16. Run via
   `test.project.json` → Play — NOTE: a bare `execute_luau` TestBootstrap re-run reports
   STALE results (the MCP plugin VM caches `require`); use a Play session or the
   loadstring fresh-require runner.
@@ -744,29 +745,32 @@ without them.
     and hides the ghost.
   - ❌ Two toggles lit at once, or a ghost lingers with nothing selected.
 
-- **[R] Ghost preview — real piece, Highlight look, own-cell priority (playtest).**
-  Select each structure on open ground and look around: level turns through all four
-  directions, up, down, far away, at the sky.
-  - ✅ The ghost is the RustyMetalSheet wrapped in a blue **Highlight** (default look:
-    colored fill + outline, visible through geometry) — clearly distinct from the
-    translucent under-construction pieces. With your own cell's slot free, the ghost
-    STAYS on your own cell no matter how far away you aim: Wall = your cell's face in
-    the 90°-snapped direction you look; Floor = the plane at your feet, flipping to
-    your cell's ceiling when you pitch up past ~15°; Stairs = your cell, ascending
-    away from you with edges meeting the cell's bottom/top edges.
+- **[R] Ghost preview — real piece + ray-march selection (playtest).** Select each
+  structure on open ground and look around: level turns through all four directions,
+  up, down, at nearby surfaces, far away, at the sky. (✅ Highlight visibility itself
+  verified 2026-07-16 after the opaque-ghost fix.)
+  - ✅ The ghost is the opaque RustyMetalSheet wrapped in a blue **Highlight** —
+    clearly distinct from the translucent under-construction pieces. Selection follows
+    the cursor ray but prefers slots NEAR you: level aim gives your cell's facing wall
+    / the floor plane the ray crosses / your own stairs cell; aiming up walks the
+    selection to the upper wall or your ceiling plane; aiming far away or at the sky
+    keeps the ghost inside the 3×3×3 around you. Walls stand on boundary planes, floors
+    lie flat, stairs ascend away with edges meeting the cell edges.
   - ❌ The ghost is a plain grey Part (template resolution failed — check for a
-    `[getPanelTemplate]` warn), has no Highlight / is only color-tinted, lies in the
-    wrong plane or stands on edge (panel-basis detection wrong for the union's axes),
-    or wanders off your cell while the own-cell slot is still free.
+    `[getPanelTemplate]` warn), lies in the wrong plane or stands on edge (panel-basis
+    detection wrong for the union's axes), escapes the 3×3×3, vanishes entirely for
+    some aim direction, or jitters between two slots every frame.
 
-- **[R] Occupied-cell expansion to the 3×3×3 (playtest).** Place a wall on your cell's
-  facing side, keep facing it; then aim at neighboring cells; then far away.
-  - ✅ Once the own-cell slot is taken, the ghost expands to aim-driven selection over
-    the surrounding 3×3×3 — neighbor faces highlight where you aim, and aiming FAR (or
-    at the sky) pins the ghost to the region's edge, never beyond one cell away. Aiming
-    back at the occupied slot shows the RED highlight and clicks do nothing.
-  - ❌ The ghost stays stuck red on the occupied own-cell slot regardless of aim, or
-    escapes the 3×3×3 region, or jitters between two slots every frame.
+- **[R] Ray blocking + occupied slots preview red (playtest).** Place a wall on your
+  cell's facing side and keep aiming at it; also stand near a large map wall/hill and
+  aim through it.
+  - ✅ Aiming at the placed wall selects IT (red highlight, clicks do nothing) — slots
+    behind it are unreachable because the built piece stops the ray. Map geometry and
+    terrain block the same way (no selecting slots on the far side of a hill). Aiming
+    above/past the placed wall's edge selects the next slot the ray crosses (e.g. the
+    wall above it) — chain-building upward works by aiming up.
+  - ❌ The selection tunnels through built pieces or terrain, or an occupied slot
+    can't be aimed at all (selection skips it — spec says select-and-red).
 
 - **Placement + construction ramp (playtest). ✅ base flow verified 2026-07-16**
   Select Wall, click on open ground.

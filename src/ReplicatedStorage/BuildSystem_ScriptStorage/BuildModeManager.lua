@@ -10,14 +10,16 @@
 	("Place Structure", bound Gun-Activate style) requests a placement.
 
 	The preview is ONE reused ghost clone of the shared panel template, updated on a
-	RenderStepped connection that exists only while a structure is selected. Snapping runs
-	the same pure BuildMath the server validates with — including the Fortnite-style clamp
-	into the 3x3x3 cell region around the HumanoidRootPart's cell, so the ghost always
-	previews near the player. The ghost turns previewInvalidColor (red) when the slot is
-	occupied (client-side occupancy view: SlotKey attributes on the PlacedStructures
-	folder's children) or unsupported (isSlotSupported — the shared "no floating pieces"
-	probe), and invalid clicks aren't even sent. The ghost has CanQuery = false, so
-	neither the aim raycast nor the support probe can ever hit it.
+	RenderStepped connection that exists only while a structure is selected. Selection is
+	a RAY-MARCH through the same pure BuildMath the server validates with: the camera ray
+	(stopped by the first solid hit — built structures, map geometry, terrain) collects
+	every slot it passes through inside the 3x3x3 region around the HumanoidRootPart's
+	cell, and the candidate closest to the root part wins (ties: first crossed). The
+	ghost's Highlight turns previewInvalidColor (red) when the winning slot is occupied
+	(client-side occupancy view: SlotKey attributes on the PlacedStructures folder's
+	children) or unsupported (isSlotSupported — the shared "no floating pieces" probe),
+	and invalid clicks aren't even sent. The ghost has CanQuery = false, so neither the
+	aim raycast nor the support probe can ever hit it.
 
 	This manager is a VIEW + request source only: it sends five scalars to the
 	PlaceStructure remote and owns no authority (BuildService validates everything).
@@ -148,27 +150,20 @@ local function onPreviewStep()
 	local cameraYaw = math.atan2(-look.X, -look.Z)
 	local centerCell = BuildMath.cellOfPoint(BuildConfig, rootPart.Position)
 
-	-- The builder's OWN cell takes priority, oriented by the cursor (walls by yaw face,
-	-- floors by pitch, stairs by ascent yaw). Only when that slot is already occupied
-	-- does selection expand to the aim-driven search over the full 3x3x3 region.
-	local slot = BuildMath.primarySlot(BuildConfig, kind, centerCell, cameraYaw, math.asin(look.Y))
-	if occupiedKeys[BuildMath.slotKey(slot)] then
-		local params = RaycastParams.new()
-		params.FilterType = Enum.RaycastFilterType.Exclude
-		params.IgnoreWater = true
-		params.FilterDescendantsInstances = { camera, character :: Instance }
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.IgnoreWater = true
+	params.FilterDescendantsInstances = { camera, character :: Instance }
 
-		-- Hits snap to the NEAR side of the surface (the small pull toward the camera);
-		-- no hit means aiming at open air. Either way the selection then CLAMPS into
-		-- the build region, so the ghost always previews near the player.
-		local result = Workspace:Raycast(origin, look * BuildConfig.maxBuildRange, params)
-		local aimPoint = if result then result.Position - look * 0.1 else origin + look * BuildConfig.maxBuildRange
-		slot = BuildMath.clampSlotToRegion(
-			BuildConfig,
-			BuildMath.worldToSlot(BuildConfig, kind, aimPoint, cameraYaw),
-			centerCell
-		)
-	end
+	-- Anything solid stops the aim ray (built structures, map geometry, terrain) —
+	-- slots strictly behind the hit are unreachable. The small slack keeps a grid
+	-- plane coinciding with the hit surface countable as crossed.
+	local result = Workspace:Raycast(origin, look * BuildConfig.maxBuildRange, params)
+	local maxDistance = if result then result.Distance + 0.25 else BuildConfig.maxBuildRange
+
+	-- Ray-march selection: every in-region slot the ray passes through is a candidate;
+	-- the one closest to the HumanoidRootPart wins (ties: first crossed).
+	local slot = BuildMath.selectSlotAlongRay(BuildConfig, kind, origin, look, maxDistance, centerCell, cameraYaw, rootPart.Position)
 	currentSlot = slot
 
 	local slotKey = BuildMath.slotKey(slot)

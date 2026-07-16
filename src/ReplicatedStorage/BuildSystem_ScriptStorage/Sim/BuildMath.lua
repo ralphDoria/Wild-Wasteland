@@ -24,8 +24,8 @@
 	cells buildRegionRadiusCells around the cell containing the builder's
 	HumanoidRootPart (radius 1 = the 3x3x3 neighborhood). A boundary-panel slot (wall/
 	floor) is in-region when a cell it borders is; a stairs slot when its cell is. The
-	client CLAMPS its aim into the region (clampSlotToRegion), the server verifies with
-	isSlotInRegion.
+	client SELECTS by ray-march (selectSlotAlongRay: every in-region slot the aim ray
+	passes through, closest-to-builder wins), the server verifies with isSlotInRegion.
 
 	Panel orientation: geometry is computed in a canonical frame (local X/Y = the square
 	face, Z = the thin axis) and then corrected for the real panel piece, whose thin axis
@@ -130,44 +130,9 @@ local function lookQuadrantToWallOrient(quadrant: number): number
 	return 1 - quadrant % 2
 end
 
--- Looking up more steeply than this makes the priority FLOOR slot the cell's ceiling
--- plane instead of the one at the feet (a deadzone so level glances don't flip it).
-local FLOOR_PITCH_UP_THRESHOLD = math.rad(15)
-
---[[
-	The PRIORITY slot: the one belonging to the builder's own cell (the cell containing
-	the HumanoidRootPart), picked purely from the cursor direction — walls take the cell
-	face in the yaw quadrant you look toward, floors take the feet plane (or the ceiling
-	plane when pitched up), stairs take the cell itself ascending away. Selection starts
-	here and only expands to the aim-driven 3x3x3 search when this slot is occupied.
-]]
-function BuildMath.primarySlot(config: BuildConfigLike, kind: string, center: Cell, cameraYaw: number, cameraPitch: number): Slot
-	local quadrant = BuildMath.yawToOrient(cameraYaw)
-	if kind == "Floor" then
-		local y = if cameraPitch > FLOOR_PITCH_UP_THRESHOLD then center.y + 1 else center.y
-		return { kind = kind, x = center.x, y = y, z = center.z, orient = 0 }
-	elseif kind == "Wall" then
-		-- Quadrant look vectors are (-Z, -X, +Z, +X) for q = 0..3; the wall goes on the
-		-- cell face in that direction (+ faces are the boundary planes at index + 1).
-		if quadrant == 0 then
-			return { kind = kind, x = center.x, y = center.y, z = center.z, orient = 1 }
-		elseif quadrant == 1 then
-			return { kind = kind, x = center.x, y = center.y, z = center.z, orient = 0 }
-		elseif quadrant == 2 then
-			return { kind = kind, x = center.x, y = center.y, z = center.z + 1, orient = 1 }
-		end
-		return { kind = kind, x = center.x + 1, y = center.y, z = center.z, orient = 0 }
-	elseif kind == "Stairs" then
-		return {
-			kind = kind,
-			x = center.x,
-			y = center.y,
-			z = center.z,
-			orient = lookQuadrantToStairsOrient(quadrant),
-		}
-	end
-	error(`[BuildMath] Unknown structure kind "{kind}"`)
-end
+-- Ties in the closest-to-builder comparison (studs): within this, the candidate hit
+-- EARLIER along the ray wins, per the selection rule.
+local DISTANCE_TIE_EPSILON = 1e-3
 
 --[[
 	Snap an aim point (plus the camera yaw, for oriented kinds) to the slot it selects.
@@ -323,6 +288,151 @@ function BuildMath.slotSize(config: BuildConfigLike, slot: Slot): Vector3
 		return mapSize(face, face * math.sqrt(2), thickness)
 	end
 	return mapSize(face, face, thickness)
+end
+
+-- Slab test: parameter t at which a ray enters an axis-aligned box, or nil if the ray
+-- misses it within [0, maxDistance]. Starting inside the box counts as entry at 0.
+local function rayBoxEntry(origin: Vector3, direction: Vector3, maxDistance: number, minCorner: Vector3, maxCorner: Vector3): number?
+	local tEnter, tExit = 0, maxDistance
+	local function slab(o: number, d: number, lo: number, hi: number): boolean
+		if math.abs(d) < 1e-9 then
+			return o >= lo and o <= hi
+		end
+		local t1, t2 = (lo - o) / d, (hi - o) / d
+		if t1 > t2 then
+			t1, t2 = t2, t1
+		end
+		tEnter = math.max(tEnter, t1)
+		tExit = math.min(tExit, t2)
+		return tEnter <= tExit
+	end
+	if
+		slab(origin.X, direction.X, minCorner.X, maxCorner.X)
+		and slab(origin.Y, direction.Y, minCorner.Y, maxCorner.Y)
+		and slab(origin.Z, direction.Z, minCorner.Z, maxCorner.Z)
+	then
+		return tEnter
+	end
+	return nil
+end
+
+--[[
+	THE selection rule (client preview): enumerate every in-region slot of the kind that
+	the aim ray passes through — wall/floor slots where the ray crosses their grid
+	plane, stairs slots for each region cell the ray's segment enters — with the ray
+	capped at maxDistance (the caller stops it at the first solid hit: built structures,
+	map geometry, and terrain all block). The surface that stopped the ray stays
+	selectable even when it sits off the grid planes (terrain): the nudged ray end is
+	snapped in as a final candidate. Of the candidates, the one whose panel center is
+	CLOSEST to anchorPoint (the builder's HumanoidRootPart) wins; a tie goes to the
+	candidate crossed earlier along the ray. Occupancy is NOT considered here — an
+	occupied winner previews red and the click is rejected.
+
+	Aiming somewhere with no reachable slot at all (e.g. straight up at the sky)
+	degrades to clamping the snapped ray end into the region, so a slot is always
+	returned and the ghost never disappears.
+]]
+function BuildMath.selectSlotAlongRay(
+	config: BuildConfigLike,
+	kind: string,
+	origin: Vector3,
+	direction: Vector3, -- unit length
+	maxDistance: number,
+	center: Cell,
+	cameraYaw: number,
+	anchorPoint: Vector3
+): Slot
+	local c = config.cellSize
+	local r = config.buildRegionRadiusCells
+	local quadrant = BuildMath.yawToOrient(cameraYaw)
+	local candidates: { { slot: Slot, t: number } } = {}
+
+	local function addCandidate(slot: Slot, t: number)
+		if BuildMath.isSlotInRegion(config, slot, center) then
+			table.insert(candidates, { slot = slot, t = t })
+		end
+	end
+
+	-- Crossings of the ray with one family of grid planes (indices loPlane..hiPlane on
+	-- one axis); makeSlot turns each crossing point into the panel slot it selects.
+	local function addPlaneCrossings(
+		axisOrigin: number,
+		axisDirection: number,
+		loPlane: number,
+		hiPlane: number,
+		makeSlot: (planeIndex: number, point: Vector3) -> Slot
+	)
+		if math.abs(axisDirection) < 1e-6 then
+			return -- ray parallel to the family; the terminal snap still applies
+		end
+		for planeIndex = loPlane, hiPlane do
+			local t = (planeIndex * c - axisOrigin) / axisDirection
+			if t >= 0 and t <= maxDistance then
+				addCandidate(makeSlot(planeIndex, origin + direction * t), t)
+			end
+		end
+	end
+
+	if kind == "Wall" then
+		if lookQuadrantToWallOrient(quadrant) == 0 then
+			addPlaneCrossings(origin.X, direction.X, center.x - r, center.x + r + 1, function(planeIndex, point)
+				return { kind = kind, x = planeIndex, y = math.floor(point.Y / c), z = math.floor(point.Z / c), orient = 0 }
+			end)
+		else
+			addPlaneCrossings(origin.Z, direction.Z, center.z - r, center.z + r + 1, function(planeIndex, point)
+				return { kind = kind, x = math.floor(point.X / c), y = math.floor(point.Y / c), z = planeIndex, orient = 1 }
+			end)
+		end
+	elseif kind == "Floor" then
+		addPlaneCrossings(origin.Y, direction.Y, center.y - r, center.y + r + 1, function(planeIndex, point)
+			return { kind = kind, x = math.floor(point.X / c), y = planeIndex, z = math.floor(point.Z / c), orient = 0 }
+		end)
+	elseif kind == "Stairs" then
+		local orient = lookQuadrantToStairsOrient(quadrant)
+		-- The region is tiny (27 cells at radius 1): slab-test each cell's box against
+		-- the ray segment instead of a general voxel walk.
+		for x = center.x - r, center.x + r do
+			for y = center.y - r, center.y + r do
+				for z = center.z - r, center.z + r do
+					local t = rayBoxEntry(
+						origin,
+						direction,
+						maxDistance,
+						Vector3.new(x * c, y * c, z * c),
+						Vector3.new((x + 1) * c, (y + 1) * c, (z + 1) * c)
+					)
+					if t then
+						addCandidate({ kind = kind, x = x, y = y, z = z, orient = orient }, t)
+					end
+				end
+			end
+		end
+	end
+
+	-- The nudged ray end: the hit surface's own snap (terrain that sits between grid
+	-- planes still selects its nearest slot, exactly like the pre-ray-march behavior).
+	local terminalPoint = origin + direction * math.max(maxDistance - 0.1, 0)
+	local terminalSlot = BuildMath.worldToSlot(config, kind, terminalPoint, cameraYaw)
+	addCandidate(terminalSlot, maxDistance)
+
+	if #candidates == 0 then
+		return BuildMath.clampSlotToRegion(config, terminalSlot, center)
+	end
+
+	table.sort(candidates, function(a, b)
+		return a.t < b.t
+	end)
+	local best = candidates[1]
+	local bestDistance = (BuildMath.slotCenter(config, best.slot) - anchorPoint).Magnitude
+	for i = 2, #candidates do
+		local candidate = candidates[i]
+		local distance = (BuildMath.slotCenter(config, candidate.slot) - anchorPoint).Magnitude
+		if distance < bestDistance - DISTANCE_TIE_EPSILON then
+			best = candidate
+			bestDistance = distance
+		end
+	end
+	return best.slot
 end
 
 --[[

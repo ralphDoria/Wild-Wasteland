@@ -107,14 +107,18 @@ one call per damage site when it comes).
   `Inventory.Hotbar.TempBuildButton` (UICorner scale 1 on `innerFrame` = active);
   V/B/N ActionManager toggles (mutually exclusive via forceToggle), MouseButton1/tap
   "Place Structure" bind, ONE reused CanQuery=false ghost on a RenderStepped loop that
-  runs only while a structure is selected. **Selection prefers the builder's OWN cell**
-  (`BuildMath.primarySlot`: walls take the yaw-facing cell face, floors the feet plane
-  or — pitched up past 15° — the ceiling, stairs the cell ascending away) and expands
-  to the aim-raycast search over the 3×3×3 region only when that slot is occupied.
-  Preview look is a **Highlight** (default settings; FillColor = previewColor, flips to
-  previewInvalidColor when the slot is occupied or unsupported — occupancy from SlotKey
-  attributes on PlacedStructures children); invalid clicks aren't sent. Inert-with-warn
-  if the button GUI is missing.
+  runs only while a structure is selected. **Selection is a ray-march**
+  (`BuildMath.selectSlotAlongRay`): the camera ray — stopped by the FIRST solid hit
+  (structures, map geometry, terrain), capped at maxBuildRange — collects every
+  in-region slot it passes through (wall/floor grid-plane crossings, stairs cell
+  traversal, plus the nudged hit-surface snap so off-plane terrain stays selectable),
+  and the candidate closest to the HumanoidRootPart wins (ties → first crossed;
+  no candidates → clamp fallback, ghost never vanishes). Occupied slots ARE selectable
+  and preview red. Ghost look is a **Highlight** on an OPAQUE ghost (Highlights don't
+  render on transparent parts; default settings, FillColor = previewColor /
+  previewInvalidColor for occupied-or-unsupported — occupancy from SlotKey attributes
+  on PlacedStructures children); invalid clicks aren't sent. Inert-with-warn if the
+  button GUI is missing.
 - ⚠ In-engine spec runs via `execute_luau` must fresh-load modules: the MCP plugin VM
   CACHES `require` results across calls, so a plain TestBootstrap re-run reports stale
   results (the 2026-07-16 session hit this — use the loadstring fresh-require runner,
