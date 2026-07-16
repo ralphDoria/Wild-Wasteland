@@ -108,8 +108,10 @@ one call per damage site when it comes).
   V/B/N ActionManager toggles (mutually exclusive via forceToggle), MouseButton1/tap
   "Place Structure" bind, ONE reused CanQuery=false ghost on a RenderStepped loop that
   runs only while a structure is selected. **Selection is a ray-march**
-  (`BuildMath.selectSlotAlongRay`): the camera ray — stopped by the FIRST solid hit
-  (structures, map geometry, terrain), capped at maxBuildRange — collects every
+  (`BuildMath.selectSlotAlongRay`): the CURSOR ray (ViewportPointToRay from
+  GetMouseLocation — equals the crosshair while first-person, correct in third
+  person/touch) — stopped by the FIRST solid hit (structures, map geometry, terrain),
+  capped at maxBuildRange — collects every
   in-region slot it passes through (wall/floor grid-plane crossings, stairs cell
   traversal; floors also offer BOTH planes of the region-clamped aim cell so off-plane
   terrain and level aims stay selectable), and the candidate closest to the anchor wins

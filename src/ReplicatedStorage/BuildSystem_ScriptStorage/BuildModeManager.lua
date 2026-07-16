@@ -11,8 +11,9 @@
 
 	The preview is ONE reused ghost clone of the shared panel template, updated on a
 	RenderStepped connection that exists only while a structure is selected. Selection is
-	a RAY-MARCH through the same pure BuildMath the server validates with: the camera ray
-	(stopped by the first solid hit — built structures, map geometry, terrain) collects
+	a RAY-MARCH through the same pure BuildMath the server validates with: the CURSOR ray
+	(camera through the pointer's viewport position — the crosshair while first-person;
+	stopped by the first solid hit — built structures, map geometry, terrain) collects
 	every slot it passes through inside the 3x3x3 region around the HumanoidRootPart's
 	cell, and the candidate closest to the root part wins (ties: first crossed). The
 	ghost's Highlight turns previewInvalidColor (red) when the winning slot is occupied
@@ -28,6 +29,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local BuildConfig = require(script.Parent.Data.BuildConfig)
@@ -145,8 +147,15 @@ local function onPreviewStep()
 		return
 	end
 
-	local origin = camera.CFrame.Position
-	local look = camera.CFrame.LookVector
+	-- The aim ray follows the CURSOR's 3D direction (ViewportPointToRay), not the
+	-- camera's look vector: identical while first-person locks the cursor to the
+	-- crosshair, but stays correct in third person / touch, where the cursor can
+	-- leave the screen center. Orientation (wall facing / stairs ascent) derives
+	-- from the same ray so the candidates always lie along it.
+	local mouseLocation = UserInputService:GetMouseLocation()
+	local pointerRay = camera:ViewportPointToRay(mouseLocation.X, mouseLocation.Y)
+	local origin = pointerRay.Origin
+	local look = pointerRay.Direction
 	local cameraYaw = math.atan2(-look.X, -look.Z)
 	local centerCell = BuildMath.cellOfPoint(BuildConfig, rootPart.Position)
 
